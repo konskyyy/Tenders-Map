@@ -29,7 +29,7 @@ const pool = new Pool({
 });
 
 app.get("/", (req, res) => {
-  res.send("API działa. Wejdź na /api/points albo /api/health");
+  res.send("API działa. Wejdź na /api/health");
 });
 
 app.get("/api/health", async (req, res) => {
@@ -42,6 +42,7 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
+// GET all points
 app.get("/api/points", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM points ORDER BY created_at DESC");
@@ -52,15 +53,24 @@ app.get("/api/points", async (req, res) => {
   }
 });
 
+// CREATE point
 app.post("/api/points", async (req, res) => {
-  const { title, note, status, lat, lng } = req.body;
+  const { title, director, winner, note, status, lat, lng } = req.body;
 
   try {
     const result = await pool.query(
-      `INSERT INTO points (title, note, status, lat, lng)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO points (title, director, winner, note, status, lat, lng)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [title || "Nowy punkt", note || "", status || "planowany", lat, lng]
+      [
+        title || "Nowy punkt",
+        director || "",
+        winner || "",
+        note || "",
+        status || "planowany",
+        lat,
+        lng,
+      ]
     );
     res.json(result.rows[0]);
   } catch (e) {
@@ -69,17 +79,18 @@ app.post("/api/points", async (req, res) => {
   }
 });
 
+// UPDATE point
 app.put("/api/points/:id", async (req, res) => {
   const { id } = req.params;
-  const { title, note, status } = req.body;
+  const { title, director, winner, note, status } = req.body;
 
   try {
     const result = await pool.query(
       `UPDATE points
-       SET title=$1, note=$2, status=$3
-       WHERE id=$4
+       SET title=$1, director=$2, winner=$3, note=$4, status=$5
+       WHERE id=$6
        RETURNING *`,
-      [title || "", note || "", status || "planowany", id]
+      [title || "", director || "", winner || "", note || "", status || "planowany", id]
     );
     res.json(result.rows[0] || null);
   } catch (e) {
@@ -88,6 +99,7 @@ app.put("/api/points/:id", async (req, res) => {
   }
 });
 
+// DELETE point
 app.delete("/api/points/:id", async (req, res) => {
   const { id } = req.params;
 

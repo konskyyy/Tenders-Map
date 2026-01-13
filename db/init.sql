@@ -1,15 +1,15 @@
 CREATE TABLE IF NOT EXISTS points (
   id SERIAL PRIMARY KEY,
   title TEXT NOT NULL,
+  director TEXT,
+  winner TEXT,
   note TEXT,
-status TEXT DEFAULT 'planowany',
+  status TEXT DEFAULT 'planowany',
   lat DOUBLE PRECISION NOT NULL,
   lng DOUBLE PRECISION NOT NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS photos (
-  id SERIAL PRIMARY KEY,
-  point_id INT REFERENCES points(id) ON DELETE CASCADE,
-  url TEXT NOT NULL
-);
+-- jeśli tabela już istnieje, dołóż brakujące kolumny
+ALTER TABLE points ADD COLUMN IF NOT EXISTS director TEXT;
+ALTER TABLE points ADD COLUMN IF NOT EXISTS winner TEXT;
