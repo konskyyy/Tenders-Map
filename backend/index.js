@@ -1,90 +1,140 @@
-const express = require("express");
-const cors = require("cors");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
-const { Pool } = require("pg");
+import express from "express";
+import cors from "cors";
+import pkg from "pg";
+
+const { Pool } = pkg;
 
 const app = express();
-app.use(cors());
+
+/* =======================
+   CONFIG
+======================= */
+
+const PORT = process.env.PORT || 3001;
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
+
+console.log("CORS_ORIGIN:", CORS_ORIGIN);
+console.log("DATABASE_URL set:", !!process.env.DATABASE_URL);
+
+/* =======================
+   MIDDLEWARE
+======================= */
+
+app.use(
+  cors({
+    origin: CORS_ORIGIN,
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
-// DB
+/* =======================
+   DATABASE (Neon)
+======================= */
+
 const pool = new Pool({
-  host: process.env.PGHOST,
-  user: process.env.PGUSER,
-  password: process.env.PGPASSWORD,
-  database: process.env.PGDATABASE,
-  port: process.env.PGPORT,
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  connectionTimeoutMillis: 15000,
 });
 
-// Uploads
-const uploadsDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+/* =======================
+   HEALTHCHECK
+======================= */
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const safe = Date.now() + "-" + file.originalname.replace(/\s+/g, "_");
-    cb(null, safe);
-  },
+app.get("/api/health", async (req, res) => {
+  try {
+    await pool.query("SELECT 1");
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("HEALTH ERROR:", e);
+    res.status(500).json({ ok: false, error: String(e) });
+  }
 });
-const upload = multer({ storage });
 
-app.use("/uploads", express.static(uploadsDir));
+/* =======================
+   ROUTES — POINTS
+======================= */
 
-// API
+// GET all points
 app.get("/api/points", async (req, res) => {
-  const result = await pool.query("SELECT * FROM points ORDER BY created_at DESC");
-  res.json(result.rows);
+  try {
+    const result = await pool.query(
+      "SELECT * FROM points ORDER BY created_at DESC"
+    );
+    res.json(result.rows);
+  } catch (e) {
+    console.error("GET /points ERROR:", e);
+    res.status(500).json({ error: "DB error" });
+  }
 });
 
+// CREATE point
 app.post("/api/points", async (req, res) => {
   const { title, note, status, lat, lng } = req.body;
 
-  const result = await pool.query(
-    "INSERT INTO points (title, note, status, lat, lng) VALUES ($1,$2,$3,$4,$5) RETURNING *",
-    [title, note, status, lat, lng]
-  );
+  try {
+    const result = await pool.query(
+      `INSERT INTO points (title, note, status, lat, lng)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [title, note, status, lat, lng]
+    );
 
-  res.json(result.rows[0]);
+    res.json(result.rows[0]);
+  } catch (e) {
+    console.error("POST /points ERROR:", e);
+    res.status(500).json({ error: "DB error" });
+  }
 });
 
-app.post("/api/points/:id/photo", upload.single("photo"), async (req, res) => {
-  const pointId = req.params.id;
-  const url = `/uploads/${req.file.filename}`;
-
-  await pool.query("INSERT INTO photos (point_id, url) VALUES ($1,$2)", [pointId, url]);
-  res.json({ ok: true, url });
-});
-
-// Usuń punkt (zdjęcia w DB usuną się automatycznie przez ON DELETE CASCADE)
-app.delete("/api/points/:id", async (req, res) => {
-  const id = req.params.id;
-
-  await pool.query("DELETE FROM points WHERE id=$1", [id]);
-
-  res.json({ ok: true });
-});
-
-// Edytuj punkt
+// UPDATE point
 app.put("/api/points/:id", async (req, res) => {
-  const id = req.params.id;
+  const { id } = req.params;
   const { title, note, status } = req.body;
 
-  const result = await pool.query(
-    "UPDATE points SET title=$1, note=$2, status=$3 WHERE id=$4 RETURNING *",
-    [title, note, status, id]
-  );
+  try {
+    const result = await pool.query(
+      `UPDATE points
+       SET title=$1, note=$2, status=$3
+       WHERE id=$4
+       RETURNING *`,
+      [title, note, status, id]
+    );
 
-  res.json(result.rows[0]);
+    res.json(result.rows[0]);
+  } catch (e) {
+    console.error("PUT /points ERROR:", e);
+    res.status(500).json({ error: "DB error" });
+  }
 });
 
-app.get("/api/points/:id/photos", async (req, res) => {
-  const pointId = req.params.id;
-  const result = await pool.query("SELECT * FROM photos WHERE point_id=$1 ORDER BY id DESC", [pointId]);
-  res.json(result.rows);
+// DELETE point
+app.delete("/api/points/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query("DELETE FROM points WHERE id=$1", [id]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("DELETE /points ERROR:", e);
+    res.status(500).json({ error: "DB error" });
+  }
 });
 
-const port = process.env.PORT || 3001;
-app.listen(port, () => console.log("Backend działa na porcie", port));
+/* =======================
+   ROOT
+======================= */
+
+app.get("/", (req, res) => {
+  res.send("API działa. Wejdź na /api/points");
+});
+
+/* =======================
+   START
+======================= */
+
+app.listen(PORT, () => {
+  console.log("Backend działa na porcie", PORT);
+});
