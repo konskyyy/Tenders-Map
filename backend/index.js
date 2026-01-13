@@ -1,47 +1,36 @@
-import express from "express";
-import cors from "cors";
-import pkg from "pg";
-
-const { Pool } = pkg;
+const express = require("express");
+const cors = require("cors");
+const { Pool } = require("pg");
 
 const app = express();
 
-/* =======================
-   CONFIG
-======================= */
-
 const PORT = process.env.PORT || 3001;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
+const DB_SSL = (process.env.DB_SSL || "false").toLowerCase() === "true";
 
 console.log("CORS_ORIGIN:", CORS_ORIGIN);
 console.log("DATABASE_URL set:", !!process.env.DATABASE_URL);
-
-/* =======================
-   MIDDLEWARE
-======================= */
-
-app.use(
-  cors({
-    origin: CORS_ORIGIN,
-    credentials: true,
-  })
-);
+console.log("DB_SSL:", DB_SSL);
 
 app.use(express.json());
 
-/* =======================
-   DATABASE (Neon)
-======================= */
+app.use(
+  cors(
+    CORS_ORIGIN === "*"
+      ? { origin: true, credentials: false }
+      : { origin: CORS_ORIGIN, credentials: true }
+  )
+);
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: DB_SSL ? { rejectUnauthorized: false } : false,
   connectionTimeoutMillis: 15000,
 });
 
-/* =======================
-   HEALTHCHECK
-======================= */
+app.get("/", (req, res) => {
+  res.send("API działa. Wejdź na /api/points albo /api/health");
+});
 
 app.get("/api/health", async (req, res) => {
   try {
@@ -53,24 +42,16 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
-/* =======================
-   ROUTES — POINTS
-======================= */
-
-// GET all points
 app.get("/api/points", async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT * FROM points ORDER BY created_at DESC"
-    );
+    const result = await pool.query("SELECT * FROM points ORDER BY created_at DESC");
     res.json(result.rows);
   } catch (e) {
-    console.error("GET /points ERROR:", e);
-    res.status(500).json({ error: "DB error" });
+    console.error("GET /api/points ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
 
-// CREATE point
 app.post("/api/points", async (req, res) => {
   const { title, note, status, lat, lng } = req.body;
 
@@ -79,17 +60,15 @@ app.post("/api/points", async (req, res) => {
       `INSERT INTO points (title, note, status, lat, lng)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [title, note, status, lat, lng]
+      [title || "Nowy punkt", note || "", status || "planowany", lat, lng]
     );
-
     res.json(result.rows[0]);
   } catch (e) {
-    console.error("POST /points ERROR:", e);
-    res.status(500).json({ error: "DB error" });
+    console.error("POST /api/points ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
 
-// UPDATE point
 app.put("/api/points/:id", async (req, res) => {
   const { id } = req.params;
   const { title, note, status } = req.body;
@@ -100,17 +79,15 @@ app.put("/api/points/:id", async (req, res) => {
        SET title=$1, note=$2, status=$3
        WHERE id=$4
        RETURNING *`,
-      [title, note, status, id]
+      [title || "", note || "", status || "planowany", id]
     );
-
-    res.json(result.rows[0]);
+    res.json(result.rows[0] || null);
   } catch (e) {
-    console.error("PUT /points ERROR:", e);
-    res.status(500).json({ error: "DB error" });
+    console.error("PUT /api/points/:id ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
 
-// DELETE point
 app.delete("/api/points/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -118,22 +95,10 @@ app.delete("/api/points/:id", async (req, res) => {
     await pool.query("DELETE FROM points WHERE id=$1", [id]);
     res.json({ ok: true });
   } catch (e) {
-    console.error("DELETE /points ERROR:", e);
-    res.status(500).json({ error: "DB error" });
+    console.error("DELETE /api/points/:id ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
-
-/* =======================
-   ROOT
-======================= */
-
-app.get("/", (req, res) => {
-  res.send("API działa. Wejdź na /api/points");
-});
-
-/* =======================
-   START
-======================= */
 
 app.listen(PORT, () => {
   console.log("Backend działa na porcie", PORT);

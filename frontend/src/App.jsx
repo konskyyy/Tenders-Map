@@ -2,7 +2,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaf
 import { useEffect, useMemo, useState } from "react";
 import L from "leaflet";
 
-const API = "http://127.0.0.1:3001/api";
+const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:3001";
+const API = `${API_BASE}/api`;
 
 // RAL 5003 (Sapphire blue)
 const RAL5003 = "#1F3855";
@@ -29,13 +30,15 @@ function statusLabel(s) {
 function statusColor(status) {
   if (status === "przetarg") return "#f59e0b"; // pomarańcz
   if (status === "realizacja") return "#22c55e"; // zielony
-  return "#3b82f6"; // niebieski
+  return "#3b82f6"; // niebieski (planowany)
 }
 
 function pinSvg(color) {
   return `
-  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 22s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z" fill="${color}"/>
+  <svg width="34" height="34" viewBox="0 0 24 24" fill="none"
+       xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 22s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"
+          fill="${color}"/>
     <circle cx="12" cy="10" r="2.6" fill="white" fill-opacity="0.95"/>
     <circle cx="12" cy="10" r="1.4" fill="rgba(0,0,0,0.25)"/>
   </svg>`;
@@ -64,8 +67,9 @@ export default function App() {
   const [form, setForm] = useState({ title: "", note: "", status: "planowany" });
   const [saving, setSaving] = useState(false);
   const [busyDelete, setBusyDelete] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
 
-  // cache ikon, żeby nie tworzyć ich dla każdego renderu
   const pinIcons = useMemo(() => {
     return {
       planowany: makePinIcon(statusColor("planowany")),
@@ -75,9 +79,18 @@ export default function App() {
   }, []);
 
   async function loadPoints() {
-    const res = await fetch(`${API}/points`);
-    const data = await res.json();
-    setPoints(data);
+    setLoading(true);
+    setApiError("");
+    try {
+      const res = await fetch(`${API}/points`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setPoints(data);
+    } catch (e) {
+      setApiError(`Nie mogę pobrać punktów z API: ${String(e)}`);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -91,9 +104,10 @@ export default function App() {
       note: selected.note || "",
       status: selected.status || "planowany",
     });
-  }, [selectedId]); // celowo po id
+  }, [selectedId]); // celowo
 
   async function addPoint(latlng) {
+    setApiError("");
     const body = {
       title: "Nowy punkt",
       note: "",
@@ -102,30 +116,37 @@ export default function App() {
       lng: latlng.lng,
     };
 
-    const res = await fetch(`${API}/points`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    const created = await res.json();
-    setPoints((p) => [created, ...p]);
-    setSelectedId(created.id);
-    setSidebarOpen(true);
+    try {
+      const res = await fetch(`${API}/points`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const created = await res.json();
+      setPoints((p) => [created, ...p]);
+      setSelectedId(created.id);
+      setSidebarOpen(true);
+    } catch (e) {
+      setApiError(`Nie mogę dodać punktu: ${String(e)}`);
+    }
   }
 
   async function savePoint() {
     if (!selected) return;
-
     setSaving(true);
+    setApiError("");
     try {
       const res = await fetch(`${API}/points/${selected.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const updated = await res.json();
       setPoints((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    } catch (e) {
+      setApiError(`Nie mogę zapisać: ${String(e)}`);
     } finally {
       setSaving(false);
     }
@@ -138,10 +159,14 @@ export default function App() {
     if (!ok) return;
 
     setBusyDelete(true);
+    setApiError("");
     try {
-      await fetch(`${API}/points/${selected.id}`, { method: "DELETE" });
+      const res = await fetch(`${API}/points/${selected.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setPoints((prev) => prev.filter((p) => p.id !== selected.id));
       setSelectedId(null);
+    } catch (e) {
+      setApiError(`Nie mogę usunąć: ${String(e)}`);
     } finally {
       setBusyDelete(false);
     }
@@ -205,12 +230,47 @@ export default function App() {
 
               <div style={{ display: "grid", gap: 2 }}>
                 <div style={{ fontWeight: 800, letterSpacing: 0.2 }}>Punkty postępu</div>
-                <div style={{ fontSize: 12, color: MUTED }}>Kliknij mapę, aby dodać. Kliknij punkt, aby edytować.</div>
+                <div style={{ fontSize: 12, color: MUTED }}>
+                  Kliknij mapę, aby dodać. Kliknij punkt, aby edytować.
+                </div>
               </div>
             </div>
 
             {/* CONTENT */}
             <div style={{ padding: 12, height: "calc(100% - 59px)", overflow: "auto" }}>
+              {apiError ? (
+                <div
+                  style={{
+                    padding: 10,
+                    borderRadius: 14,
+                    border: "1px solid rgba(255,120,120,0.45)",
+                    background: "rgba(255,120,120,0.12)",
+                    color: "rgba(255,255,255,0.95)",
+                    fontSize: 12,
+                    marginBottom: 10,
+                  }}
+                >
+                  {apiError}
+                </div>
+              ) : null}
+
+              <button
+                onClick={loadPoints}
+                style={{
+                  width: "100%",
+                  padding: 10,
+                  borderRadius: 12,
+                  border: `1px solid ${BORDER}`,
+                  background: "rgba(255,255,255,0.08)",
+                  color: TEXT_LIGHT,
+                  cursor: "pointer",
+                  fontWeight: 700,
+                  marginBottom: 12,
+                }}
+              >
+                {loading ? "Ładuję..." : "Odśwież punkty"}
+              </button>
+
               {/* EDIT */}
               <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
                 {selected ? (
@@ -347,7 +407,7 @@ export default function App() {
                     </div>
 
                     <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
-                      ({pt.lat.toFixed(4)}, {pt.lng.toFixed(4)})
+                      ({Number(pt.lat).toFixed(4)}, {Number(pt.lng).toFixed(4)})
                     </div>
 
                     {pt.note ? (
@@ -394,7 +454,7 @@ export default function App() {
         ) : null}
 
         <MapContainer center={[52.2297, 21.0122]} zoom={12} style={{ width: "100%", height: "100%" }}>
-          <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <ClickHandler onAdd={addPoint} />
 
           {points.map((pt) => {
