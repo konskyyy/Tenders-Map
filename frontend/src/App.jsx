@@ -22,6 +22,7 @@ const STATUSES = [
   { key: "planowany", label: "Planowany", color: "#3b82f6" },
   { key: "przetarg", label: "Przetarg", color: "#f59e0b" },
   { key: "realizacja", label: "Realizacja", color: "#22c55e" },
+  { key: "nieaktualny", label: "Nieaktualny", color: "#9ca3af" }, // szary
 ];
 
 function ClickHandler({ onAdd }) {
@@ -36,12 +37,14 @@ function ClickHandler({ onAdd }) {
 function statusLabel(s) {
   if (s === "przetarg") return "przetarg";
   if (s === "realizacja") return "realizacja";
+  if (s === "nieaktualny") return "nieaktualny";
   return "planowany";
 }
 
 function statusColor(status) {
   if (status === "przetarg") return "#f59e0b";
   if (status === "realizacja") return "#22c55e";
+  if (status === "nieaktualny") return "#9ca3af"; // szary
   return "#3b82f6";
 }
 
@@ -97,6 +100,7 @@ export default function App() {
     planowany: true,
     przetarg: true,
     realizacja: true,
+    nieaktualny: true,
   });
 
   const selected = useMemo(
@@ -122,6 +126,7 @@ export default function App() {
       planowany: makePinIcon(statusColor("planowany")),
       przetarg: makePinIcon(statusColor("przetarg")),
       realizacja: makePinIcon(statusColor("realizacja")),
+      nieaktualny: makePinIcon(statusColor("nieaktualny")),
     };
   }, []);
 
@@ -130,7 +135,7 @@ export default function App() {
   }, [points, visibleStatus]);
 
   const counts = useMemo(() => {
-    const c = { planowany: 0, przetarg: 0, realizacja: 0 };
+    const c = { planowany: 0, przetarg: 0, realizacja: 0, nieaktualny: 0 };
     for (const p of points) {
       const st = p.status || "planowany";
       c[st] = (c[st] || 0) + 1;
@@ -179,10 +184,10 @@ export default function App() {
     setVisibleStatus((s) => ({ ...s, [key]: !s[key] }));
   }
   function showAllStatuses() {
-    setVisibleStatus({ planowany: true, przetarg: true, realizacja: true });
+    setVisibleStatus({ planowany: true, przetarg: true, realizacja: true, nieaktualny: true });
   }
   function hideAllStatuses() {
-    setVisibleStatus({ planowany: false, przetarg: false, realizacja: false });
+    setVisibleStatus({ planowany: false, przetarg: false, realizacja: false, nieaktualny: false });
   }
 
   async function addPoint(latlng) {
@@ -286,7 +291,6 @@ export default function App() {
       >
         {sidebarOpen ? (
           <>
-            {/* HEADER */}
             <div
               style={{
                 display: "flex",
@@ -324,7 +328,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* CONTENT */}
             <div style={{ padding: 12, height: "calc(100% - 59px)", overflow: "auto" }}>
               {apiError ? (
                 <div
@@ -359,13 +362,11 @@ export default function App() {
                 {loading ? "Ładuję..." : "Odśwież punkty"}
               </button>
 
-              {/* PODGLĄD boxów */}
               <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
                 <InfoCard label="Dyrektor kontraktu" value={form.director} placeholder="(nie ustawiono)" />
                 <InfoCard label="Firma (wykonawca)" value={form.winner} placeholder="(nie ustawiono)" />
               </div>
 
-              {/* EDYCJA */}
               <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
                 {selected ? (
                   <>
@@ -445,6 +446,7 @@ export default function App() {
                       <option value="planowany">planowany</option>
                       <option value="przetarg">przetarg</option>
                       <option value="realizacja">realizacja</option>
+                      <option value="nieaktualny">nieaktualny</option>
                     </select>
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 6 }}>
@@ -497,7 +499,6 @@ export default function App() {
 
               <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-              {/* LISTA */}
               <div style={{ display: "grid", gap: 8 }}>
                 {filteredPoints.map((pt) => (
                   <div
@@ -602,7 +603,6 @@ export default function App() {
           </button>
         ) : null}
 
-        {/* Filtry statusów */}
         <div
           style={{
             position: "absolute",
