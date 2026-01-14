@@ -69,17 +69,11 @@ export default function App() {
         <div style={cardStyle}>
           <div style={brandRow}>
             <div style={brandDot} />
-            <div style={{ color: "white", fontWeight: 800, letterSpacing: 0.2 }}>
-              Tenders Map
-            </div>
+            <div style={brandText}>Tenders Map</div>
           </div>
 
-          <h2 style={{ margin: "10px 0 0", fontSize: 22, color: "white" }}>
-            Logowanie
-          </h2>
-          <p style={{ marginTop: 8, opacity: 0.82, color: "white" }}>
-            Wpisz login i hasło.
-          </p>
+          <h2 style={titleStyle}>Logowanie</h2>
+          <p style={subtitleStyle}>Wpisz login i hasło.</p>
 
           {err ? <div style={errorStyle}>{err}</div> : null}
 
@@ -108,9 +102,7 @@ export default function App() {
             </button>
           </form>
 
-          <div style={hintStyle}>
-            Konta użytkowników są zakładane przez administratora.
-          </div>
+          <div style={hintStyle}>Konta użytkowników są zakładane przez administratora.</div>
         </div>
       </div>
     );
@@ -135,9 +127,7 @@ export default function App() {
       <div style={contentStyle}>
         <div style={contentCardStyle}>
           <div style={{ fontWeight: 800, marginBottom: 6 }}>Twoja aplikacja</div>
-          <div style={{ opacity: 0.8 }}>
-            Tu podepniesz mapę i punkty. Logowanie jest gotowe.
-          </div>
+          <div style={{ opacity: 0.8 }}>Tu podepniesz mapę i punkty.</div>
         </div>
       </div>
     </div>
@@ -146,12 +136,14 @@ export default function App() {
 
 /** ===== styles ===== */
 
+// Tło na cały ekran + responsywność + brak “pasów” po bokach
 const pageStyle = {
   minHeight: "100vh",
+  width: "100vw",
   display: "grid",
   placeItems: "center",
-  padding: 16,
-  // lepsze tło
+  padding: "clamp(12px, 3vw, 24px)",
+  overflow: "hidden",
   background:
     "radial-gradient(1200px 600px at 20% 10%, rgba(99,102,241,0.22), transparent 60%)," +
     "radial-gradient(900px 500px at 85% 20%, rgba(34,197,94,0.14), transparent 55%)," +
@@ -159,11 +151,14 @@ const pageStyle = {
     "linear-gradient(180deg, #070B14 0%, #0B1220 45%, #070B14 100%)",
 };
 
+// Karta ma zawsze zmieścić się na ekranie
 const cardStyle = {
-  width: "min(420px, 100%)",
+  boxSizing: "border-box",
+  width: "min(420px, 92vw)",
+  maxWidth: 520,
   background: "rgba(18, 32, 51, 0.72)",
   borderRadius: 18,
-  padding: 20,
+  padding: "clamp(16px, 2.2vw, 22px)",
   boxShadow: "0 18px 55px rgba(0,0,0,0.45)",
   border: "1px solid rgba(255,255,255,0.10)",
   backdropFilter: "blur(10px)",
@@ -176,11 +171,33 @@ const brandRow = {
 };
 
 const brandDot = {
-  width: 12,
-  height: 12,
+  width: 10,
+  height: 10,
   borderRadius: 999,
   background: "rgba(255,255,255,0.85)",
   boxShadow: "0 0 0 6px rgba(255,255,255,0.08)",
+  flex: "0 0 auto",
+};
+
+const brandText = {
+  color: "white",
+  fontWeight: 800,
+  letterSpacing: 0.2,
+  fontSize: 14,
+};
+
+const titleStyle = {
+  margin: "10px 0 0",
+  fontSize: 22,
+  color: "white",
+  textAlign: "center",
+};
+
+const subtitleStyle = {
+  marginTop: 8,
+  opacity: 0.82,
+  color: "white",
+  textAlign: "center",
 };
 
 const labelStyle = {
@@ -192,8 +209,9 @@ const labelStyle = {
 };
 
 const inputStyle = {
+  boxSizing: "border-box",
   width: "100%",
-  height: 44,
+  height: 40, // mniejsze
   borderRadius: 12,
   border: "1px solid rgba(255,255,255,0.12)",
   background: "rgba(255,255,255,0.06)",
@@ -203,6 +221,7 @@ const inputStyle = {
 };
 
 const errorStyle = {
+  boxSizing: "border-box",
   marginTop: 12,
   padding: 12,
   borderRadius: 12,
@@ -211,10 +230,12 @@ const errorStyle = {
   color: "rgba(255,255,255,0.96)",
 };
 
+// Przycisk mniejszy i zawsze w karcie
 const primaryButtonStyle = (loading) => ({
+  boxSizing: "border-box",
   marginTop: 14,
   width: "100%",
-  height: 44,
+  height: 40, // mniejsze
   borderRadius: 12,
   border: "1px solid rgba(255,255,255,0.14)",
   background: "rgba(255,255,255,0.10)",
@@ -224,14 +245,17 @@ const primaryButtonStyle = (loading) => ({
 });
 
 const hintStyle = {
-  marginTop: 14,
+  marginTop: 12,
   opacity: 0.78,
   fontSize: 13,
   color: "white",
+  textAlign: "center",
 };
 
 const appShellStyle = {
   minHeight: "100vh",
+  width: "100vw",
+  overflow: "hidden",
   background:
     "radial-gradient(1200px 600px at 20% 10%, rgba(99,102,241,0.18), transparent 60%)," +
     "radial-gradient(900px 500px at 85% 20%, rgba(34,197,94,0.10), transparent 55%)," +
@@ -250,7 +274,7 @@ const topBarStyle = {
 };
 
 const secondaryButtonStyle = {
-  height: 40,
+  height: 38,
   padding: "0 12px",
   borderRadius: 12,
   border: "1px solid rgba(255,255,255,0.14)",
