@@ -117,6 +117,7 @@ export default function App() {
           <div style={{ color: "yellow", fontWeight: 900, marginBottom: 8 }}>
             {BUILD_ID}
           </div>
+<div style={{ color: "yellow", fontWeight: 900 }}>BUILD-XYZ</div>
 
           <h2 style={{ margin: 0, fontSize: 22, color: "white" }}>Logowanie</h2>
           <p style={{ marginTop: 8, opacity: 0.8, color: "white" }}>
