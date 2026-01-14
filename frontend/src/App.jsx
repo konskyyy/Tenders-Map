@@ -1,4 +1,5 @@
 // frontend/src/App.jsx
+<div style={{ color: "yellow" }}>TEST-123</div>
 import { useEffect, useState } from "react";
 import "./App.css";
 import { getToken, loginRequest, meRequest, setToken } from "./api";
