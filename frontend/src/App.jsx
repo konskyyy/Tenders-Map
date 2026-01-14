@@ -2,11 +2,6 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents, ZoomControl, GeoJ
 import { useEffect, useMemo, useState } from "react";
 import L from "leaflet";
 
-import { useEffect, useMemo, useState } from "react";
-import L from "leaflet";
-import { GeoJSON } from "react-leaflet";
-
-
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:3001";
 const API = `${API_BASE}/api`;
 
@@ -17,7 +12,7 @@ const TEXT_LIGHT = "#ffffff";
 const BORDER = "rgba(255,255,255,0.12)";
 const MUTED = "rgba(255,255,255,0.75)";
 
-// Granice Polski
+// Granice Polski (fit na start)
 const POLAND_BOUNDS = [
   [49.0, 14.1],
   [54.9, 24.2],
@@ -29,6 +24,96 @@ const STATUSES = [
   { key: "realizacja", label: "Realizacja", color: "#22c55e" },
   { key: "nieaktualny", label: "Nieaktualny", color: "#9ca3af" }, // szary
 ];
+
+// Kraje, które mają pozostać "kolorowe" (uprośc. prostokąty)
+const VISIBLE_COUNTRIES = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: { name: "Poland" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [14.12, 54.83],
+            [24.15, 54.83],
+            [24.15, 49.0],
+            [14.12, 49.0],
+            [14.12, 54.83],
+          ],
+        ],
+      },
+    },
+    {
+      type: "Feature",
+      properties: { name: "Lithuania" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [20.9, 56.45],
+            [26.9, 56.45],
+            [26.9, 53.9],
+            [20.9, 53.9],
+            [20.9, 56.45],
+          ],
+        ],
+      },
+    },
+    {
+      type: "Feature",
+      properties: { name: "Latvia" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [20.9, 58.1],
+            [28.2, 58.1],
+            [28.2, 55.6],
+            [20.9, 55.6],
+            [20.9, 58.1],
+          ],
+        ],
+      },
+    },
+    {
+      type: "Feature",
+      properties: { name: "Estonia" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [23.3, 59.7],
+            [28.2, 59.7],
+            [28.2, 57.5],
+            [23.3, 57.5],
+            [23.3, 59.7],
+          ],
+        ],
+      },
+    },
+  ],
+};
+
+// Maska świata (świat minus powyższe kraje)
+const WORLD_MASK = {
+  type: "Feature",
+  geometry: {
+    type: "Polygon",
+    coordinates: [
+      [
+        [-180, -90],
+        [180, -90],
+        [180, 90],
+        [-180, 90],
+        [-180, -90],
+      ],
+      // "dziury" – kraje które zostają kolorowe
+      ...VISIBLE_COUNTRIES.features.map((f) => f.geometry.coordinates[0]),
+    ],
+  },
+};
 
 function ClickHandler({ onAdd }) {
   useMapEvents({
@@ -49,7 +134,7 @@ function statusLabel(s) {
 function statusColor(status) {
   if (status === "przetarg") return "#f59e0b";
   if (status === "realizacja") return "#22c55e";
-  if (status === "nieaktualny") return "#9ca3af"; // szary
+  if (status === "nieaktualny") return "#9ca3af";
   return "#3b82f6";
 }
 
@@ -98,80 +183,6 @@ export default function App() {
   const [points, setPoints] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  // Kraje, które mają pozostać "kolorowe"
-const VISIBLE_COUNTRIES = {
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: { name: "Poland" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [[
-          [14.12, 54.83], [24.15, 54.83],
-          [24.15, 49.0], [14.12, 49.0],
-          [14.12, 54.83]
-        ]]
-      }
-    },
-    {
-      type: "Feature",
-      properties: { name: "Lithuania" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [[
-          [20.9, 56.45], [26.9, 56.45],
-          [26.9, 53.9], [20.9, 53.9],
-          [20.9, 56.45]
-        ]]
-      }
-    },
-    {
-      type: "Feature",
-      properties: { name: "Latvia" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [[
-          [20.9, 58.1], [28.2, 58.1],
-          [28.2, 55.6], [20.9, 55.6],
-          [20.9, 58.1]
-        ]]
-      }
-    },
-    {
-      type: "Feature",
-      properties: { name: "Estonia" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [[
-          [23.3, 59.7], [28.2, 59.7],
-          [28.2, 57.5], [23.3, 57.5],
-          [23.3, 59.7]
-        ]]
-      }
-    }
-  ]
-};
-
-// Maska świata (świat minus powyższe kraje)
-const WORLD_MASK = {
-  type: "Feature",
-  geometry: {
-    type: "Polygon",
-    coordinates: [
-      [
-        [-180, -90],
-        [180, -90],
-        [180, 90],
-        [-180, 90],
-        [-180, -90]
-      ],
-      // "dziury" – kraje które zostają kolorowe
-      ...VISIBLE_COUNTRIES.features.map(f => f.geometry.coordinates[0])
-    ]
-  }
-};
-
 
   // Filtry statusów
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -777,7 +788,20 @@ const WORLD_MASK = {
           zoomControl={false}
         >
           <ZoomControl position="bottomright" />
+
           <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+          {/* WYSZARZENIE ŚWIATA (PL/LT/LV/EE zostają normalne) */}
+          <GeoJSON
+            data={WORLD_MASK}
+            style={{
+              fillColor: "#0f172a",
+              fillOpacity: 0.55,
+              color: "#0f172a",
+              weight: 0,
+            }}
+          />
+
           <ClickHandler onAdd={addPoint} />
 
           {filteredPoints.map((pt) => {
