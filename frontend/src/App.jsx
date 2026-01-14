@@ -18,6 +18,12 @@ const POLAND_BOUNDS = [
   [54.9, 24.2],
 ];
 
+const STATUSES = [
+  { key: "planowany", label: "Planowany", color: "#3b82f6" },
+  { key: "przetarg", label: "Przetarg", color: "#f59e0b" },
+  { key: "realizacja", label: "Realizacja", color: "#22c55e" },
+];
+
 function ClickHandler({ onAdd }) {
   useMapEvents({
     click(e) {
@@ -85,6 +91,14 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  // ✅ filtry statusów
+  const [filtersOpen, setFiltersOpen] = useState(true);
+  const [visibleStatus, setVisibleStatus] = useState({
+    planowany: true,
+    przetarg: true,
+    realizacja: true,
+  });
+
   const selected = useMemo(
     () => points.find((p) => p.id === selectedId) || null,
     [points, selectedId]
@@ -110,6 +124,29 @@ export default function App() {
       realizacja: makePinIcon(statusColor("realizacja")),
     };
   }, []);
+
+  // ✅ punkty po filtrach (dla mapy i listy)
+  const filteredPoints = useMemo(() => {
+    return points.filter((p) => visibleStatus[p.status || "planowany"] !== false);
+  }, [points, visibleStatus]);
+
+  // ✅ liczniki (po wszystkich punktach)
+  const counts = useMemo(() => {
+    const c = { planowany: 0, przetarg: 0, realizacja: 0 };
+    for (const p of points) {
+      const st = p.status || "planowany";
+      if (c[st] === undefined) c[st] = 0;
+      c[st] += 1;
+    }
+    return c;
+  }, [points]);
+
+  // ✅ jeżeli zaznaczony punkt został odfiltrowany, odznacz
+  useEffect(() => {
+    if (!selectedId) return;
+    const stillVisible = filteredPoints.some((p) => p.id === selectedId);
+    if (!stillVisible) setSelectedId(null);
+  }, [filteredPoints, selectedId]);
 
   async function loadPoints() {
     setLoading(true);
@@ -211,6 +248,18 @@ export default function App() {
     }
   }
 
+  function toggleStatus(key) {
+    setVisibleStatus((s) => ({ ...s, [key]: !s[key] }));
+  }
+
+  function showAllStatuses() {
+    setVisibleStatus({ planowany: true, przetarg: true, realizacja: true });
+  }
+
+  function hideAllStatuses() {
+    setVisibleStatus({ planowany: false, przetarg: false, realizacja: false });
+  }
+
   const sidebarWidthOpen = 380;
   const sidebarWidthClosed = 0;
 
@@ -259,7 +308,7 @@ export default function App() {
                   color: TEXT_LIGHT,
                   cursor: "pointer",
                   display: "grid",
-                  placeItems: "center", // idealne centrowanie
+                  placeItems: "center",
                   fontSize: 18,
                   lineHeight: 1,
                   padding: 0,
@@ -309,7 +358,7 @@ export default function App() {
                 {loading ? "Ładuję..." : "Odśwież punkty"}
               </button>
 
-              {/* BOXy info (nad notatką) */}
+              {/* BOXy info */}
               <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
                 <InfoCard label="Dyrektor kontraktu" value={selected?.director} placeholder="(nie ustawiono)" />
                 <InfoCard label="Firma (wykonawca)" value={selected?.winner} placeholder="(nie ustawiono)" />
@@ -447,9 +496,9 @@ export default function App() {
 
               <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-              {/* LISTA */}
+              {/* LISTA — ✅ filtrowana */}
               <div style={{ display: "grid", gap: 8 }}>
-                {points.map((pt) => (
+                {filteredPoints.map((pt) => (
                   <div
                     key={pt.id}
                     onClick={() => {
@@ -459,7 +508,8 @@ export default function App() {
                     style={{
                       padding: 10,
                       borderRadius: 14,
-                      border: pt.id === selectedId ? `2px solid rgba(255,255,255,0.35)` : `1px solid ${BORDER}`,
+                      border:
+                        pt.id === selectedId ? `2px solid rgba(255,255,255,0.35)` : `1px solid ${BORDER}`,
                       background: "rgba(255,255,255,0.05)",
                       cursor: "pointer",
                     }}
@@ -503,6 +553,19 @@ export default function App() {
                     ) : null}
                   </div>
                 ))}
+
+                {filteredPoints.length === 0 ? (
+                  <div
+                    style={{
+                      padding: 12,
+                      borderRadius: 14,
+                      border: `1px dashed ${BORDER}`,
+                      color: MUTED,
+                    }}
+                  >
+                    Brak punktów dla zaznaczonych statusów.
+                  </div>
+                ) : null}
               </div>
             </div>
           </>
@@ -539,6 +602,95 @@ export default function App() {
           </button>
         ) : null}
 
+        {/* ✅ Filtry statusów — prawy górny róg */}
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 1200,
+            top: 12,
+            right: 12,
+            width: 240,
+            borderRadius: 16,
+            border: `1px solid ${BORDER}`,
+            background: "rgba(22,42,64,0.70)", // półprzezroczysty
+            backdropFilter: "blur(8px)",
+            color: TEXT_LIGHT,
+            overflow: "hidden",
+            boxShadow: "0 10px 28px rgba(0,0,0,0.35)",
+          }}
+        >
+          <div
+            onClick={() => setFiltersOpen((o) => !o)}
+            style={{
+              padding: "12px 14px",
+              cursor: "pointer",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontWeight: 900,
+            }}
+          >
+            <span>Statusy</span>
+            <span style={{ fontSize: 12, color: MUTED }}>
+              {filteredPoints.length}/{points.length} {filtersOpen ? "▾" : "▸"}
+            </span>
+          </div>
+
+          {filtersOpen ? (
+            <div style={{ padding: "8px 12px 12px", display: "grid", gap: 10 }}>
+              {STATUSES.map((s) => (
+                <label
+                  key={s.key}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    cursor: "pointer",
+                    opacity: visibleStatus[s.key] ? 1 : 0.5,
+                    userSelect: "none",
+                  }}
+                >
+                  <input type="checkbox" checked={visibleStatus[s.key]} onChange={() => toggleStatus(s.key)} />
+                  <span style={{ width: 10, height: 10, borderRadius: 999, background: s.color }} />
+                  <span style={{ flex: 1, fontWeight: 800 }}>{s.label}</span>
+                  <span style={{ fontSize: 12, color: MUTED }}>{counts[s.key] ?? 0}</span>
+                </label>
+              ))}
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 2 }}>
+                <button
+                  onClick={showAllStatuses}
+                  style={{
+                    padding: "10px 10px",
+                    borderRadius: 12,
+                    border: `1px solid ${BORDER}`,
+                    background: "rgba(255,255,255,0.08)",
+                    color: TEXT_LIGHT,
+                    cursor: "pointer",
+                    fontWeight: 800,
+                  }}
+                >
+                  Pokaż
+                </button>
+                <button
+                  onClick={hideAllStatuses}
+                  style={{
+                    padding: "10px 10px",
+                    borderRadius: 12,
+                    border: `1px solid ${BORDER}`,
+                    background: "rgba(255,255,255,0.05)",
+                    color: TEXT_LIGHT,
+                    cursor: "pointer",
+                    fontWeight: 800,
+                  }}
+                >
+                  Ukryj
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
         <MapContainer
           bounds={POLAND_BOUNDS}
           boundsOptions={{ padding: [20, 20] }}
@@ -551,7 +703,8 @@ export default function App() {
 
           <ClickHandler onAdd={addPoint} />
 
-          {points.map((pt) => {
+          {/* ✅ MARKERY — filtrowane */}
+          {filteredPoints.map((pt) => {
             const st = pt.status || "planowany";
             const icon = pinIcons[st] || pinIcons.planowany;
 
