@@ -1332,14 +1332,14 @@ export default function App() {
             {/* Existing tunnels inside FeatureGroup so edit/delete works */}
             {filteredTunnels.map((t) => (
               <Polyline
-                key={`tl-${t.id}`}
-                positions={(t.path || []).map((p) => [p.lat, p.lng])}
-                pathOptions={{
-                  color: tunnelColor(t.status),
-                  weight: 5,
-                  opacity: 0.9,
-                  tunnelId: t.id, // <-- ważne: do mapowania w onEdited/onDeleted
-                }}
+  ...
+  pathOptions={{
+    color: tunnelColor(t.status),
+    weight: 8,
+    opacity: 0.95,
+    tunnelId: t.id,
+  }}
+/>
                 eventHandlers={{
                   click: () => {
                     setSelectedTunnelId(t.id);
