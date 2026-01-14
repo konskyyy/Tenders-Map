@@ -1,4 +1,12 @@
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, ZoomControl, GeoJSON } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMapEvents,
+  ZoomControl,
+  GeoJSON,
+} from "react-leaflet";
 import { useEffect, useMemo, useState } from "react";
 import L from "leaflet";
 
@@ -12,7 +20,7 @@ const TEXT_LIGHT = "#ffffff";
 const BORDER = "rgba(255,255,255,0.12)";
 const MUTED = "rgba(255,255,255,0.75)";
 
-// Granice Polski (fit na start)
+// Start mapy (dalej trzymamy rozsądny widok na PL, ale maska działa globalnie)
 const POLAND_BOUNDS = [
   [49.0, 14.1],
   [54.9, 24.2],
@@ -22,98 +30,15 @@ const STATUSES = [
   { key: "planowany", label: "Planowany", color: "#3b82f6" },
   { key: "przetarg", label: "Przetarg", color: "#f59e0b" },
   { key: "realizacja", label: "Realizacja", color: "#22c55e" },
-  { key: "nieaktualny", label: "Nieaktualny", color: "#9ca3af" }, // szary
+  { key: "nieaktualny", label: "Nieaktualny", color: "#9ca3af" },
 ];
 
-// Kraje, które mają pozostać "kolorowe" (uprośc. prostokąty)
-const VISIBLE_COUNTRIES = {
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: { name: "Poland" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [
-          [
-            [14.12, 54.83],
-            [24.15, 54.83],
-            [24.15, 49.0],
-            [14.12, 49.0],
-            [14.12, 54.83],
-          ],
-        ],
-      },
-    },
-    {
-      type: "Feature",
-      properties: { name: "Lithuania" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [
-          [
-            [20.9, 56.45],
-            [26.9, 56.45],
-            [26.9, 53.9],
-            [20.9, 53.9],
-            [20.9, 56.45],
-          ],
-        ],
-      },
-    },
-    {
-      type: "Feature",
-      properties: { name: "Latvia" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [
-          [
-            [20.9, 58.1],
-            [28.2, 58.1],
-            [28.2, 55.6],
-            [20.9, 55.6],
-            [20.9, 58.1],
-          ],
-        ],
-      },
-    },
-    {
-      type: "Feature",
-      properties: { name: "Estonia" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [
-          [
-            [23.3, 59.7],
-            [28.2, 59.7],
-            [28.2, 57.5],
-            [23.3, 57.5],
-            [23.3, 59.7],
-          ],
-        ],
-      },
-    },
-  ],
-};
+// Natural Earth (GeoJSON) – granice państw świata
+const NE_COUNTRIES_URL =
+  "https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_countries.geojson";
 
-// Maska świata (świat minus powyższe kraje)
-const WORLD_MASK = {
-  type: "Feature",
-  geometry: {
-    type: "Polygon",
-    coordinates: [
-      [
-        [-180, -90],
-        [180, -90],
-        [180, 90],
-        [-180, 90],
-        [-180, -90],
-      ],
-      // "dziury" – kraje które zostają kolorowe
-      ...VISIBLE_COUNTRIES.features.map((f) => f.geometry.coordinates[0]),
-    ],
-  },
-};
+// Państwa, które mają zostać “kolorowe” (bez maski)
+const KEEP_COUNTRIES_A3 = new Set(["POL", "LTU", "LVA", "EST"]);
 
 function ClickHandler({ onAdd }) {
   useMapEvents({
@@ -173,16 +98,47 @@ function InfoCard({ label, value, placeholder }) {
     >
       <div style={{ fontSize: 12, color: MUTED }}>{label}</div>
       <div style={{ fontWeight: 800, color: "rgba(255,255,255,0.95)" }}>
-        {value?.trim?.() ? value : <span style={{ color: "rgba(255,255,255,0.6)" }}>{placeholder}</span>}
+        {value?.trim?.()
+          ? value
+          : (
+            <span style={{ color: "rgba(255,255,255,0.6)" }}>
+              {placeholder}
+            </span>
+          )}
       </div>
     </div>
   );
+}
+
+// Wyciągnięcie “zewnętrznych pierścieni” z Polygon/MultiPolygon (do dziur w masce)
+function extractOuterRings(geometry) {
+  if (!geometry) return [];
+  const { type, coordinates } = geometry;
+
+  if (type === "Polygon") {
+    // coordinates: [ outerRing, hole1, hole2 ... ]
+    return coordinates?.[0] ? [coordinates[0]] : [];
+  }
+
+  if (type === "MultiPolygon") {
+    // coordinates: [ [outerRing, hole1...], [outerRing, hole1...] ... ]
+    const rings = [];
+    for (const poly of coordinates || []) {
+      if (poly?.[0]) rings.push(poly[0]);
+    }
+    return rings;
+  }
+
+  return [];
 }
 
 export default function App() {
   const [points, setPoints] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // GeoJSON mask / highlight
+  const [worldMask, setWorldMask] = useState(null);
 
   // Filtry statusów
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -254,10 +210,66 @@ export default function App() {
     }
   }
 
+  // Ładujemy punkty
   useEffect(() => {
     loadPoints();
   }, []);
 
+  // Ładujemy prawdziwe granice i budujemy maskę (świat wyszarzony z “dziurą” na PL/LT/LV/EE)
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      try {
+        const res = await fetch(NE_COUNTRIES_URL);
+        if (!res.ok) throw new Error(`GeoJSON HTTP ${res.status}`);
+        const fc = await res.json();
+
+        const keepFeatures = (fc.features || []).filter((f) => {
+          const a3 =
+            f?.properties?.ADM0_A3 ||
+            f?.properties?.ISO_A3 ||
+            f?.properties?.iso_a3;
+          return KEEP_COUNTRIES_A3.has(a3);
+        });
+
+        const holes = [];
+        for (const f of keepFeatures) {
+          holes.push(...extractOuterRings(f.geometry));
+        }
+
+        // Świat jako duży prostokąt + “dziury” z dokładnymi granicami wybranych krajów
+        const mask = {
+          type: "Feature",
+          properties: { name: "world-mask" },
+          geometry: {
+            type: "Polygon",
+            coordinates: [
+              [
+                [-180, -90],
+                [180, -90],
+                [180, 90],
+                [-180, 90],
+                [-180, -90],
+              ],
+              ...holes,
+            ],
+          },
+        };
+
+        if (alive) setWorldMask(mask);
+      } catch {
+        // jak się nie pobierze, to po prostu nie pokazujemy maski
+        if (alive) setWorldMask(null);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Po wyborze punktu wypełnij formularz
   useEffect(() => {
     if (!selected) return;
     setForm({
@@ -274,10 +286,20 @@ export default function App() {
     setVisibleStatus((s) => ({ ...s, [key]: !s[key] }));
   }
   function showAllStatuses() {
-    setVisibleStatus({ planowany: true, przetarg: true, realizacja: true, nieaktualny: true });
+    setVisibleStatus({
+      planowany: true,
+      przetarg: true,
+      realizacja: true,
+      nieaktualny: true,
+    });
   }
   function hideAllStatuses() {
-    setVisibleStatus({ planowany: false, przetarg: false, realizacja: false, nieaktualny: false });
+    setVisibleStatus({
+      planowany: false,
+      przetarg: false,
+      realizacja: false,
+      nieaktualny: false,
+    });
   }
 
   async function addPoint(latlng) {
@@ -693,6 +715,7 @@ export default function App() {
           </button>
         ) : null}
 
+        {/* PANEL STATUSÓW */}
         <div
           style={{
             position: "absolute",
@@ -789,18 +812,23 @@ export default function App() {
         >
           <ZoomControl position="bottomright" />
 
-          <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
-          {/* WYSZARZENIE ŚWIATA (PL/LT/LV/EE zostają normalne) */}
-          <GeoJSON
-            data={WORLD_MASK}
-            style={{
-              fillColor: "#0f172a",
-              fillOpacity: 0.55,
-              color: "#0f172a",
-              weight: 0,
-            }}
+          <TileLayer
+            attribution="&copy; OpenStreetMap contributors"
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+
+          {/* MASKA: wyszarza wszystko poza PL/LT/LV/EE */}
+          {worldMask ? (
+            <GeoJSON
+              data={worldMask}
+              style={{
+                fillColor: "#0f172a",
+                fillOpacity: 0.55,
+                color: "#0f172a",
+                weight: 0,
+              }}
+            />
+          ) : null}
 
           <ClickHandler onAdd={addPoint} />
 
