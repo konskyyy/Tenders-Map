@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install --prefix frontend",
-  "buildCommand": "npm run build --prefix frontend",
+  "installCommand": "echo ROOT_VERCEL_JSON_OK && npm install --prefix frontend",
+  "buildCommand": "echo BUILDING_FRONTEND_OK && npm run build --prefix frontend",
   "outputDirectory": "frontend/dist"
 }
