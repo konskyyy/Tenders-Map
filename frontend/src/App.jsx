@@ -1,6 +1,8 @@
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, ZoomControl } from "react-leaflet";
 import { useEffect, useMemo, useState } from "react";
 import L from "leaflet";
+import { GeoJSON } from "react-leaflet";
+
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:3001";
 const API = `${API_BASE}/api`;
@@ -93,6 +95,80 @@ export default function App() {
   const [points, setPoints] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Kraje, które mają pozostać "kolorowe"
+const VISIBLE_COUNTRIES = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: { name: "Poland" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [14.12, 54.83], [24.15, 54.83],
+          [24.15, 49.0], [14.12, 49.0],
+          [14.12, 54.83]
+        ]]
+      }
+    },
+    {
+      type: "Feature",
+      properties: { name: "Lithuania" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [20.9, 56.45], [26.9, 56.45],
+          [26.9, 53.9], [20.9, 53.9],
+          [20.9, 56.45]
+        ]]
+      }
+    },
+    {
+      type: "Feature",
+      properties: { name: "Latvia" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [20.9, 58.1], [28.2, 58.1],
+          [28.2, 55.6], [20.9, 55.6],
+          [20.9, 58.1]
+        ]]
+      }
+    },
+    {
+      type: "Feature",
+      properties: { name: "Estonia" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [23.3, 59.7], [28.2, 59.7],
+          [28.2, 57.5], [23.3, 57.5],
+          [23.3, 59.7]
+        ]]
+      }
+    }
+  ]
+};
+
+// Maska świata (świat minus powyższe kraje)
+const WORLD_MASK = {
+  type: "Feature",
+  geometry: {
+    type: "Polygon",
+    coordinates: [
+      [
+        [-180, -90],
+        [180, -90],
+        [180, 90],
+        [-180, 90],
+        [-180, -90]
+      ],
+      // "dziury" – kraje które zostają kolorowe
+      ...VISIBLE_COUNTRIES.features.map(f => f.geometry.coordinates[0])
+    ]
+  }
+};
+
 
   // Filtry statusów
   const [filtersOpen, setFiltersOpen] = useState(true);
