@@ -24,6 +24,10 @@ const RAL5003_DARK = "#162A40";
 const TEXT_LIGHT = "#ffffff";
 const BORDER = "rgba(255,255,255,0.12)";
 const MUTED = "rgba(255,255,255,0.75)";
+const GLASS_BG = "rgba(22,42,64,0.70)";
+const GLASS_BG_DARK = "rgba(22,42,64,0.90)";
+const GLASS_SHADOW = "0 10px 28px rgba(0,0,0,0.35)";
+
 
 // Start mapy
 const POLAND_BOUNDS = [
@@ -527,27 +531,37 @@ export default function App() {
     >
       {/* SIDEBAR */}
       <aside
-        style={{
-          background: RAL5003,
-          color: TEXT_LIGHT,
-          borderRight: sidebarOpen ? `1px solid ${BORDER}` : "none",
-          overflow: "hidden",
-          width: sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed,
-          transition: "width 200ms ease",
-        }}
-      >
+  style={{
+    color: TEXT_LIGHT,
+    borderRight: sidebarOpen ? `1px solid ${BORDER}` : "none",
+    overflow: "hidden",
+    width: sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed,
+    transition: "width 200ms ease",
+
+    // ✅ glossy jak "Statusy"
+    background: GLASS_BG,
+    backdropFilter: "blur(8px)",
+    boxShadow: GLASS_SHADOW,
+  }}
+>
         {sidebarOpen ? (
           <>
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "12px 12px",
-                borderBottom: `1px solid ${BORDER}`,
-                background: RAL5003_DARK,
-              }}
-            >
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "12px 12px",
+    borderBottom: `1px solid ${BORDER}`,
+
+    // ✅ glossy header
+    background: GLASS_BG,
+backgroundImage:
+  "radial-gradient(700px 400px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
+backdropFilter: "blur(8px)",
+boxShadow: GLASS_SHADOW,
+  }}
+>
               <button
                 onClick={() => setSidebarOpen(false)}
                 title="Zwiń panel"
