@@ -13,9 +13,10 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 
-/** ===== MAP/APP CONSTS (ze starej wersji) ===== */
+/** ===== MAP/APP CONSTS ===== */
 
-const API_BASE = import.meta?.env?.VITE_API_URL || "https://tenders-map-api.onrender.com";
+const API_BASE =
+  import.meta?.env?.VITE_API_URL || "https://tenders-map-api.onrender.com";
 const API = `${API_BASE}/api`;
 
 // RAL 5003
@@ -128,9 +129,10 @@ function extractOuterRings(geometry) {
   return [];
 }
 
-/** ===== NEW APP (zostawiamy login jak teraz) ===== */
+/** ===== APP ===== */
 
 export default function App() {
+  // --- AUTH (NOWY) ---
   const [mode, setMode] = useState("checking"); // checking | login | app
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
@@ -138,7 +140,6 @@ export default function App() {
   const [loadingAuth, setLoadingAuth] = useState(false);
   const [user, setUser] = useState(null);
 
-  // --- boot (sesja) ---
   useEffect(() => {
     async function boot() {
       try {
@@ -164,7 +165,6 @@ export default function App() {
     setLoadingAuth(true);
 
     try {
-      // kompatybilnie: backend czyta email
       const data = await loginRequest(login, password);
       setToken(data.token);
       setUser(data.user);
@@ -176,30 +176,7 @@ export default function App() {
     }
   }
 
-  function logout() {
-    setToken(null);
-    setUser(null);
-    setLogin("");
-    setPassword("");
-    setErr("");
-    setMode("login");
-
-    // dodatkowo wyczyść stan mapy:
-    setSelectedId(null);
-    setPoints([]);
-  }
-
-  /** ===== MAP/POINTS STATE (ze starej wersji) ===== */
-
-  const token = getToken();
-
-  async function authFetch(url, options = {}) {
-    const headers = { ...(options.headers || {}) };
-    const t = getToken();
-    if (t) headers.Authorization = `Bearer ${t}`;
-    return fetch(url, { ...options, headers });
-  }
-
+  // --- MAP/APP STATE (STARY UI) ---
   const [points, setPoints] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -260,6 +237,13 @@ export default function App() {
     if (!stillVisible) setSelectedId(null);
   }, [filteredPoints, selectedId]);
 
+  async function authFetch(url, options = {}) {
+    const headers = { ...(options.headers || {}) };
+    const t = getToken();
+    if (t) headers.Authorization = `Bearer ${t}`;
+    return fetch(url, { ...options, headers });
+  }
+
   async function loadPoints() {
     setLoadingPoints(true);
     setApiError("");
@@ -275,10 +259,8 @@ export default function App() {
     }
   }
 
-  // ładowanie punktów tylko gdy mamy token + jesteśmy w app
   useEffect(() => {
     if (mode !== "app") return;
-    if (!token) return;
     loadPoints();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
@@ -349,10 +331,20 @@ export default function App() {
     setVisibleStatus((s) => ({ ...s, [key]: !s[key] }));
   }
   function showAllStatuses() {
-    setVisibleStatus({ planowany: true, przetarg: true, realizacja: true, nieaktualny: true });
+    setVisibleStatus({
+      planowany: true,
+      przetarg: true,
+      realizacja: true,
+      nieaktualny: true,
+    });
   }
   function hideAllStatuses() {
-    setVisibleStatus({ planowany: false, przetarg: false, realizacja: false, nieaktualny: false });
+    setVisibleStatus({
+      planowany: false,
+      przetarg: false,
+      realizacja: false,
+      nieaktualny: false,
+    });
   }
 
   async function addPoint(latlng) {
@@ -419,7 +411,9 @@ export default function App() {
     setBusyDelete(true);
     setApiError("");
     try {
-      const res = await authFetch(`${API}/points/${selected.id}`, { method: "DELETE" });
+      const res = await authFetch(`${API}/points/${selected.id}`, {
+        method: "DELETE",
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       setPoints((prev) => prev.filter((p) => p.id !== selected.id));
@@ -429,6 +423,17 @@ export default function App() {
     } finally {
       setBusyDelete(false);
     }
+  }
+
+  function logout() {
+    setToken(null);
+    setUser(null);
+    setLogin("");
+    setPassword("");
+    setErr("");
+    setMode("login");
+    setSelectedId(null);
+    setPoints([]);
   }
 
   /** ===== UI ===== */
@@ -441,7 +446,6 @@ export default function App() {
     );
   }
 
-  // LOGIN — zostawiamy taki jak teraz (pełnoekran, centered, glass)
   if (mode === "login") {
     return (
       <div style={pageStyle}>
@@ -477,28 +481,38 @@ export default function App() {
               style={inputStyle}
             />
 
-            <button type="submit" disabled={loadingAuth} style={primaryButtonStyle(loadingAuth)}>
+            <button
+              type="submit"
+              disabled={loadingAuth}
+              style={primaryButtonStyle(loadingAuth)}
+            >
               {loadingAuth ? "Loguję..." : "Zaloguj"}
             </button>
           </form>
 
-          <div style={hintStyle}>Konta użytkowników są zakładane przez administratora.</div>
+          <div style={hintStyle}>
+            Konta użytkowników są zakładane przez administratora.
+          </div>
         </div>
       </div>
     );
   }
 
-  // APP — tu wraca Twoja stara mapa + sidebar + filtry
   const sidebarWidthOpen = 380;
   const sidebarWidthClosed = 0;
 
+  // ✅ FULLSCREEN APP WRAPPER: fixed + inset:0
   return (
     <div
       style={{
+        position: "fixed",
+        inset: 0,
         display: "grid",
-        gridTemplateColumns: `${sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed}px 1fr`,
+        gridTemplateColumns: `${
+          sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed
+        }px 1fr`,
         width: "100%",
-        height: "100vh",
+        height: "100%",
         overflow: "hidden",
       }}
     >
@@ -547,7 +561,9 @@ export default function App() {
               </button>
 
               <div style={{ display: "grid", gap: 2, flex: 1 }}>
-                <div style={{ fontWeight: 800, letterSpacing: 0.2 }}>Punkty postępu</div>
+                <div style={{ fontWeight: 800, letterSpacing: 0.2 }}>
+                  Punkty postępu
+                </div>
                 <div style={{ fontSize: 12, color: MUTED }}>
                   Zalogowano: {user?.email || "(użytkownik)"}
                 </div>
@@ -570,7 +586,13 @@ export default function App() {
               </button>
             </div>
 
-            <div style={{ padding: 12, height: "calc(100% - 59px)", overflow: "auto" }}>
+            <div
+              style={{
+                padding: 12,
+                height: "calc(100% - 59px)",
+                overflow: "auto",
+              }}
+            >
               {apiError ? (
                 <div
                   style={{
@@ -605,19 +627,31 @@ export default function App() {
               </button>
 
               <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-                <InfoCard label="Dyrektor kontraktu" value={form.director} placeholder="(nie ustawiono)" />
-                <InfoCard label="Firma (wykonawca)" value={form.winner} placeholder="(nie ustawiono)" />
+                <InfoCard
+                  label="Dyrektor kontraktu"
+                  value={form.director}
+                  placeholder="(nie ustawiono)"
+                />
+                <InfoCard
+                  label="Firma (wykonawca)"
+                  value={form.winner}
+                  placeholder="(nie ustawiono)"
+                />
               </div>
 
               <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
                 {selected ? (
                   <>
-                    <div style={{ fontSize: 12, color: MUTED }}>Edycja punktu #{selected.id}</div>
+                    <div style={{ fontSize: 12, color: MUTED }}>
+                      Edycja punktu #{selected.id}
+                    </div>
 
                     <label style={{ fontSize: 12, color: MUTED }}>Tytuł</label>
                     <input
                       value={form.title}
-                      onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, title: e.target.value }))
+                      }
                       style={{
                         padding: 10,
                         borderRadius: 12,
@@ -628,10 +662,14 @@ export default function App() {
                       }}
                     />
 
-                    <label style={{ fontSize: 12, color: MUTED }}>Dyrektor kontraktu</label>
+                    <label style={{ fontSize: 12, color: MUTED }}>
+                      Dyrektor kontraktu
+                    </label>
                     <input
                       value={form.director}
-                      onChange={(e) => setForm((f) => ({ ...f, director: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, director: e.target.value }))
+                      }
                       style={{
                         padding: 10,
                         borderRadius: 12,
@@ -642,10 +680,14 @@ export default function App() {
                       }}
                     />
 
-                    <label style={{ fontSize: 12, color: MUTED }}>Firma (wykonawca)</label>
+                    <label style={{ fontSize: 12, color: MUTED }}>
+                      Firma (wykonawca)
+                    </label>
                     <input
                       value={form.winner}
-                      onChange={(e) => setForm((f) => ({ ...f, winner: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, winner: e.target.value }))
+                      }
                       style={{
                         padding: 10,
                         borderRadius: 12,
@@ -660,7 +702,9 @@ export default function App() {
                     <textarea
                       rows={6}
                       value={form.note}
-                      onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, note: e.target.value }))
+                      }
                       style={{
                         padding: 10,
                         borderRadius: 12,
@@ -675,7 +719,9 @@ export default function App() {
                     <label style={{ fontSize: 12, color: MUTED }}>Status</label>
                     <select
                       value={form.status}
-                      onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, status: e.target.value }))
+                      }
                       style={{
                         padding: 10,
                         borderRadius: 12,
@@ -691,7 +737,14 @@ export default function App() {
                       <option value="nieaktualny">nieaktualny</option>
                     </select>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 6 }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: 8,
+                        marginTop: 6,
+                      }}
+                    >
                       <button
                         onClick={savePoint}
                         disabled={saving}
@@ -699,7 +752,9 @@ export default function App() {
                           padding: 10,
                           borderRadius: 12,
                           border: `1px solid ${BORDER}`,
-                          background: saving ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.08)",
+                          background: saving
+                            ? "rgba(255,255,255,0.12)"
+                            : "rgba(255,255,255,0.08)",
                           color: TEXT_LIGHT,
                           cursor: saving ? "default" : "pointer",
                           fontWeight: 700,
@@ -715,7 +770,9 @@ export default function App() {
                           padding: 10,
                           borderRadius: 12,
                           border: "1px solid rgba(255,80,80,0.55)",
-                          background: busyDelete ? "rgba(255,80,80,0.18)" : "rgba(255,80,80,0.12)",
+                          background: busyDelete
+                            ? "rgba(255,80,80,0.18)"
+                            : "rgba(255,80,80,0.12)",
                           color: TEXT_LIGHT,
                           cursor: busyDelete ? "default" : "pointer",
                           fontWeight: 700,
@@ -760,7 +817,14 @@ export default function App() {
                       cursor: "pointer",
                     }}
                   >
-                    <div style={{ fontWeight: 800, display: "flex", justifyContent: "space-between", gap: 10 }}>
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 10,
+                      }}
+                    >
                       <span>{pt.title}</span>
                       <span
                         style={{
@@ -778,22 +842,41 @@ export default function App() {
                     </div>
 
                     <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
-                      ({Number(pt.lat).toFixed(4)}, {Number(pt.lng).toFixed(4)})
+                      ({Number(pt.lat).toFixed(4)},{" "}
+                      {Number(pt.lng).toFixed(4)})
                     </div>
 
                     {pt.winner ? (
-                      <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
+                      <div
+                        style={{
+                          marginTop: 6,
+                          fontSize: 12,
+                          color: "rgba(255,255,255,0.9)",
+                        }}
+                      >
                         <b>Firma:</b> {pt.winner}
                       </div>
                     ) : null}
                     {pt.director ? (
-                      <div style={{ marginTop: 4, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
+                      <div
+                        style={{
+                          marginTop: 4,
+                          fontSize: 12,
+                          color: "rgba(255,255,255,0.9)",
+                        }}
+                      >
                         <b>Dyrektor:</b> {pt.director}
                       </div>
                     ) : null}
 
                     {pt.note ? (
-                      <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
+                      <div
+                        style={{
+                          marginTop: 6,
+                          fontSize: 12,
+                          color: "rgba(255,255,255,0.9)",
+                        }}
+                      >
                         {pt.note.length > 90 ? pt.note.slice(0, 90) + "…" : pt.note}
                       </div>
                     ) : null}
@@ -896,7 +979,11 @@ export default function App() {
                     userSelect: "none",
                   }}
                 >
-                  <input type="checkbox" checked={visibleStatus[s.key]} onChange={() => toggleStatus(s.key)} />
+                  <input
+                    type="checkbox"
+                    checked={visibleStatus[s.key]}
+                    onChange={() => toggleStatus(s.key)}
+                  />
                   <span style={{ width: 10, height: 10, borderRadius: 999, background: s.color }} />
                   <span style={{ flex: 1, fontWeight: 800 }}>{s.label}</span>
                   <span style={{ fontSize: 12, color: MUTED }}>{counts[s.key] ?? 0}</span>
@@ -981,7 +1068,9 @@ export default function App() {
               >
                 <Popup>
                   <b>{pt.title}</b>
-                  <div style={{ fontSize: 12, opacity: 0.8 }}>{statusLabel(pt.status)}</div>
+                  <div style={{ fontSize: 12, opacity: 0.8 }}>
+                    {statusLabel(pt.status)}
+                  </div>
                   {pt.director ? (
                     <div style={{ marginTop: 6 }}>
                       <b>Dyrektor:</b> {pt.director}
@@ -1003,7 +1092,7 @@ export default function App() {
   );
 }
 
-/** ===== LOGIN styles (zostawiamy jak teraz) ===== */
+/** ===== LOGIN styles ===== */
 
 const pageStyle = {
   position: "fixed",
