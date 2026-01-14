@@ -1,4 +1,5 @@
 // frontend/src/App.jsx
+<h2 ...>LOGOWANIE — WERSJA 2026-01-14</h2>
 import { useEffect, useState } from "react";
 import "./App.css";
 import { getToken, loginRequest, meRequest, setToken } from "./api";
