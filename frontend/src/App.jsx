@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
-import { getToken, loginRequest, meRequest, setToken } from "./api";
+import { API_BASE, getToken, loginRequest, meRequest, setToken } from "./api";
 
 import {
   MapContainer,
@@ -13,11 +13,10 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 
-/** ===== MAP/APP CONSTS ===== */
-
-const API_BASE =
-  import.meta?.env?.VITE_API_URL || "https://tenders-map-api.onrender.com";
+/** ===== API for points (same base as login) ===== */
 const API = `${API_BASE}/api`;
+
+/** ===== MAP/APP CONSTS ===== */
 
 // RAL 5003
 const RAL5003 = "#1F3855";
@@ -129,10 +128,31 @@ function extractOuterRings(geometry) {
   return [];
 }
 
-/** ===== APP ===== */
+/** ===== helpers ===== */
+
+// Bezpieczne parsowanie JSON: jeśli serwer zwróci HTML (<!DOCTYPE...), pokaż sensowny błąd
+async function readJsonOrThrow(res) {
+  const text = await res.text();
+  let data = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    const head = (text || "").slice(0, 120).replace(/\s+/g, " ");
+    throw new Error(
+      `API nie zwróciło JSON (HTTP ${res.status}). Początek: ${head || "(pusto)"}`
+    );
+  }
+
+  if (!res.ok) {
+    throw new Error(data?.error || `HTTP ${res.status}`);
+  }
+
+  return data;
+}
 
 export default function App() {
-  // --- AUTH (NOWY) ---
+  /** ===== AUTH (nowy) ===== */
   const [mode, setMode] = useState("checking"); // checking | login | app
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
@@ -176,7 +196,7 @@ export default function App() {
     }
   }
 
-  // --- MAP/APP STATE (STARY UI) ---
+  /** ===== MAP/POINTS STATE ===== */
   const [points, setPoints] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -249,9 +269,8 @@ export default function App() {
     setApiError("");
     try {
       const res = await authFetch(`${API}/points`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
-      setPoints(data);
+      const data = await readJsonOrThrow(res);
+      setPoints(Array.isArray(data) ? data : []);
     } catch (e) {
       setApiError(`Nie mogę pobrać punktów: ${String(e)}`);
     } finally {
@@ -365,8 +384,7 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      const data = await readJsonOrThrow(res);
       setPoints((p) => [data, ...p]);
       setSelectedId(data.id);
       setSidebarOpen(true);
@@ -392,8 +410,7 @@ export default function App() {
           status: form.status,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      const data = await readJsonOrThrow(res);
       setPoints((prev) => prev.map((p) => (p.id === data.id ? data : p)));
     } catch (e) {
       setApiError(`Nie mogę zapisać: ${String(e)}`);
@@ -414,10 +431,10 @@ export default function App() {
       const res = await authFetch(`${API}/points/${selected.id}`, {
         method: "DELETE",
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      const data = await readJsonOrThrow(res);
       setPoints((prev) => prev.filter((p) => p.id !== selected.id));
       setSelectedId(null);
+      return data;
     } catch (e) {
       setApiError(`Nie mogę usunąć: ${String(e)}`);
     } finally {
@@ -481,18 +498,12 @@ export default function App() {
               style={inputStyle}
             />
 
-            <button
-              type="submit"
-              disabled={loadingAuth}
-              style={primaryButtonStyle(loadingAuth)}
-            >
+            <button type="submit" disabled={loadingAuth} style={primaryButtonStyle(loadingAuth)}>
               {loadingAuth ? "Loguję..." : "Zaloguj"}
             </button>
           </form>
 
-          <div style={hintStyle}>
-            Konta użytkowników są zakładane przez administratora.
-          </div>
+          <div style={hintStyle}>Konta użytkowników są zakładane przez administratora.</div>
         </div>
       </div>
     );
@@ -501,16 +512,14 @@ export default function App() {
   const sidebarWidthOpen = 380;
   const sidebarWidthClosed = 0;
 
-  // ✅ FULLSCREEN APP WRAPPER: fixed + inset:0
+  // ✅ FULLSCREEN APP WRAPPER
   return (
     <div
       style={{
         position: "fixed",
         inset: 0,
         display: "grid",
-        gridTemplateColumns: `${
-          sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed
-        }px 1fr`,
+        gridTemplateColumns: `${sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed}px 1fr`,
         width: "100%",
         height: "100%",
         overflow: "hidden",
@@ -561,9 +570,7 @@ export default function App() {
               </button>
 
               <div style={{ display: "grid", gap: 2, flex: 1 }}>
-                <div style={{ fontWeight: 800, letterSpacing: 0.2 }}>
-                  Punkty postępu
-                </div>
+                <div style={{ fontWeight: 800, letterSpacing: 0.2 }}>Punkty postępu</div>
                 <div style={{ fontSize: 12, color: MUTED }}>
                   Zalogowano: {user?.email || "(użytkownik)"}
                 </div>
@@ -586,13 +593,7 @@ export default function App() {
               </button>
             </div>
 
-            <div
-              style={{
-                padding: 12,
-                height: "calc(100% - 59px)",
-                overflow: "auto",
-              }}
-            >
+            <div style={{ padding: 12, height: "calc(100% - 59px)", overflow: "auto" }}>
               {apiError ? (
                 <div
                   style={{
@@ -627,31 +628,19 @@ export default function App() {
               </button>
 
               <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-                <InfoCard
-                  label="Dyrektor kontraktu"
-                  value={form.director}
-                  placeholder="(nie ustawiono)"
-                />
-                <InfoCard
-                  label="Firma (wykonawca)"
-                  value={form.winner}
-                  placeholder="(nie ustawiono)"
-                />
+                <InfoCard label="Dyrektor kontraktu" value={form.director} placeholder="(nie ustawiono)" />
+                <InfoCard label="Firma (wykonawca)" value={form.winner} placeholder="(nie ustawiono)" />
               </div>
 
               <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
                 {selected ? (
                   <>
-                    <div style={{ fontSize: 12, color: MUTED }}>
-                      Edycja punktu #{selected.id}
-                    </div>
+                    <div style={{ fontSize: 12, color: MUTED }}>Edycja punktu #{selected.id}</div>
 
                     <label style={{ fontSize: 12, color: MUTED }}>Tytuł</label>
                     <input
                       value={form.title}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, title: e.target.value }))
-                      }
+                      onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                       style={{
                         padding: 10,
                         borderRadius: 12,
@@ -662,14 +651,10 @@ export default function App() {
                       }}
                     />
 
-                    <label style={{ fontSize: 12, color: MUTED }}>
-                      Dyrektor kontraktu
-                    </label>
+                    <label style={{ fontSize: 12, color: MUTED }}>Dyrektor kontraktu</label>
                     <input
                       value={form.director}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, director: e.target.value }))
-                      }
+                      onChange={(e) => setForm((f) => ({ ...f, director: e.target.value }))}
                       style={{
                         padding: 10,
                         borderRadius: 12,
@@ -680,14 +665,10 @@ export default function App() {
                       }}
                     />
 
-                    <label style={{ fontSize: 12, color: MUTED }}>
-                      Firma (wykonawca)
-                    </label>
+                    <label style={{ fontSize: 12, color: MUTED }}>Firma (wykonawca)</label>
                     <input
                       value={form.winner}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, winner: e.target.value }))
-                      }
+                      onChange={(e) => setForm((f) => ({ ...f, winner: e.target.value }))}
                       style={{
                         padding: 10,
                         borderRadius: 12,
@@ -702,9 +683,7 @@ export default function App() {
                     <textarea
                       rows={6}
                       value={form.note}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, note: e.target.value }))
-                      }
+                      onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
                       style={{
                         padding: 10,
                         borderRadius: 12,
@@ -719,9 +698,7 @@ export default function App() {
                     <label style={{ fontSize: 12, color: MUTED }}>Status</label>
                     <select
                       value={form.status}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, status: e.target.value }))
-                      }
+                      onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
                       style={{
                         padding: 10,
                         borderRadius: 12,
@@ -737,14 +714,7 @@ export default function App() {
                       <option value="nieaktualny">nieaktualny</option>
                     </select>
 
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 8,
-                        marginTop: 6,
-                      }}
-                    >
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 6 }}>
                       <button
                         onClick={savePoint}
                         disabled={saving}
@@ -752,9 +722,7 @@ export default function App() {
                           padding: 10,
                           borderRadius: 12,
                           border: `1px solid ${BORDER}`,
-                          background: saving
-                            ? "rgba(255,255,255,0.12)"
-                            : "rgba(255,255,255,0.08)",
+                          background: saving ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.08)",
                           color: TEXT_LIGHT,
                           cursor: saving ? "default" : "pointer",
                           fontWeight: 700,
@@ -770,9 +738,7 @@ export default function App() {
                           padding: 10,
                           borderRadius: 12,
                           border: "1px solid rgba(255,80,80,0.55)",
-                          background: busyDelete
-                            ? "rgba(255,80,80,0.18)"
-                            : "rgba(255,80,80,0.12)",
+                          background: busyDelete ? "rgba(255,80,80,0.18)" : "rgba(255,80,80,0.12)",
                           color: TEXT_LIGHT,
                           cursor: busyDelete ? "default" : "pointer",
                           fontWeight: 700,
@@ -809,22 +775,12 @@ export default function App() {
                     style={{
                       padding: 10,
                       borderRadius: 14,
-                      border:
-                        pt.id === selectedId
-                          ? `2px solid rgba(255,255,255,0.35)`
-                          : `1px solid ${BORDER}`,
+                      border: pt.id === selectedId ? `2px solid rgba(255,255,255,0.35)` : `1px solid ${BORDER}`,
                       background: "rgba(255,255,255,0.05)",
                       cursor: "pointer",
                     }}
                   >
-                    <div
-                      style={{
-                        fontWeight: 800,
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 10,
-                      }}
-                    >
+                    <div style={{ fontWeight: 800, display: "flex", justifyContent: "space-between", gap: 10 }}>
                       <span>{pt.title}</span>
                       <span
                         style={{
@@ -842,41 +798,22 @@ export default function App() {
                     </div>
 
                     <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
-                      ({Number(pt.lat).toFixed(4)},{" "}
-                      {Number(pt.lng).toFixed(4)})
+                      ({Number(pt.lat).toFixed(4)}, {Number(pt.lng).toFixed(4)})
                     </div>
 
                     {pt.winner ? (
-                      <div
-                        style={{
-                          marginTop: 6,
-                          fontSize: 12,
-                          color: "rgba(255,255,255,0.9)",
-                        }}
-                      >
+                      <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
                         <b>Firma:</b> {pt.winner}
                       </div>
                     ) : null}
                     {pt.director ? (
-                      <div
-                        style={{
-                          marginTop: 4,
-                          fontSize: 12,
-                          color: "rgba(255,255,255,0.9)",
-                        }}
-                      >
+                      <div style={{ marginTop: 4, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
                         <b>Dyrektor:</b> {pt.director}
                       </div>
                     ) : null}
 
                     {pt.note ? (
-                      <div
-                        style={{
-                          marginTop: 6,
-                          fontSize: 12,
-                          color: "rgba(255,255,255,0.9)",
-                        }}
-                      >
+                      <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
                         {pt.note.length > 90 ? pt.note.slice(0, 90) + "…" : pt.note}
                       </div>
                     ) : null}
@@ -1068,9 +1005,7 @@ export default function App() {
               >
                 <Popup>
                   <b>{pt.title}</b>
-                  <div style={{ fontSize: 12, opacity: 0.8 }}>
-                    {statusLabel(pt.status)}
-                  </div>
+                  <div style={{ fontSize: 12, opacity: 0.8 }}>{statusLabel(pt.status)}</div>
                   {pt.director ? (
                     <div style={{ marginTop: 6 }}>
                       <b>Dyrektor:</b> {pt.director}
