@@ -7,6 +7,7 @@ COPY package.json package-lock.json* ./
 
 # 2) Zainstaluj zależności (w tym bcryptjs)
 RUN npm ci --omit=dev || npm install --omit=dev
+RUN ls -la node_modules/bcryptjs || (echo "bcryptjs NOT installed" && exit 1)
 
 # 3) Potem dopiero reszta plików backendu
 COPY . .
@@ -15,3 +16,4 @@ ENV NODE_ENV=production
 EXPOSE 3001
 
 CMD ["node", "index.js"]
+
