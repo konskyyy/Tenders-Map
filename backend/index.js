@@ -61,45 +61,10 @@ function authRequired(req, res, next) {
 }
 
 // ===== REGISTER =====
-app.post("/api/auth/register", async (req, res) => {
-  try {
-    const email = String(req.body.email || "").trim().toLowerCase();
-    const password = String(req.body.password || "");
-
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email i hasło są wymagane" });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ error: "Hasło min. 6 znaków" });
-    }
-
-    const hash = await bcrypt.hash(password, 12);
-
-    const q = await pool.query(
-      "INSERT INTO users(email, password_hash) VALUES($1,$2) RETURNING id, email",
-      [email, hash]
-    );
-
-    const user = q.rows[0];
-    const token = signToken(user);
-
-    res.json({ token, user });
-  } catch (e) {
-    console.error("REGISTER DB ERROR:", e); // ⬅⬅⬅ KLUCZOWE
-
-    if (
-      String(e).includes("duplicate") ||
-      String(e).includes("users_email_key")
-    ) {
-      return res.status(409).json({ error: "Email już istnieje" });
-    }
-
-    return res.status(500).json({
-      error: "DB error",
-      details: String(e),
-    });
-  }
+app.post("/api/auth/register", (req, res) => {
+  return res.status(403).json({ error: "Rejestracja jest wyłączona" });
 });
+
 
 // ===== LOGIN =====
 app.post("/api/auth/login", async (req, res) => {
