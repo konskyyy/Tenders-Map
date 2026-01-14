@@ -110,19 +110,7 @@ app.get("/api/auth/me", authRequired, (req, res) => {
 
 /**
  * ===== POINTS API =====
- * Zakładamy tabelę:
- *
- * CREATE TABLE points (
- *   id SERIAL PRIMARY KEY,
- *   title TEXT NOT NULL,
- *   director TEXT,
- *   winner TEXT,
- *   note TEXT,
- *   status TEXT NOT NULL DEFAULT 'planowany',
- *   lat DOUBLE PRECISION NOT NULL,
- *   lng DOUBLE PRECISION NOT NULL,
- *   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
- * );
+ * (Twoja tabela points zostaje jak była)
  */
 
 // GET all points
@@ -215,6 +203,120 @@ app.delete("/api/points/:id", authRequired, async (req, res) => {
     res.json({ ok: true, id: row.id });
   } catch (e) {
     console.error("DELETE POINT ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+
+/**
+ * ===== TUNNELS API =====
+ * Tabela tunnels:
+ * id, name, status, note, path(JSONB)
+ */
+
+// GET all tunnels
+app.get("/api/tunnels", authRequired, async (req, res) => {
+  try {
+    const q = await pool.query(
+      `SELECT id, name, status, note, path
+       FROM tunnels
+       ORDER BY id DESC`
+    );
+    res.json(q.rows);
+  } catch (e) {
+    console.error("GET TUNNELS ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+
+// CREATE tunnel
+app.post("/api/tunnels", authRequired, async (req, res) => {
+  try {
+    const name = String(req.body.name || "Nowy tunel");
+    const status = String(req.body.status || "planowany");
+    const note = String(req.body.note || "");
+    const path = req.body.path;
+
+    if (!Array.isArray(path) || path.length < 2) {
+      return res
+        .status(400)
+        .json({ error: "Tunel musi mieć co najmniej 2 punkty" });
+    }
+
+    // prosta walidacja
+    for (const p of path) {
+      const lat = Number(p?.lat);
+      const lng = Number(p?.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return res.status(400).json({ error: "Niepoprawne współrzędne w path" });
+      }
+    }
+
+    const q = await pool.query(
+      `INSERT INTO tunnels (name, status, note, path)
+       VALUES ($1,$2,$3,$4::jsonb)
+       RETURNING id, name, status, note, path`,
+      [name, status, note, JSON.stringify(path)]
+    );
+
+    res.json(q.rows[0]);
+  } catch (e) {
+    console.error("CREATE TUNNEL ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+
+// UPDATE tunnel (meta + path)
+app.put("/api/tunnels/:id", authRequired, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "Złe ID" });
+
+    const name = String(req.body.name || "Nowy tunel");
+    const status = String(req.body.status || "planowany");
+    const note = String(req.body.note || "");
+    const path = req.body.path;
+
+    if (!Array.isArray(path) || path.length < 2) {
+      return res
+        .status(400)
+        .json({ error: "Tunel musi mieć co najmniej 2 punkty" });
+    }
+
+    const q = await pool.query(
+      `UPDATE tunnels
+       SET name=$1, status=$2, note=$3, path=$4::jsonb
+       WHERE id=$5
+       RETURNING id, name, status, note, path`,
+      [name, status, note, JSON.stringify(path), id]
+    );
+
+    const row = q.rows[0];
+    if (!row) return res.status(404).json({ error: "Nie znaleziono tunelu" });
+
+    res.json(row);
+  } catch (e) {
+    console.error("UPDATE TUNNEL ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+
+// DELETE tunnel
+app.delete("/api/tunnels/:id", authRequired, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "Złe ID" });
+
+    const q = await pool.query(
+      `DELETE FROM tunnels WHERE id=$1 RETURNING id`,
+      [id]
+    );
+
+    const row = q.rows[0];
+    if (!row) return res.status(404).json({ error: "Nie znaleziono tunelu" });
+
+    res.json({ ok: true, id: row.id });
+  } catch (e) {
+    console.error("DELETE TUNNEL ERROR:", e);
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
