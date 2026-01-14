@@ -13,23 +13,22 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 
-/** ===== API for points (same base as login) ===== */
+/** ===== API (same base as login) ===== */
 const API = `${API_BASE}/api`;
 
-/** ===== MAP/APP CONSTS ===== */
-
-// RAL 5003
-const RAL5003 = "#1F3855";
-const RAL5003_DARK = "#162A40";
+/** ===== UI CONSTS ===== */
 const TEXT_LIGHT = "#ffffff";
 const BORDER = "rgba(255,255,255,0.12)";
 const MUTED = "rgba(255,255,255,0.75)";
+
+// glossy like Statusy
 const GLASS_BG = "rgba(22,42,64,0.70)";
 const GLASS_BG_DARK = "rgba(22,42,64,0.90)";
 const GLASS_SHADOW = "0 10px 28px rgba(0,0,0,0.35)";
+const GLASS_HIGHLIGHT =
+  "radial-gradient(700px 400px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)";
 
-
-// Start mapy
+/** ===== MAP CONSTS ===== */
 const POLAND_BOUNDS = [
   [49.0, 14.1],
   [54.9, 24.2],
@@ -42,7 +41,6 @@ const STATUSES = [
   { key: "nieaktualny", label: "Nieaktualny", color: "#9ca3af" },
 ];
 
-// Natural Earth (GeoJSON) – granice państw
 const NE_COUNTRIES_URL =
   "https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_countries.geojson";
 const KEEP_COUNTRIES_A3 = new Set(["POL", "LTU", "LVA", "EST"]);
@@ -132,37 +130,42 @@ function extractOuterRings(geometry) {
   return [];
 }
 
-/** ===== helpers ===== */
-
-// Bezpieczne parsowanie JSON: jeśli serwer zwróci HTML (<!DOCTYPE...), pokaż sensowny błąd
+/** ===== helper: JSON-safe + status aware ===== */
 async function readJsonOrThrow(res) {
   const text = await res.text();
-  let data = null;
 
+  let data = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
     const head = (text || "").slice(0, 120).replace(/\s+/g, " ");
-    throw new Error(
+    const err = new Error(
       `API nie zwróciło JSON (HTTP ${res.status}). Początek: ${head || "(pusto)"}`
     );
+    err.status = res.status;
+    throw err;
   }
 
   if (!res.ok) {
-    throw new Error(data?.error || `HTTP ${res.status}`);
+    const err = new Error(data?.error || `HTTP ${res.status}`);
+    err.status = res.status;
+    throw err;
   }
 
   return data;
 }
 
 export default function App() {
-  /** ===== AUTH (nowy) ===== */
+  /** ===== AUTH ===== */
   const [mode, setMode] = useState("checking"); // checking | login | app
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [loadingAuth, setLoadingAuth] = useState(false);
   const [user, setUser] = useState(null);
+
+  // komunikat np. “sesja wygasła”
+  const [authNotice, setAuthNotice] = useState("");
 
   useEffect(() => {
     async function boot() {
@@ -192,6 +195,7 @@ export default function App() {
       const data = await loginRequest(login, password);
       setToken(data.token);
       setUser(data.user);
+      setAuthNotice(""); // ✅ czyścimy komunikat
       setMode("app");
     } catch (e2) {
       setErr(e2?.message || "Błąd logowania");
@@ -261,6 +265,23 @@ export default function App() {
     if (!stillVisible) setSelectedId(null);
   }, [filteredPoints, selectedId]);
 
+  function logout(reason) {
+    setToken(null);
+    setUser(null);
+    setLogin("");
+    setPassword("");
+    setErr("");
+    setMode("login");
+    setSelectedId(null);
+    setPoints([]);
+
+    if (reason === "expired") {
+      setAuthNotice("Sesja wygasła — zaloguj się ponownie.");
+    } else {
+      setAuthNotice("");
+    }
+  }
+
   async function authFetch(url, options = {}) {
     const headers = { ...(options.headers || {}) };
     const t = getToken();
@@ -276,6 +297,10 @@ export default function App() {
       const data = await readJsonOrThrow(res);
       setPoints(Array.isArray(data) ? data : []);
     } catch (e) {
+      if (e?.status === 401) {
+        logout("expired");
+        return;
+      }
       setApiError(`Nie mogę pobrać punktów: ${String(e)}`);
     } finally {
       setLoadingPoints(false);
@@ -393,6 +418,10 @@ export default function App() {
       setSelectedId(data.id);
       setSidebarOpen(true);
     } catch (e) {
+      if (e?.status === 401) {
+        logout("expired");
+        return;
+      }
       setApiError(`Nie mogę dodać punktu: ${String(e)}`);
     }
   }
@@ -417,6 +446,10 @@ export default function App() {
       const data = await readJsonOrThrow(res);
       setPoints((prev) => prev.map((p) => (p.id === data.id ? data : p)));
     } catch (e) {
+      if (e?.status === 401) {
+        logout("expired");
+        return;
+      }
       setApiError(`Nie mogę zapisać: ${String(e)}`);
     } finally {
       setSaving(false);
@@ -435,26 +468,18 @@ export default function App() {
       const res = await authFetch(`${API}/points/${selected.id}`, {
         method: "DELETE",
       });
-      const data = await readJsonOrThrow(res);
+      await readJsonOrThrow(res);
       setPoints((prev) => prev.filter((p) => p.id !== selected.id));
       setSelectedId(null);
-      return data;
     } catch (e) {
+      if (e?.status === 401) {
+        logout("expired");
+        return;
+      }
       setApiError(`Nie mogę usunąć: ${String(e)}`);
     } finally {
       setBusyDelete(false);
     }
-  }
-
-  function logout() {
-    setToken(null);
-    setUser(null);
-    setLogin("");
-    setPassword("");
-    setErr("");
-    setMode("login");
-    setSelectedId(null);
-    setPoints([]);
   }
 
   /** ===== UI ===== */
@@ -478,6 +503,22 @@ export default function App() {
 
           <h2 style={titleStyle}>Logowanie</h2>
           <p style={subtitleStyle}>Wpisz login i hasło.</p>
+
+          {authNotice ? (
+            <div
+              style={{
+                boxSizing: "border-box",
+                marginTop: 12,
+                padding: 12,
+                borderRadius: 12,
+                background: "rgba(59, 130, 246, 0.16)",
+                border: "1px solid rgba(59, 130, 246, 0.35)",
+                color: "rgba(255,255,255,0.96)",
+              }}
+            >
+              {authNotice}
+            </div>
+          ) : null}
 
           {err ? <div style={errorStyle}>{err}</div> : null}
 
@@ -516,7 +557,6 @@ export default function App() {
   const sidebarWidthOpen = 380;
   const sidebarWidthClosed = 0;
 
-  // ✅ FULLSCREEN APP WRAPPER
   return (
     <div
       style={{
@@ -529,39 +569,35 @@ export default function App() {
         overflow: "hidden",
       }}
     >
-      {/* SIDEBAR */}
+      {/* SIDEBAR (glossy like Statusy) */}
       <aside
-  style={{
-    color: TEXT_LIGHT,
-    borderRight: sidebarOpen ? `1px solid ${BORDER}` : "none",
-    overflow: "hidden",
-    width: sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed,
-    transition: "width 200ms ease",
+        style={{
+          color: TEXT_LIGHT,
+          borderRight: sidebarOpen ? `1px solid ${BORDER}` : "none",
+          overflow: "hidden",
+          width: sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed,
+          transition: "width 200ms ease",
 
-    // ✅ glossy jak "Statusy"
-    background: GLASS_BG,
-    backdropFilter: "blur(8px)",
-    boxShadow: GLASS_SHADOW,
-  }}
->
+          background: GLASS_BG,
+          backgroundImage: GLASS_HIGHLIGHT,
+          backdropFilter: "blur(8px)",
+          boxShadow: GLASS_SHADOW,
+        }}
+      >
         {sidebarOpen ? (
           <>
             <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    padding: "12px 12px",
-    borderBottom: `1px solid ${BORDER}`,
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "12px 12px",
+                borderBottom: `1px solid ${BORDER}`,
 
-    // ✅ glossy header
-    background: GLASS_BG,
-backgroundImage:
-  "radial-gradient(700px 400px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
-backdropFilter: "blur(8px)",
-boxShadow: GLASS_SHADOW,
-  }}
->
+                background: GLASS_BG_DARK,
+                backdropFilter: "blur(8px)",
+              }}
+            >
               <button
                 onClick={() => setSidebarOpen(false)}
                 title="Zwiń panel"
@@ -591,7 +627,7 @@ boxShadow: GLASS_SHADOW,
               </div>
 
               <button
-                onClick={logout}
+                onClick={() => logout()}
                 style={{
                   padding: "8px 10px",
                   borderRadius: 12,
@@ -867,7 +903,7 @@ boxShadow: GLASS_SHADOW,
               padding: "0 12px",
               borderRadius: 14,
               border: `1px solid ${BORDER}`,
-              background: RAL5003_DARK,
+              background: GLASS_BG_DARK,
               color: TEXT_LIGHT,
               cursor: "pointer",
               fontWeight: 800,
@@ -875,6 +911,7 @@ boxShadow: GLASS_SHADOW,
               alignItems: "center",
               gap: 10,
               boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
+              backdropFilter: "blur(8px)",
             }}
           >
             <span style={{ fontSize: 18, lineHeight: 1 }}>⟩</span>
@@ -892,11 +929,12 @@ boxShadow: GLASS_SHADOW,
             width: 240,
             borderRadius: 16,
             border: `1px solid ${BORDER}`,
-            background: "rgba(22,42,64,0.70)",
+            background: GLASS_BG,
+            backgroundImage: "radial-gradient(500px 300px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
             backdropFilter: "blur(8px)",
             color: TEXT_LIGHT,
             overflow: "hidden",
-            boxShadow: "0 10px 28px rgba(0,0,0,0.35)",
+            boxShadow: GLASS_SHADOW,
           }}
         >
           <div
@@ -1041,7 +1079,7 @@ boxShadow: GLASS_SHADOW,
   );
 }
 
-/** ===== LOGIN styles ===== */
+/** ===== Login styles ===== */
 
 const pageStyle = {
   position: "fixed",
