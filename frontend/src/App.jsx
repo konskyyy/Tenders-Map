@@ -1264,9 +1264,12 @@ export default function App() {
                 marker: false,
               }}
               edit={{
-                edit: true,
-                remove: true,
-              }}
+  featureGroup: drawGroupRef.current,
+  edit: {
+    selectedPathOptions: { maintainColor: true },
+  },
+  remove: true,
+}}
             />
 
             {/* Existing tunnels inside FeatureGroup so edit/delete works */}
