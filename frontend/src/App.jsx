@@ -5,8 +5,7 @@ import { MapContainer, TileLayer, <GeoJSON
     fillOpacity: 0.55,         // wyszarzenie
     color: "#0f172a",
     weight: 0,
-  }}
-/>Marker, Popup, useMapEvents, ZoomControl } from "react-leaflet";
+  }}/>Marker, Popup, useMapEvents, ZoomControl } from "react-leaflet";
 import { useEffect, useMemo, useState } from "react";
 import L from "leaflet";
 import { GeoJSON } from "react-leaflet";
