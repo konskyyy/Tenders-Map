@@ -1,162 +1,209 @@
-import express from "express";
-import cors from "cors";
-import pg from "pg";
+const express = require("express");
+const cors = require("cors");
+const { Pool } = require("pg");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const app = express();
+app.use(express.json({ limit: "2mb" }));
 
-// ENV
-const PORT = process.env.PORT || 3001;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
-const DATABASE_URL = process.env.DATABASE_URL;
-
-// Log (pomaga diagnozować)
-console.log("CORS_ORIGIN:", CORS_ORIGIN);
-console.log("DATABASE_URL set:", Boolean(DATABASE_URL));
-
 app.use(
   cors({
-    origin: CORS_ORIGIN === "*" ? true : CORS_ORIGIN,
+    origin: CORS_ORIGIN,
     credentials: false,
   })
 );
-app.use(express.json({ limit: "2mb" }));
 
-// Postgres client pool
-const { Pool } = pg;
+const PORT = process.env.PORT || 3001;
+const DATABASE_URL = process.env.DATABASE_URL;
+const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
 if (!DATABASE_URL) {
-  console.warn("WARNING: DATABASE_URL is not set. API will not work without DB.");
+  console.log("DATABASE_URL set:", false);
+} else {
+  console.log("DATABASE_URL set:", true);
 }
+
+console.log("CORS_ORIGIN:", CORS_ORIGIN);
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  // Neon zwykle wymaga SSL, lokalny docker nie. Robimy auto:
-  ssl:
-    DATABASE_URL && DATABASE_URL.includes("neon.tech")
-      ? { rejectUnauthorized: false }
-      : false,
+  ssl: DATABASE_URL && DATABASE_URL.includes("neon.tech")
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
-// Helpers
-function toText(v) {
-  if (v === null || v === undefined) return "";
-  return String(v);
+// --- helpers ---
+function signToken(user) {
+  return jwt.sign(
+    { sub: user.id, email: user.email },
+    JWT_SECRET,
+    { expiresIn: "30d" }
+  );
 }
 
-function toStatus(v) {
-  const s = toText(v).trim();
-  if (s === "planowany" || s === "przetarg" || s === "realizacja") return s;
-  return "planowany";
-}
+function authRequired(req, res, next) {
+  const h = req.headers.authorization || "";
+  const m = h.match(/^Bearer\s+(.+)$/i);
+  if (!m) return res.status(401).json({ error: "Brak tokenu (Bearer)" });
 
-function toNumber(v) {
-  const n = Number(v);
-  if (!Number.isFinite(n)) return null;
-  return n;
-}
-
-// Health
-app.get("/api/health", async (req, res) => {
   try {
-    await pool.query("SELECT 1");
-    res.json({ ok: true });
+    const payload = jwt.verify(m[1], JWT_SECRET);
+    req.user = { id: payload.sub, email: payload.email };
+    next();
   } catch (e) {
-    res.status(500).json({ ok: false, error: "DB error", details: String(e) });
+    return res.status(401).json({ error: "Niepoprawny token" });
+  }
+}
+
+// --- health ---
+app.get("/api/health", async (req, res) => {
+  res.json({ ok: true });
+});
+
+// --- AUTH ---
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email i hasło są wymagane" });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: "Hasło musi mieć min. 6 znaków" });
+    }
+
+    const hash = await bcrypt.hash(password, 12);
+    const q = await pool.query(
+      "INSERT INTO users(email, password_hash) VALUES($1,$2) RETURNING id, email",
+      [email, hash]
+    );
+
+    const user = q.rows[0];
+    const token = signToken(user);
+    res.json({ token, user });
+  } catch (e) {
+    // np. duplicate email
+    if (String(e).includes("users_email_key") || String(e).includes("duplicate")) {
+      return res.status(409).json({ error: "Taki email już istnieje" });
+    }
+    res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
 
-// GET points
-app.get("/api/points", async (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      `
-      SELECT id, title, note, status, lat, lng, director, winner, created_at
-      FROM points
-      ORDER BY id DESC
-      `
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email i hasło są wymagane" });
+    }
+
+    const q = await pool.query(
+      "SELECT id, email, password_hash FROM users WHERE email=$1",
+      [email]
     );
-    res.json(rows);
+    const user = q.rows[0];
+    if (!user) return res.status(401).json({ error: "Zły email lub hasło" });
+
+    const ok = await bcrypt.compare(password, user.password_hash);
+    if (!ok) return res.status(401).json({ error: "Zły email lub hasło" });
+
+    const token = signToken(user);
+    res.json({ token, user: { id: user.id, email: user.email } });
   } catch (e) {
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
 
-// POST point
-app.post("/api/points", async (req, res) => {
-  try {
-    const title = toText(req.body.title || "Nowy punkt");
-    const note = toText(req.body.note || "");
-    const status = toStatus(req.body.status);
-    const director = toText(req.body.director || "");
-    const winner = toText(req.body.winner || "");
-    const lat = toNumber(req.body.lat);
-    const lng = toNumber(req.body.lng);
+app.get("/api/auth/me", authRequired, async (req, res) => {
+  res.json({ user: req.user });
+});
 
-    if (lat === null || lng === null) {
-      return res.status(400).json({ error: "Invalid lat/lng" });
+// --- POINTS ---
+// Zakładam, że Twoja tabela points ma kolumny:
+// id, title, note, status, lat, lng, created_at, director, winner
+// (u Ciebie już są).
+
+app.get("/api/points", authRequired, async (req, res) => {
+  try {
+    const q = await pool.query(
+      "SELECT id, title, note, status, lat, lng, created_at, director, winner FROM points ORDER BY created_at DESC"
+    );
+    res.json(q.rows);
+  } catch (e) {
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+
+app.post("/api/points", authRequired, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const title = String(body.title || "Nowy punkt");
+    const note = String(body.note || "");
+    const status = String(body.status || "planowany");
+    const director = String(body.director || "");
+    const winner = String(body.winner || "");
+    const lat = Number(body.lat);
+    const lng = Number(body.lng);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return res.status(400).json({ error: "lat/lng muszą być liczbami" });
     }
 
-    const { rows } = await pool.query(
-      `
-      INSERT INTO points (title, note, status, lat, lng, director, winner)
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
-      RETURNING id, title, note, status, lat, lng, director, winner, created_at
-      `,
+    const q = await pool.query(
+      `INSERT INTO points(title, note, status, lat, lng, director, winner)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       RETURNING id, title, note, status, lat, lng, created_at, director, winner`,
       [title, note, status, lat, lng, director, winner]
     );
 
-    res.json(rows[0]);
+    res.json(q.rows[0]);
   } catch (e) {
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
 
-// PUT point
-app.put("/api/points/:id", async (req, res) => {
+app.put("/api/points/:id", authRequired, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+    const body = req.body || {};
 
-    const title = toText(req.body.title || "");
-    const note = toText(req.body.note || "");
-    const status = toStatus(req.body.status);
-    const director = toText(req.body.director || "");
-    const winner = toText(req.body.winner || "");
+    const title = String(body.title ?? "");
+    const note = String(body.note ?? "");
+    const status = String(body.status ?? "planowany");
+    const director = String(body.director ?? "");
+    const winner = String(body.winner ?? "");
 
-    const { rows } = await pool.query(
-      `
-      UPDATE points
-      SET title = $1,
-          note = $2,
-          status = $3,
-          director = $4,
-          winner = $5
-      WHERE id = $6
-      RETURNING id, title, note, status, lat, lng, director, winner, created_at
-      `,
+    const q = await pool.query(
+      `UPDATE points
+       SET title=$1, note=$2, status=$3, director=$4, winner=$5
+       WHERE id=$6
+       RETURNING id, title, note, status, lat, lng, created_at, director, winner`,
       [title, note, status, director, winner, id]
     );
 
-    if (!rows[0]) return res.status(404).json({ error: "Not found" });
-    res.json(rows[0]);
+    if (!q.rows[0]) return res.status(404).json({ error: "Nie ma takiego punktu" });
+    res.json(q.rows[0]);
   } catch (e) {
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
 
-// DELETE point
-app.delete("/api/points/:id", async (req, res) => {
+app.delete("/api/points/:id", authRequired, async (req, res) => {
   try {
     const id = Number(req.params.id);
-    if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
-
-    await pool.query(`DELETE FROM points WHERE id = $1`, [id]);
+    const q = await pool.query("DELETE FROM points WHERE id=$1 RETURNING id", [id]);
+    if (!q.rows[0]) return res.status(404).json({ error: "Nie ma takiego punktu" });
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
 
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, () => {
   console.log(`Backend działa na porcie ${PORT}`);
 });

@@ -20,7 +20,7 @@ const TEXT_LIGHT = "#ffffff";
 const BORDER = "rgba(255,255,255,0.12)";
 const MUTED = "rgba(255,255,255,0.75)";
 
-// Start mapy (dalej trzymamy rozsądny widok na PL, ale maska działa globalnie)
+// Start mapy
 const POLAND_BOUNDS = [
   [49.0, 14.1],
   [54.9, 24.2],
@@ -33,11 +33,9 @@ const STATUSES = [
   { key: "nieaktualny", label: "Nieaktualny", color: "#9ca3af" },
 ];
 
-// Natural Earth (GeoJSON) – granice państw świata
+// Natural Earth (GeoJSON) – granice państw
 const NE_COUNTRIES_URL =
   "https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_countries.geojson";
-
-// Państwa, które mają zostać “kolorowe” (bez maski)
 const KEEP_COUNTRIES_A3 = new Set(["POL", "LTU", "LVA", "EST"]);
 
 function ClickHandler({ onAdd }) {
@@ -100,47 +98,88 @@ function InfoCard({ label, value, placeholder }) {
       <div style={{ fontWeight: 800, color: "rgba(255,255,255,0.95)" }}>
         {value?.trim?.()
           ? value
-          : (
-            <span style={{ color: "rgba(255,255,255,0.6)" }}>
-              {placeholder}
-            </span>
-          )}
+          : <span style={{ color: "rgba(255,255,255,0.6)" }}>{placeholder}</span>}
       </div>
     </div>
   );
 }
 
-// Wyciągnięcie “zewnętrznych pierścieni” z Polygon/MultiPolygon (do dziur w masce)
 function extractOuterRings(geometry) {
   if (!geometry) return [];
   const { type, coordinates } = geometry;
 
   if (type === "Polygon") {
-    // coordinates: [ outerRing, hole1, hole2 ... ]
     return coordinates?.[0] ? [coordinates[0]] : [];
   }
-
   if (type === "MultiPolygon") {
-    // coordinates: [ [outerRing, hole1...], [outerRing, hole1...] ... ]
     const rings = [];
     for (const poly of coordinates || []) {
       if (poly?.[0]) rings.push(poly[0]);
     }
     return rings;
   }
-
   return [];
 }
 
 export default function App() {
+  // --- AUTH ---
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const [userEmail, setUserEmail] = useState(localStorage.getItem("userEmail") || "");
+
+  const [authMode, setAuthMode] = useState("login"); // login | register
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPass, setAuthPass] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
+
+  async function authFetch(url, options = {}) {
+    const headers = { ...(options.headers || {}) };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return fetch(url, { ...options, headers });
+  }
+
+  async function doLoginOrRegister() {
+    setAuthError("");
+    setAuthBusy(true);
+    try {
+      const endpoint = authMode === "register" ? `${API}/auth/register` : `${API}/auth/login`;
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: authEmail, password: authPass }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAuthError(data?.error || `Błąd: HTTP ${res.status}`);
+        return;
+      }
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("userEmail", data.user?.email || authEmail);
+      setToken(data.token);
+      setUserEmail(data.user?.email || authEmail);
+    } catch (e) {
+      setAuthError(String(e));
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userEmail");
+    setToken("");
+    setUserEmail("");
+    setSelectedId(null);
+    setPoints([]);
+  }
+
+  // --- APP ---
   const [points, setPoints] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // GeoJSON mask / highlight
   const [worldMask, setWorldMask] = useState(null);
 
-  // Filtry statusów
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [visibleStatus, setVisibleStatus] = useState({
     planowany: true,
@@ -199,9 +238,9 @@ export default function App() {
     setLoading(true);
     setApiError("");
     try {
-      const res = await fetch(`${API}/points`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await authFetch(`${API}/points`);
       const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       setPoints(data);
     } catch (e) {
       setApiError(`Nie mogę pobrać punktów: ${String(e)}`);
@@ -210,12 +249,14 @@ export default function App() {
     }
   }
 
-  // Ładujemy punkty
+  // ładowanie punktów tylko gdy mamy token
   useEffect(() => {
+    if (!token) return;
     loadPoints();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
-  // Ładujemy prawdziwe granice i budujemy maskę (świat wyszarzony z “dziurą” na PL/LT/LV/EE)
+  // maska świata
   useEffect(() => {
     let alive = true;
 
@@ -234,11 +275,8 @@ export default function App() {
         });
 
         const holes = [];
-        for (const f of keepFeatures) {
-          holes.push(...extractOuterRings(f.geometry));
-        }
+        for (const f of keepFeatures) holes.push(...extractOuterRings(f.geometry));
 
-        // Świat jako duży prostokąt + “dziury” z dokładnymi granicami wybranych krajów
         const mask = {
           type: "Feature",
           properties: { name: "world-mask" },
@@ -259,7 +297,6 @@ export default function App() {
 
         if (alive) setWorldMask(mask);
       } catch {
-        // jak się nie pobierze, to po prostu nie pokazujemy maski
         if (alive) setWorldMask(null);
       }
     })();
@@ -269,7 +306,6 @@ export default function App() {
     };
   }, []);
 
-  // Po wyborze punktu wypełnij formularz
   useEffect(() => {
     if (!selected) return;
     setForm({
@@ -286,25 +322,14 @@ export default function App() {
     setVisibleStatus((s) => ({ ...s, [key]: !s[key] }));
   }
   function showAllStatuses() {
-    setVisibleStatus({
-      planowany: true,
-      przetarg: true,
-      realizacja: true,
-      nieaktualny: true,
-    });
+    setVisibleStatus({ planowany: true, przetarg: true, realizacja: true, nieaktualny: true });
   }
   function hideAllStatuses() {
-    setVisibleStatus({
-      planowany: false,
-      przetarg: false,
-      realizacja: false,
-      nieaktualny: false,
-    });
+    setVisibleStatus({ planowany: false, przetarg: false, realizacja: false, nieaktualny: false });
   }
 
   async function addPoint(latlng) {
     setApiError("");
-
     const body = {
       title: "Nowy punkt",
       director: "",
@@ -316,15 +341,15 @@ export default function App() {
     };
 
     try {
-      const res = await fetch(`${API}/points`, {
+      const res = await authFetch(`${API}/points`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const created = await res.json();
-      setPoints((p) => [created, ...p]);
-      setSelectedId(created.id);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      setPoints((p) => [data, ...p]);
+      setSelectedId(data.id);
       setSidebarOpen(true);
     } catch (e) {
       setApiError(`Nie mogę dodać punktu: ${String(e)}`);
@@ -337,7 +362,7 @@ export default function App() {
     setSaving(true);
     setApiError("");
     try {
-      const res = await fetch(`${API}/points/${selected.id}`, {
+      const res = await authFetch(`${API}/points/${selected.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -348,9 +373,9 @@ export default function App() {
           status: form.status,
         }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const updated = await res.json();
-      setPoints((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      setPoints((prev) => prev.map((p) => (p.id === data.id ? data : p)));
     } catch (e) {
       setApiError(`Nie mogę zapisać: ${String(e)}`);
     } finally {
@@ -367,8 +392,9 @@ export default function App() {
     setBusyDelete(true);
     setApiError("");
     try {
-      const res = await fetch(`${API}/points/${selected.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await authFetch(`${API}/points/${selected.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       setPoints((prev) => prev.filter((p) => p.id !== selected.id));
       setSelectedId(null);
     } catch (e) {
@@ -381,6 +407,128 @@ export default function App() {
   const sidebarWidthOpen = 380;
   const sidebarWidthClosed = 0;
 
+  // --- LOGIN SCREEN ---
+  if (!token) {
+    return (
+      <div
+        style={{
+          width: "100vw",
+          height: "100vh",
+          display: "grid",
+          placeItems: "center",
+          background: "#0b1220",
+          color: TEXT_LIGHT,
+          padding: 18,
+        }}
+      >
+        <div
+          style={{
+            width: 380,
+            maxWidth: "100%",
+            borderRadius: 18,
+            border: `1px solid ${BORDER}`,
+            background: "rgba(31,56,85,0.35)",
+            backdropFilter: "blur(10px)",
+            boxShadow: "0 18px 50px rgba(0,0,0,0.45)",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ padding: 16, background: "rgba(22,42,64,0.9)", borderBottom: `1px solid ${BORDER}` }}>
+            <div style={{ fontWeight: 900, fontSize: 16 }}>
+              {authMode === "login" ? "Logowanie" : "Rejestracja"}
+            </div>
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
+              Wpisz email i hasło.
+            </div>
+          </div>
+
+          <div style={{ padding: 16, display: "grid", gap: 10 }}>
+            {authError ? (
+              <div
+                style={{
+                  padding: 10,
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,120,120,0.45)",
+                  background: "rgba(255,120,120,0.12)",
+                  fontSize: 12,
+                }}
+              >
+                {authError}
+              </div>
+            ) : null}
+
+            <input
+              placeholder="Email"
+              value={authEmail}
+              onChange={(e) => setAuthEmail(e.target.value)}
+              style={{
+                padding: 12,
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                background: "rgba(255,255,255,0.06)",
+                color: TEXT_LIGHT,
+                outline: "none",
+              }}
+            />
+            <input
+              placeholder="Hasło"
+              type="password"
+              value={authPass}
+              onChange={(e) => setAuthPass(e.target.value)}
+              style={{
+                padding: 12,
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                background: "rgba(255,255,255,0.06)",
+                color: TEXT_LIGHT,
+                outline: "none",
+              }}
+            />
+
+            <button
+              onClick={doLoginOrRegister}
+              disabled={authBusy}
+              style={{
+                padding: 12,
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                background: authBusy ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.10)",
+                color: TEXT_LIGHT,
+                cursor: authBusy ? "default" : "pointer",
+                fontWeight: 900,
+              }}
+            >
+              {authBusy ? "Proszę czekać..." : (authMode === "login" ? "Zaloguj" : "Utwórz konto")}
+            </button>
+
+            <button
+              onClick={() => {
+                setAuthError("");
+                setAuthMode((m) => (m === "login" ? "register" : "login"));
+              }}
+              style={{
+                padding: 12,
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                background: "rgba(255,255,255,0.06)",
+                color: TEXT_LIGHT,
+                cursor: "pointer",
+                fontWeight: 800,
+              }}
+            >
+              {authMode === "login" ? "Nie mam konta (rejestracja)" : "Mam konto (logowanie)"}
+            </button>
+
+            <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.4 }}>
+              To jest prosty login do Twojej aplikacji (0 zł). Token zapisuje się lokalnie w przeglądarce.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- APP UI ---
   return (
     <div
       style={{
@@ -434,10 +582,26 @@ export default function App() {
                 ⟨
               </button>
 
-              <div style={{ display: "grid", gap: 2 }}>
+              <div style={{ display: "grid", gap: 2, flex: 1 }}>
                 <div style={{ fontWeight: 800, letterSpacing: 0.2 }}>Punkty postępu</div>
-                <div style={{ fontSize: 12, color: MUTED }}>Kliknij mapę, aby dodać punkt.</div>
+                <div style={{ fontSize: 12, color: MUTED }}>Zalogowano: {userEmail || "(użytkownik)"}</div>
               </div>
+
+              <button
+                onClick={logout}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 12,
+                  border: `1px solid ${BORDER}`,
+                  background: "rgba(255,255,255,0.06)",
+                  color: TEXT_LIGHT,
+                  cursor: "pointer",
+                  fontWeight: 900,
+                  fontSize: 12,
+                }}
+              >
+                Wyloguj
+              </button>
             </div>
 
             <div style={{ padding: 12, height: "calc(100% - 59px)", overflow: "auto" }}>
@@ -715,7 +879,7 @@ export default function App() {
           </button>
         ) : null}
 
-        {/* PANEL STATUSÓW */}
+        {/* STATUSY */}
         <div
           style={{
             position: "absolute",
@@ -811,13 +975,8 @@ export default function App() {
           zoomControl={false}
         >
           <ZoomControl position="bottomright" />
+          <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-          <TileLayer
-            attribution="&copy; OpenStreetMap contributors"
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-
-          {/* MASKA: wyszarza wszystko poza PL/LT/LV/EE */}
           {worldMask ? (
             <GeoJSON
               data={worldMask}
