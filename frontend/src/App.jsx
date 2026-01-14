@@ -1334,11 +1334,12 @@ export default function App() {
               <Polyline
   ...
   pathOptions={{
-    color: tunnelColor(t.status),
-    weight: 8,
-    opacity: 0.95,
-    tunnelId: t.id,
-  }}
+  color: tunnelColor(t.status),
+  weight: 10,
+  opacity: 0.95,
+  lineCap: "round",
+  lineJoin: "round",
+}}
 />
                 eventHandlers={{
                   click: () => {
