@@ -84,6 +84,7 @@ export default function App() {
               onChange={(e) => setLogin(e.target.value)}
               placeholder="np. admin"
               autoComplete="username"
+              autoFocus
               style={inputStyle}
             />
 
@@ -97,12 +98,18 @@ export default function App() {
               style={inputStyle}
             />
 
-            <button type="submit" disabled={loading} style={primaryButtonStyle(loading)}>
+            <button
+              type="submit"
+              disabled={loading}
+              style={primaryButtonStyle(loading)}
+            >
               {loading ? "Loguję..." : "Zaloguj"}
             </button>
           </form>
 
-          <div style={hintStyle}>Konta użytkowników są zakładane przez administratora.</div>
+          <div style={hintStyle}>
+            Konta użytkowników są zakładane przez administratora.
+          </div>
         </div>
       </div>
     );
@@ -136,14 +143,22 @@ export default function App() {
 
 /** ===== styles ===== */
 
-// Tło na cały ekran + responsywność + brak “pasów” po bokach
+/**
+ * Najważniejsze zmiany:
+ * - width: "100%" zamiast 100vw (usuwa poziomy scroll i “uciekanie w prawo”)
+ * - position: "fixed", inset: 0 na login/checking (pełny overlay)
+ * - overflowX: "hidden" jako zabezpieczenie
+ */
 const pageStyle = {
+  position: "fixed",
+  inset: 0,
   minHeight: "100vh",
-  width: "100vw",
+  width: "100%",
   display: "grid",
   placeItems: "center",
   padding: "clamp(12px, 3vw, 24px)",
   overflow: "hidden",
+  overflowX: "hidden",
   background:
     "radial-gradient(1200px 600px at 20% 10%, rgba(99,102,241,0.22), transparent 60%)," +
     "radial-gradient(900px 500px at 85% 20%, rgba(34,197,94,0.14), transparent 55%)," +
@@ -151,10 +166,9 @@ const pageStyle = {
     "linear-gradient(180deg, #070B14 0%, #0B1220 45%, #070B14 100%)",
 };
 
-// Karta ma zawsze zmieścić się na ekranie
 const cardStyle = {
   boxSizing: "border-box",
-  width: "min(420px, 92vw)",
+  width: "min(420px, calc(100% - 32px))",
   maxWidth: 520,
   background: "rgba(18, 32, 51, 0.72)",
   borderRadius: 18,
@@ -211,7 +225,7 @@ const labelStyle = {
 const inputStyle = {
   boxSizing: "border-box",
   width: "100%",
-  height: 40, // mniejsze
+  height: 40,
   borderRadius: 12,
   border: "1px solid rgba(255,255,255,0.12)",
   background: "rgba(255,255,255,0.06)",
@@ -230,12 +244,11 @@ const errorStyle = {
   color: "rgba(255,255,255,0.96)",
 };
 
-// Przycisk mniejszy i zawsze w karcie
 const primaryButtonStyle = (loading) => ({
   boxSizing: "border-box",
   marginTop: 14,
   width: "100%",
-  height: 40, // mniejsze
+  height: 40,
   borderRadius: 12,
   border: "1px solid rgba(255,255,255,0.14)",
   background: "rgba(255,255,255,0.10)",
@@ -254,8 +267,8 @@ const hintStyle = {
 
 const appShellStyle = {
   minHeight: "100vh",
-  width: "100vw",
-  overflow: "hidden",
+  width: "100%",
+  overflowX: "hidden",
   background:
     "radial-gradient(1200px 600px at 20% 10%, rgba(99,102,241,0.18), transparent 60%)," +
     "radial-gradient(900px 500px at 85% 20%, rgba(34,197,94,0.10), transparent 55%)," +
