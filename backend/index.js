@@ -19,11 +19,16 @@ const PORT = process.env.PORT || 3001;
 const DATABASE_URL = process.env.DATABASE_URL;
 const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
 
+/**
+ * ⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇⬇
+ * WYMUSZONE SSL — NAWET JEŚLI URL NIE ZAWIERA "neon.tech"
+ * To bardzo często naprawia DB error na Render + Neon
+ */
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: DATABASE_URL && DATABASE_URL.includes("neon.tech")
-    ? { rejectUnauthorized: false }
-    : false,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 // ===== HEALTH =====
@@ -49,11 +54,13 @@ function authRequired(req, res, next) {
     const payload = jwt.verify(m[1], JWT_SECRET);
     req.user = { id: payload.sub, email: payload.email };
     next();
-  } catch {
+  } catch (e) {
+    console.error("AUTH TOKEN ERROR:", e);
     return res.status(401).json({ error: "Niepoprawny token" });
   }
 }
 
+// ===== REGISTER =====
 app.post("/api/auth/register", async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
@@ -67,6 +74,7 @@ app.post("/api/auth/register", async (req, res) => {
     }
 
     const hash = await bcrypt.hash(password, 12);
+
     const q = await pool.query(
       "INSERT INTO users(email, password_hash) VALUES($1,$2) RETURNING id, email",
       [email, hash]
@@ -74,15 +82,26 @@ app.post("/api/auth/register", async (req, res) => {
 
     const user = q.rows[0];
     const token = signToken(user);
+
     res.json({ token, user });
   } catch (e) {
-    if (String(e).includes("duplicate")) {
+    console.error("REGISTER DB ERROR:", e); // ⬅⬅⬅ KLUCZOWE
+
+    if (
+      String(e).includes("duplicate") ||
+      String(e).includes("users_email_key")
+    ) {
       return res.status(409).json({ error: "Email już istnieje" });
     }
-    res.status(500).json({ error: "DB error" });
+
+    return res.status(500).json({
+      error: "DB error",
+      details: String(e),
+    });
   }
 });
 
+// ===== LOGIN =====
 app.post("/api/auth/login", async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
@@ -101,8 +120,12 @@ app.post("/api/auth/login", async (req, res) => {
 
     const token = signToken(user);
     res.json({ token, user: { id: user.id, email: user.email } });
-  } catch {
-    res.status(500).json({ error: "DB error" });
+  } catch (e) {
+    console.error("LOGIN DB ERROR:", e); // ⬅⬅⬅ KLUCZOWE
+    return res.status(500).json({
+      error: "DB error",
+      details: String(e),
+    });
   }
 });
 
@@ -113,4 +136,6 @@ app.get("/api/auth/me", authRequired, (req, res) => {
 // ===== START =====
 app.listen(PORT, () => {
   console.log(`Backend działa na porcie ${PORT}`);
+  console.log("CORS_ORIGIN:", CORS_ORIGIN);
+  console.log("DATABASE_URL set:", !!DATABASE_URL);
 });
