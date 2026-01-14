@@ -1,7 +1,55 @@
-// frontend/src/App.jsx
 import { useEffect, useState } from "react";
 import "./App.css";
-import { getToken, loginRequest, meRequest, setToken } from "./api";
+
+const API_BASE = "https://tenders-map-api.onrender.com";
+const BUILD_ID = "BUILD-2026-01-14-XYZ";
+
+function setToken(token) {
+  if (token) localStorage.setItem("token", token);
+  else localStorage.removeItem("token");
+}
+function getToken() {
+  return localStorage.getItem("token");
+}
+
+async function apiLogin(login, password) {
+  const res = await fetch(`${API_BASE}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: login, password }),
+  });
+
+  const text = await res.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error("Serwer zwrócił niepoprawną odpowiedź.");
+  }
+
+  if (!res.ok) throw new Error(data?.error || "Błąd logowania.");
+  return data; // { token, user }
+}
+
+async function apiMe() {
+  const token = getToken();
+  if (!token) throw new Error("Brak tokenu");
+
+  const res = await fetch(`${API_BASE}/api/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const text = await res.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error("Serwer zwrócił niepoprawną odpowiedź.");
+  }
+
+  if (!res.ok) throw new Error(data?.error || "Błąd autoryzacji.");
+  return data; // { user }
+}
 
 export default function App() {
   const [mode, setMode] = useState("checking"); // checking | login | app
@@ -11,16 +59,14 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
 
-  // sprawdzenie tokenu przy starcie
   useEffect(() => {
     async function boot() {
       try {
-        const token = getToken();
-        if (!token) {
+        if (!getToken()) {
           setMode("login");
           return;
         }
-        const me = await meRequest();
+        const me = await apiMe();
         setUser(me.user);
         setMode("app");
       } catch {
@@ -35,10 +81,8 @@ export default function App() {
     e.preventDefault();
     setErr("");
     setLoading(true);
-
     try {
-      // backend nadal oczekuje "email", ale w UI nazywamy to "login"
-      const data = await loginRequest(login, password);
+      const data = await apiLogin(login, password);
       setToken(data.token);
       setUser(data.user);
       setMode("app");
@@ -66,11 +110,14 @@ export default function App() {
     );
   }
 
-  // ===== TYLKO LOGOWANIE (bez rejestracji) =====
   if (mode === "login") {
     return (
       <div style={pageStyle}>
         <div style={cardStyle}>
+          <div style={{ color: "yellow", fontWeight: 900, marginBottom: 8 }}>
+            {BUILD_ID}
+          </div>
+
           <h2 style={{ margin: 0, fontSize: 22, color: "white" }}>Logowanie</h2>
           <p style={{ marginTop: 8, opacity: 0.8, color: "white" }}>
             Wpisz login i hasło.
@@ -109,7 +156,6 @@ export default function App() {
     );
   }
 
-  // ===== Widok aplikacji po zalogowaniu =====
   return (
     <div style={{ minHeight: "100vh", background: "#0b1220", color: "white", padding: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -160,4 +206,19 @@ const errorStyle = {
   marginTop: 12,
   padding: 12,
   borderRadius: 12,
-  background: "rgba(255,0,0,0.12)
+  background: "rgba(255,0,0,0.12)",
+  border: "1px solid rgba(255,0,0,0.35)",
+  color: "rgba(255,255,255,0.95)",
+};
+
+const buttonStyle = (loading) => ({
+  marginTop: 14,
+  width: "100%",
+  height: 44,
+  borderRadius: 12,
+  border: "1px solid rgba(255,255,255,0.10)",
+  background: "rgba(255,255,255,0.06)",
+  color: "white",
+  fontWeight: 700,
+  cursor: loading ? "not-allowed" : "pointer",
+});
