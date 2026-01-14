@@ -1,5 +1,4 @@
 // frontend/src/App.jsx
-<div style={{ color: "yellow" }}>TEST-123</div>
 import { useEffect, useState } from "react";
 import "./App.css";
 import { getToken, loginRequest, meRequest, setToken } from "./api";
@@ -16,7 +15,8 @@ export default function App() {
   useEffect(() => {
     async function boot() {
       try {
-        if (!getToken()) {
+        const token = getToken();
+        if (!token) {
           setMode("login");
           return;
         }
@@ -37,6 +37,7 @@ export default function App() {
     setLoading(true);
 
     try {
+      // backend nadal oczekuje "email", ale w UI nazywamy to "login"
       const data = await loginRequest(login, password);
       setToken(data.token);
       setUser(data.user);
@@ -57,7 +58,6 @@ export default function App() {
     setMode("login");
   }
 
-  // ===== Widok "sprawdzam token" =====
   if (mode === "checking") {
     return (
       <div style={pageStyle}>
@@ -66,7 +66,7 @@ export default function App() {
     );
   }
 
-  // ===== Widok logowania (BEZ REJESTRACJI) =====
+  // ===== TYLKO LOGOWANIE (bez rejestracji) =====
   if (mode === "login") {
     return (
       <div style={pageStyle}>
@@ -76,11 +76,7 @@ export default function App() {
             Wpisz login i hasło.
           </p>
 
-          {err ? (
-            <div style={errorStyle}>
-              {err}
-            </div>
-          ) : null}
+          {err ? <div style={errorStyle}>{err}</div> : null}
 
           <form onSubmit={onLoginSubmit} style={{ marginTop: 14 }}>
             <input
@@ -113,7 +109,7 @@ export default function App() {
     );
   }
 
-  // ===== Widok aplikacji po zalogowaniu (tu podłączysz mapę) =====
+  // ===== Widok aplikacji po zalogowaniu =====
   return (
     <div style={{ minHeight: "100vh", background: "#0b1220", color: "white", padding: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -126,7 +122,7 @@ export default function App() {
       </div>
 
       <div style={{ marginTop: 16, opacity: 0.8 }}>
-        Tu podepniesz mapę (frontend dalej działa, tylko usunęliśmy rejestrację).
+        Tu podepniesz mapę.
       </div>
     </div>
   );
@@ -164,19 +160,4 @@ const errorStyle = {
   marginTop: 12,
   padding: 12,
   borderRadius: 12,
-  background: "rgba(255,0,0,0.12)",
-  border: "1px solid rgba(255,0,0,0.35)",
-  color: "rgba(255,255,255,0.95)",
-};
-
-const buttonStyle = (loading) => ({
-  marginTop: 14,
-  width: "100%",
-  height: 44,
-  borderRadius: 12,
-  border: "1px solid rgba(255,255,255,0.10)",
-  background: "rgba(255,255,255,0.06)",
-  color: "white",
-  fontWeight: 700,
-  cursor: loading ? "not-allowed" : "pointer",
-});
+  background: "rgba(255,0,0,0.12)
