@@ -40,9 +40,9 @@ function statusLabel(s) {
 }
 
 function statusColor(status) {
-  if (status === "przetarg") return "#f59e0b"; // pomarańcz
-  if (status === "realizacja") return "#22c55e"; // zielony
-  return "#3b82f6"; // niebieski
+  if (status === "przetarg") return "#f59e0b";
+  if (status === "realizacja") return "#22c55e";
+  return "#3b82f6";
 }
 
 function pinSvg(color) {
@@ -80,7 +80,9 @@ function InfoCard({ label, value, placeholder }) {
     >
       <div style={{ fontSize: 12, color: MUTED }}>{label}</div>
       <div style={{ fontWeight: 800, color: "rgba(255,255,255,0.95)" }}>
-        {value?.trim() ? value : <span style={{ color: "rgba(255,255,255,0.6)" }}>{placeholder}</span>}
+        {value?.trim ? (value.trim() ? value : <span style={{ color: "rgba(255,255,255,0.6)" }}>{placeholder}</span>) : (
+          <span style={{ color: "rgba(255,255,255,0.6)" }}>{placeholder}</span>
+        )}
       </div>
     </div>
   );
@@ -91,7 +93,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // ✅ filtry statusów
+  // Filtry statusów
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [visibleStatus, setVisibleStatus] = useState({
     planowany: true,
@@ -104,12 +106,14 @@ export default function App() {
     [points, selectedId]
   );
 
+  // UWAGA: backend ma tylko title/note/status, więc tylko to edytujemy i zapisujemy
   const [form, setForm] = useState({
     title: "",
-    director: "",
-    winner: "",
     note: "",
     status: "planowany",
+    // pola "wizualne" (tymczasowo – nie zapisują się w DB)
+    director_ui: "",
+    winner_ui: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -125,23 +129,19 @@ export default function App() {
     };
   }, []);
 
-  // ✅ punkty po filtrach (dla mapy i listy)
   const filteredPoints = useMemo(() => {
     return points.filter((p) => visibleStatus[p.status || "planowany"] !== false);
   }, [points, visibleStatus]);
 
-  // ✅ liczniki (po wszystkich punktach)
   const counts = useMemo(() => {
     const c = { planowany: 0, przetarg: 0, realizacja: 0 };
     for (const p of points) {
       const st = p.status || "planowany";
-      if (c[st] === undefined) c[st] = 0;
-      c[st] += 1;
+      c[st] = (c[st] || 0) + 1;
     }
     return c;
   }, [points]);
 
-  // ✅ jeżeli zaznaczony punkt został odfiltrowany, odznacz
   useEffect(() => {
     if (!selectedId) return;
     const stillVisible = filteredPoints.some((p) => p.id === selectedId);
@@ -169,22 +169,32 @@ export default function App() {
 
   useEffect(() => {
     if (!selected) return;
-    setForm({
+    setForm((f) => ({
+      ...f,
       title: selected.title || "",
-      director: selected.director || "",
-      winner: selected.winner || "",
       note: selected.note || "",
       status: selected.status || "planowany",
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId]);
+    }));
+  }, [selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function toggleStatus(key) {
+    setVisibleStatus((s) => ({ ...s, [key]: !s[key] }));
+  }
+
+  function showAllStatuses() {
+    setVisibleStatus({ planowany: true, przetarg: true, realizacja: true });
+  }
+
+  function hideAllStatuses() {
+    setVisibleStatus({ planowany: false, przetarg: false, realizacja: false });
+  }
 
   async function addPoint(latlng) {
     setApiError("");
+
+    // ✅ wysyłamy tylko to, co backend/DB ma na pewno
     const body = {
       title: "Nowy punkt",
-      director: "",
-      winner: "",
       note: "",
       status: "planowany",
       lat: latlng.lat,
@@ -212,11 +222,19 @@ export default function App() {
 
     setSaving(true);
     setApiError("");
+
+    // ✅ zapisujemy tylko pola istniejące w backendzie/DB
+    const payload = {
+      title: form.title,
+      note: form.note,
+      status: form.status,
+    };
+
     try {
       const res = await fetch(`${API}/points/${selected.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const updated = await res.json();
@@ -248,18 +266,6 @@ export default function App() {
     }
   }
 
-  function toggleStatus(key) {
-    setVisibleStatus((s) => ({ ...s, [key]: !s[key] }));
-  }
-
-  function showAllStatuses() {
-    setVisibleStatus({ planowany: true, przetarg: true, realizacja: true });
-  }
-
-  function hideAllStatuses() {
-    setVisibleStatus({ planowany: false, przetarg: false, realizacja: false });
-  }
-
   const sidebarWidthOpen = 380;
   const sidebarWidthClosed = 0;
 
@@ -285,7 +291,6 @@ export default function App() {
       >
         {sidebarOpen ? (
           <>
-            {/* HEADER */}
             <div
               style={{
                 display: "flex",
@@ -323,7 +328,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* CONTENT */}
             <div style={{ padding: 12, height: "calc(100% - 59px)", overflow: "auto" }}>
               {apiError ? (
                 <div
@@ -358,13 +362,12 @@ export default function App() {
                 {loading ? "Ładuję..." : "Odśwież punkty"}
               </button>
 
-              {/* BOXy info */}
+              {/* Na razie “wizualnie”, nie zapisuje w DB */}
               <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-                <InfoCard label="Dyrektor kontraktu" value={selected?.director} placeholder="(nie ustawiono)" />
-                <InfoCard label="Firma (wykonawca)" value={selected?.winner} placeholder="(nie ustawiono)" />
+                <InfoCard label="Dyrektor kontraktu" value={form.director_ui} placeholder="(tymczasowo lokalne)" />
+                <InfoCard label="Firma (wykonawca)" value={form.winner_ui} placeholder="(tymczasowo lokalne)" />
               </div>
 
-              {/* EDYCJA */}
               <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
                 {selected ? (
                   <>
@@ -374,34 +377,6 @@ export default function App() {
                     <input
                       value={form.title}
                       onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                      style={{
-                        padding: 10,
-                        borderRadius: 12,
-                        border: `1px solid ${BORDER}`,
-                        background: "rgba(255,255,255,0.06)",
-                        color: TEXT_LIGHT,
-                        outline: "none",
-                      }}
-                    />
-
-                    <label style={{ fontSize: 12, color: MUTED }}>Dyrektor kontraktu</label>
-                    <input
-                      value={form.director}
-                      onChange={(e) => setForm((f) => ({ ...f, director: e.target.value }))}
-                      style={{
-                        padding: 10,
-                        borderRadius: 12,
-                        border: `1px solid ${BORDER}`,
-                        background: "rgba(255,255,255,0.06)",
-                        color: TEXT_LIGHT,
-                        outline: "none",
-                      }}
-                    />
-
-                    <label style={{ fontSize: 12, color: MUTED }}>Firma (wykonawca)</label>
-                    <input
-                      value={form.winner}
-                      onChange={(e) => setForm((f) => ({ ...f, winner: e.target.value }))}
                       style={{
                         padding: 10,
                         borderRadius: 12,
@@ -496,7 +471,6 @@ export default function App() {
 
               <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-              {/* LISTA — ✅ filtrowana */}
               <div style={{ display: "grid", gap: 8 }}>
                 {filteredPoints.map((pt) => (
                   <div
@@ -508,8 +482,7 @@ export default function App() {
                     style={{
                       padding: 10,
                       borderRadius: 14,
-                      border:
-                        pt.id === selectedId ? `2px solid rgba(255,255,255,0.35)` : `1px solid ${BORDER}`,
+                      border: pt.id === selectedId ? `2px solid rgba(255,255,255,0.35)` : `1px solid ${BORDER}`,
                       background: "rgba(255,255,255,0.05)",
                       cursor: "pointer",
                     }}
@@ -534,17 +507,6 @@ export default function App() {
                     <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
                       ({Number(pt.lat).toFixed(4)}, {Number(pt.lng).toFixed(4)})
                     </div>
-
-                    {pt.winner ? (
-                      <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
-                        <b>Firma:</b> {pt.winner}
-                      </div>
-                    ) : null}
-                    {pt.director ? (
-                      <div style={{ marginTop: 4, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
-                        <b>Dyrektor:</b> {pt.director}
-                      </div>
-                    ) : null}
 
                     {pt.note ? (
                       <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
@@ -602,7 +564,7 @@ export default function App() {
           </button>
         ) : null}
 
-        {/* ✅ Filtry statusów — prawy górny róg */}
+        {/* Filtry statusów */}
         <div
           style={{
             position: "absolute",
@@ -612,7 +574,7 @@ export default function App() {
             width: 240,
             borderRadius: 16,
             border: `1px solid ${BORDER}`,
-            background: "rgba(22,42,64,0.70)", // półprzezroczysty
+            background: "rgba(22,42,64,0.70)",
             backdropFilter: "blur(8px)",
             color: TEXT_LIGHT,
             overflow: "hidden",
@@ -650,7 +612,7 @@ export default function App() {
                     userSelect: "none",
                   }}
                 >
-                  <input type="checkbox" checked={visibleStatus[s.key]} onChange={() => toggleStatus(s.key)} />
+                  <input type="checkbox" checked={visibleStatus[s.key]} onChange={() => setVisibleStatus((v) => ({ ...v, [s.key]: !v[s.key] }))} />
                   <span style={{ width: 10, height: 10, borderRadius: 999, background: s.color }} />
                   <span style={{ flex: 1, fontWeight: 800 }}>{s.label}</span>
                   <span style={{ fontSize: 12, color: MUTED }}>{counts[s.key] ?? 0}</span>
@@ -703,7 +665,6 @@ export default function App() {
 
           <ClickHandler onAdd={addPoint} />
 
-          {/* ✅ MARKERY — filtrowane */}
           {filteredPoints.map((pt) => {
             const st = pt.status || "planowany";
             const icon = pinIcons[st] || pinIcons.planowany;
@@ -723,16 +684,6 @@ export default function App() {
                 <Popup>
                   <b>{pt.title}</b>
                   <div style={{ fontSize: 12, opacity: 0.8 }}>{statusLabel(pt.status)}</div>
-                  {pt.director ? (
-                    <div style={{ marginTop: 6 }}>
-                      <b>Dyrektor:</b> {pt.director}
-                    </div>
-                  ) : null}
-                  {pt.winner ? (
-                    <div style={{ marginTop: 6 }}>
-                      <b>Firma:</b> {pt.winner}
-                    </div>
-                  ) : null}
                   <div style={{ marginTop: 6 }}>{pt.note || "Brak notatki"}</div>
                 </Popup>
               </Marker>
