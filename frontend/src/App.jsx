@@ -1,11 +1,7 @@
-import { MapContainer, TileLayer, <GeoJSON
-  data={WORLD_MASK}
-  style={{
-    fillColor: "#0f172a",      // ciemny szary
-    fillOpacity: 0.55,         // wyszarzenie
-    color: "#0f172a",
-    weight: 0,
-  }}/>Marker, Popup, useMapEvents, ZoomControl } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, ZoomControl, GeoJSON } from "react-leaflet";
+import { useEffect, useMemo, useState } from "react";
+import L from "leaflet";
+
 import { useEffect, useMemo, useState } from "react";
 import L from "leaflet";
 import { GeoJSON } from "react-leaflet";
