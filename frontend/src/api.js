@@ -1,21 +1,13 @@
 // frontend/src/api.js
-
 const DEFAULT_API = "https://tenders-map-api.onrender.com";
 
-// Bierzemy tylko pełny URL (https://...), bo relative typu "/api" robi request na Vercel i kończy się 404.
-function pickApiBase() {
-  const env =
-    (import.meta && import.meta.env && import.meta.env.VITE_API_URL) ||
-    (import.meta && import.meta.env && import.meta.env.NEXT_PUBLIC_API_URL) ||
-    "";
+const envUrl =
+  (import.meta && import.meta.env && import.meta.env.VITE_API_URL) || "";
 
-  if (typeof env === "string" && env.startsWith("http")) {
-    return env.replace(/\/+$/, "");
-  }
-  return DEFAULT_API;
-}
-
-export const API_BASE = pickApiBase();
+export const API_BASE = (envUrl.startsWith("http") ? envUrl : DEFAULT_API).replace(
+  /\/+$/,
+  ""
+);
 
 export function setToken(token) {
   if (token) localStorage.setItem("token", token);
@@ -26,18 +18,15 @@ export function getToken() {
   return localStorage.getItem("token");
 }
 
-async function readJson(res) {
-  const text = await res.text();
+async function json(res) {
+  const t = await res.text();
   let data = {};
   try {
-    data = text ? JSON.parse(text) : {};
+    data = t ? JSON.parse(t) : {};
   } catch {
     throw new Error("Serwer zwrócił niepoprawną odpowiedź.");
   }
-
-  if (!res.ok) {
-    throw new Error(data && data.error ? data.error : "Błąd żądania.");
-  }
+  if (!res.ok) throw new Error(data.error || "Błąd żądania.");
   return data;
 }
 
@@ -45,21 +34,16 @@ export async function loginRequest(login, password) {
   const res = await fetch(`${API_BASE}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    // kompatybilnie: backend może czytać email albo login
     body: JSON.stringify({ email: login, login, password }),
   });
-
-  return readJson(res); // { token, user }
+  return json(res);
 }
 
 export async function meRequest() {
   const token = getToken();
   if (!token) throw new Error("Brak tokenu");
-
   const res = await fetch(`${API_BASE}/api/auth/me`, {
-    method: "GET",
     headers: { Authorization: `Bearer ${token}` },
   });
-
-  return readJson(res); // { user }
+  return json(res);
 }
