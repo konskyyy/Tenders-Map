@@ -51,9 +51,10 @@ const NE_COUNTRIES_URL =
   "https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_countries.geojson";
 const KEEP_COUNTRIES_A3 = new Set(["POL", "LTU", "LVA", "EST"]);
 
-function ClickHandler({ onAdd }) {
+function ClickHandler({ enabled, onAdd }) {
   useMapEvents({
     click(e) {
+      if (!enabled) return;
       onAdd(e.latlng);
     },
   });
@@ -299,6 +300,7 @@ export default function App() {
   /** ===== Filters ===== */
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(true);
+  const [addMode, setAddMode] = useState("none"); // none | point | tunnel
   const [visibleStatus, setVisibleStatus] = useState({
     planowany: true,
     przetarg: true,
@@ -1119,7 +1121,14 @@ export default function App() {
       </aside>
 
       {/* MAP */}
-      <main style={{ width: "100%", height: "100%", position: "relative" }}>
+      <main
+  style={{
+    width: "100%",
+    height: "100%",
+    position: "relative",
+    cursor: addMode === "point" ? "crosshair" : "default",
+  }}
+>
         {!sidebarOpen ? (
           <button
             onClick={() => setSidebarOpen(true)}
@@ -1206,7 +1215,51 @@ export default function App() {
                   <span style={{ fontSize: 12, color: MUTED }}>{counts[s.key] ?? 0}</span>
                 </label>
               ))}
+<div style={{ height: 1, background: BORDER, margin: "8px 0" }} />
 
+<div style={{ fontWeight: 900, marginBottom: 6 }}>Dodawanie</div>
+
+<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+  <button
+    onClick={() => setAddMode((m) => (m === "point" ? "none" : "point"))}
+    style={{
+      padding: "10px 10px",
+      borderRadius: 12,
+      border: `1px solid ${BORDER}`,
+      background: addMode === "point" ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.08)",
+      color: TEXT_LIGHT,
+      cursor: "pointer",
+      fontWeight: 900,
+    }}
+    title="Kliknij mapę, aby dodać punkt"
+  >
+    🎯 Punkt
+  </button>
+
+  <button
+    onClick={() => setAddMode((m) => (m === "tunnel" ? "none" : "tunnel"))}
+    style={{
+      padding: "10px 10px",
+      borderRadius: 12,
+      border: `1px solid ${BORDER}`,
+      background: addMode === "tunnel" ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.08)",
+      color: TEXT_LIGHT,
+      cursor: "pointer",
+      fontWeight: 900,
+    }}
+    title="Rysuj linię na mapie"
+  >
+    🧵 Tunel
+  </button>
+</div>
+
+<div style={{ marginTop: 8, fontSize: 12, color: MUTED, lineHeight: 1.4 }}>
+  {addMode === "point"
+    ? "Tryb: Punkt — kliknij na mapie, żeby dodać marker."
+    : addMode === "tunnel"
+    ? "Tryb: Tunel — użyj narzędzia rysowania linii (klik/klik/klik i zakończ)."
+    : "Wybierz tryb dodawania: Punkt albo Tunel."}
+</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 2 }}>
                 <button onClick={showAllStatuses} style={miniBtnStyle}>
                   Pokaż
@@ -1243,8 +1296,8 @@ export default function App() {
             />
           ) : null}
 
-          {/* Punkty: klik w mapę dodaje punkt */}
-          <ClickHandler onAdd={addPoint} />
+          {/* Punkty: klik działa tylko w trybie "point" */}
+<ClickHandler enabled={addMode === "point"} onAdd={addPoint} />
 
           {/* Tunel: draw + edit/delete */}
           <FeatureGroup ref={drawGroupRef}>
@@ -1253,16 +1306,20 @@ export default function App() {
               onCreated={onDrawCreated}
               onEdited={onDrawEdited}
               onDeleted={onDrawDeleted}
-              draw={{
-                polyline: {
-                  shapeOptions: { color: "#60a5fa", weight: 5, opacity: 0.9 },
-                },
-                polygon: false,
-                rectangle: false,
-                circle: false,
-                circlemarker: false,
-                marker: false,
-              }}
+              draw={
+  addMode === "tunnel"
+    ? {
+        polyline: {
+          shapeOptions: { color: "#60a5fa", weight: 5, opacity: 0.9 },
+        },
+        polygon: false,
+        rectangle: false,
+        circle: false,
+        circlemarker: false,
+        marker: false,
+      }
+    : false
+}
               edit={{
   featureGroup: drawGroupRef.current,
   edit: {
