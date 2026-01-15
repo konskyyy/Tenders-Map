@@ -20,8 +20,18 @@ import {
 import L from "leaflet";
 import { EditControl } from "react-leaflet-draw";
 
+import {
+  HashRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
+
 /** ===== API ===== */
-const API = `${API_BASE}/api`;
+// FIX: zabezpieczenie przed przypadkiem, gdy API_BASE już zawiera "/api"
+const API = API_BASE.endsWith("/api") ? API_BASE : `${API_BASE}/api`;
 
 /** ===== UI CONSTS ===== */
 const TEXT_LIGHT = "#ffffff";
@@ -173,7 +183,13 @@ function toPath(latlngs) {
   return arr.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }));
 }
 
-export default function App() {
+/** ======================================================
+ *  AppInner: Twoja dotychczasowa aplikacja + routing
+ *  ====================================================== */
+function AppInner() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   /** ===== AUTH ===== */
   const [mode, setMode] = useState("checking"); // checking | login | app
   const [login, setLogin] = useState("");
@@ -202,6 +218,16 @@ export default function App() {
     boot();
   }, []);
 
+  // Sync mode <-> "strona" (hash routing)
+  useEffect(() => {
+    if (mode === "login" && location.pathname !== "/login") {
+      navigate("/login", { replace: true });
+    }
+    if (mode === "app" && location.pathname !== "/") {
+      navigate("/", { replace: true });
+    }
+  }, [mode, location.pathname, navigate]);
+
   async function onLoginSubmit(e) {
     e.preventDefault();
     setErr("");
@@ -213,6 +239,7 @@ export default function App() {
       setUser(data.user);
       setAuthNotice("");
       setMode("app");
+      navigate("/", { replace: true });
     } catch (e2) {
       setErr(e2?.message || "Błąd logowania");
     } finally {
@@ -236,6 +263,8 @@ export default function App() {
 
     if (reason === "expired") setAuthNotice("Sesja wygasła — zaloguj się ponownie.");
     else setAuthNotice("");
+
+    navigate("/login", { replace: true });
   }
 
   async function authFetch(url, options = {}) {
@@ -617,7 +646,7 @@ export default function App() {
         }),
       });
       const data = await readJsonOrThrow(res);
-      setTunnels((prev) => [data, ...prev]);
+      setTunnels((prev) => [ /* nie zmieniamy kolejności */ data, ...prev ]);
       setSelectedTunnelId(data.id);
       setSelectedPointId(null);
       setSidebarOpen(true);
@@ -700,7 +729,7 @@ export default function App() {
     }
   }
 
-  /** ===== LOGIN UI ===== */
+  /** ===== CHECKING ===== */
   if (mode === "checking") {
     return (
       <div style={pageStyle}>
@@ -709,73 +738,72 @@ export default function App() {
     );
   }
 
-  if (mode === "login") {
-    return (
-      <div style={pageStyle}>
-        <div style={cardStyle}>
-          <div style={brandRow}>
-            <div style={brandDot} />
-            <div style={brandText}>Mapa projektów - BD</div>
-          </div>
-
-          <h2 style={titleStyle}>Logowanie</h2>
-          <p style={subtitleStyle}>Wpisz login i hasło.</p>
-
-          {authNotice ? (
-            <div
-              style={{
-                boxSizing: "border-box",
-                marginTop: 12,
-                padding: 12,
-                borderRadius: 12,
-                background: "rgba(59, 130, 246, 0.16)",
-                border: "1px solid rgba(59, 130, 246, 0.35)",
-                color: "rgba(255,255,255,0.96)",
-              }}
-            >
-              {authNotice}
-            </div>
-          ) : null}
-
-          {err ? <div style={errorStyle}>{err}</div> : null}
-
-          <form onSubmit={onLoginSubmit} style={{ marginTop: 14 }}>
-            <label style={labelStyle}>Login</label>
-            <input
-              value={login}
-              onChange={(e) => setLogin(e.target.value)}
-              placeholder="np. admin@firma.pl"
-              autoComplete="username"
-              autoFocus
-              style={inputStyle}
-            />
-
-            <label style={{ ...labelStyle, marginTop: 10 }}>Hasło</label>
-            <input
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              type="password"
-              autoComplete="current-password"
-              style={inputStyle}
-            />
-
-            <button type="submit" disabled={loadingAuth} style={primaryButtonStyle(loadingAuth)}>
-              {loadingAuth ? "Loguję..." : "Zaloguj"}
-            </button>
-          </form>
-
-          <div style={hintStyle}>Konta użytkowników są zakładane przez administratora.</div>
+  /** ===== Twoje UI jako stałe ===== */
+  const LoginUI = (
+    <div style={pageStyle}>
+      <div style={cardStyle}>
+        <div style={brandRow}>
+          <div style={brandDot} />
+          <div style={brandText}>Mapa projektów - BD</div>
         </div>
+
+        <h2 style={titleStyle}>Logowanie</h2>
+        <p style={subtitleStyle}>Wpisz login i hasło.</p>
+
+        {authNotice ? (
+          <div
+            style={{
+              boxSizing: "border-box",
+              marginTop: 12,
+              padding: 12,
+              borderRadius: 12,
+              background: "rgba(59, 130, 246, 0.16)",
+              border: "1px solid rgba(59, 130, 246, 0.35)",
+              color: "rgba(255,255,255,0.96)",
+            }}
+          >
+            {authNotice}
+          </div>
+        ) : null}
+
+        {err ? <div style={errorStyle}>{err}</div> : null}
+
+        <form onSubmit={onLoginSubmit} style={{ marginTop: 14 }}>
+          <label style={labelStyle}>Login</label>
+          <input
+            value={login}
+            onChange={(e) => setLogin(e.target.value)}
+            placeholder="np. admin@firma.pl"
+            autoComplete="username"
+            autoFocus
+            style={inputStyle}
+          />
+
+          <label style={{ ...labelStyle, marginTop: 10 }}>Hasło</label>
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            type="password"
+            autoComplete="current-password"
+            style={inputStyle}
+          />
+
+          <button type="submit" disabled={loadingAuth} style={primaryButtonStyle(loadingAuth)}>
+            {loadingAuth ? "Loguję..." : "Zaloguj"}
+          </button>
+        </form>
+
+        <div style={hintStyle}>Konta użytkowników są zakładane przez administratora.</div>
       </div>
-    );
-  }
+    </div>
+  );
 
   /** ===== APP UI ===== */
   const sidebarWidthOpen = 380;
   const sidebarWidthClosed = 0;
 
-  return (
+  const AppUI = (
     <div
       style={{
         position: "fixed",
@@ -917,7 +945,15 @@ export default function App() {
               </div>
 
               {/* TABS: Dodawanie (mini) */}
-              <div style={{ padding: 10, borderRadius: 14, border: `1px solid ${BORDER}`, background: "rgba(255,255,255,0.05)", marginBottom: 12 }}>
+              <div
+                style={{
+                  padding: 10,
+                  borderRadius: 14,
+                  border: `1px solid ${BORDER}`,
+                  background: "rgba(255,255,255,0.05)",
+                  marginBottom: 12,
+                }}
+              >
                 <div style={{ fontWeight: 900, marginBottom: 8 }}>Dodawanie</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <button
@@ -1370,9 +1406,7 @@ export default function App() {
               >
                 <Popup>
                   <div style={{ minWidth: 220 }}>
-                    <div style={{ fontWeight: 900, marginBottom: 4 }}>
-                      {t.name || `Tunel #${t.id}`}
-                    </div>
+                    <div style={{ fontWeight: 900, marginBottom: 4 }}>{t.name || `Tunel #${t.id}`}</div>
 
                     <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
                       Status: <b>{statusLabel(t.status)}</b> • Węzłów:{" "}
@@ -1439,6 +1473,32 @@ export default function App() {
         </MapContainer>
       </main>
     </div>
+  );
+
+  // Routing widoków: "/" = app, "/login" = login
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={mode === "app" ? <Navigate to="/" replace /> : LoginUI}
+      />
+      <Route
+        path="/"
+        element={mode === "login" ? <Navigate to="/login" replace /> : AppUI}
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+/** ======================================================
+ *  Export: Router tylko w App.jsx (nie wymaga zmian gdzie indziej)
+ *  ====================================================== */
+export default function App() {
+  return (
+    <HashRouter>
+      <AppInner />
+    </HashRouter>
   );
 }
 
