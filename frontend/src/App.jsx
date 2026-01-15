@@ -1043,24 +1043,61 @@ export default function App() {
               </div>
 
               <div style={{ display: "grid", gap: 8 }}>
-                {filteredTunnels.map((t) => (
-                  <div
-                    key={`t-${t.id}`}
-                    onClick={() => {
-                      setSelectedTunnelId(t.id);
-                      setSelectedPointId(null);
-                      setSidebarOpen(true);
-                    }}
-                    style={{
-                      padding: 10,
-                      borderRadius: 14,
-                      border:
-                        t.id === selectedTunnelId
-                          ? `2px solid rgba(255,255,255,0.35)`
-                          : `1px solid ${BORDER}`,
-                      background: "rgba(255,255,255,0.05)",
-                      cursor: "pointer",
-                    }}
+              {filteredTunnels.map((t) => (
+  <Polyline
+    key={`tl-${t.id}`}
+    positions={(t.path || []).map((p) => [p.lat, p.lng])}
+    pathOptions={{
+      color: tunnelColor(t.status),
+      weight: 8,           // grubsza kreska (możesz zmienić)
+      opacity: 0.95,
+      lineCap: "round",
+      lineJoin: "round",
+      tunnelId: t.id,      // potrzebne dla draw edit/delete (jak masz)
+    }}
+    eventHandlers={{
+      click: (e) => {
+        setSelectedTunnelId(t.id);
+        setSelectedPointId(null);
+        setSidebarOpen(true);
+
+        // otwórz dymek od razu po kliknięciu
+        try {
+          e?.target?.openPopup?.();
+        } catch {}
+      },
+    }}
+  >
+    <Popup>
+      <div style={{ minWidth: 220 }}>
+        <div style={{ fontWeight: 900, marginBottom: 4 }}>
+          {t.name || `Tunel #${t.id}`}
+        </div>
+        <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
+          Status: <b>{statusLabel(t.status)}</b> • Węzłów:{" "}
+          <b>{Array.isArray(t.path) ? t.path.length : 0}</b>
+        </div>
+
+        {t.director ? (
+          <div style={{ marginTop: 6 }}>
+            <b>Dyrektor:</b> {t.director}
+          </div>
+        ) : null}
+
+        {t.winner ? (
+          <div style={{ marginTop: 6 }}>
+            <b>Firma:</b> {t.winner}
+          </div>
+        ) : null}
+
+        <div style={{ marginTop: 8 }}>
+          {t.note ? t.note : <span style={{ opacity: 0.75 }}>Brak notatki</span>}
+        </div>
+      </div>
+    </Popup>
+  </Polyline>
+))}
+
                   >
                     <div style={{ fontWeight: 900, display: "flex", justifyContent: "space-between", gap: 10 }}>
                       <span>🟦 {t.name || `Tunel #${t.id}`}</span>
