@@ -3,7 +3,8 @@ import "./App.css";
 import { API_BASE, getToken, loginRequest, meRequest, setToken } from "./api";
 
 import "leaflet/dist/leaflet.css";
-import "leaflet-draw"; // <-- DODAJ TO
+import "leaflet-draw/dist/leaflet.draw.css";
+import "leaflet-draw"; // <-- KLUCZOWE, bez tego często jest czarny ekran przy EditControl
 
 import {
   MapContainer,
@@ -27,7 +28,7 @@ const TEXT_LIGHT = "#ffffff";
 const BORDER = "rgba(255,255,255,0.12)";
 const MUTED = "rgba(255,255,255,0.75)";
 
-// glossy like Statusy
+// glossy
 const GLASS_BG = "rgba(22,42,64,0.70)";
 const GLASS_BG_DARK = "rgba(22,42,64,0.90)";
 const GLASS_SHADOW = "0 10px 28px rgba(0,0,0,0.35)";
@@ -142,7 +143,7 @@ function extractOuterRings(geometry) {
   return [];
 }
 
-/** ===== helper: JSON-safe + status aware ===== */
+/** ===== helper: JSON-safe ===== */
 async function readJsonOrThrow(res) {
   const text = await res.text();
 
@@ -150,7 +151,7 @@ async function readJsonOrThrow(res) {
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
-    const head = (text || "").slice(0, 120).replace(/\s+/g, " ");
+    const head = (text || "").slice(0, 160).replace(/\s+/g, " ");
     const err = new Error(
       `API nie zwróciło JSON (HTTP ${res.status}). Początek: ${head || "(pusto)"}`
     );
@@ -298,7 +299,7 @@ export default function App() {
 
   const drawGroupRef = useRef(null);
 
-  /** ===== Filters & Add Mode ===== */
+  /** ===== Filters + Add mode ===== */
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [addMode, setAddMode] = useState("none"); // none | point | tunnel
@@ -334,16 +335,27 @@ export default function App() {
     setVisibleStatus((s) => ({ ...s, [key]: !s[key] }));
   }
   function showAllStatuses() {
-    setVisibleStatus({ planowany: true, przetarg: true, realizacja: true, nieaktualny: true });
+    setVisibleStatus({
+      planowany: true,
+      przetarg: true,
+      realizacja: true,
+      nieaktualny: true,
+    });
   }
   function hideAllStatuses() {
-    setVisibleStatus({ planowany: false, przetarg: false, realizacja: false, nieaktualny: false });
+    setVisibleStatus({
+      planowany: false,
+      przetarg: false,
+      realizacja: false,
+      nieaktualny: false,
+    });
   }
 
   /** ===== World mask ===== */
   const [worldMask, setWorldMask] = useState(null);
   useEffect(() => {
     let alive = true;
+
     (async () => {
       try {
         const res = await fetch(NE_COUNTRIES_URL);
@@ -438,7 +450,8 @@ export default function App() {
       note: selectedPoint.note || "",
       status: selectedPoint.status || "planowany",
     });
-  }, [selectedPointId]); // eslint-disable-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPointId]);
 
   useEffect(() => {
     if (!selectedTunnel) return;
@@ -449,7 +462,8 @@ export default function App() {
       status: selectedTunnel.status || "planowany",
       note: selectedTunnel.note || "",
     });
-  }, [selectedTunnelId]); // eslint-disable-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTunnelId]);
 
   /** ===== Points CRUD ===== */
   async function addPoint(latlng) {
@@ -473,6 +487,7 @@ export default function App() {
       const data = await readJsonOrThrow(res);
       setPoints((p) => [data, ...p]);
       setSelectedPointId(data.id);
+      setSelectedTunnelId(null);
       setSidebarOpen(true);
     } catch (e) {
       if (e?.status === 401) return logout("expired");
@@ -514,7 +529,9 @@ export default function App() {
     setBusyDeletePoint(true);
     setApiError("");
     try {
-      const res = await authFetch(`${API}/points/${selectedPoint.id}`, { method: "DELETE" });
+      const res = await authFetch(`${API}/points/${selectedPoint.id}`, {
+        method: "DELETE",
+      });
       await readJsonOrThrow(res);
       setPoints((prev) => prev.filter((p) => p.id !== selectedPoint.id));
       setSelectedPointId(null);
@@ -617,7 +634,6 @@ export default function App() {
     layers.eachLayer((layer) => {
       const tunnelId = layer?.options?.tunnelId;
       if (!tunnelId) return;
-
       const latlngs = layer.getLatLngs();
       const path = toPath(latlngs);
       updates.push({ id: tunnelId, path });
@@ -900,6 +916,52 @@ export default function App() {
                 </button>
               </div>
 
+              {/* TABS: Dodawanie (mini) */}
+              <div style={{ padding: 10, borderRadius: 14, border: `1px solid ${BORDER}`, background: "rgba(255,255,255,0.05)", marginBottom: 12 }}>
+                <div style={{ fontWeight: 900, marginBottom: 8 }}>Dodawanie</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <button
+                    onClick={() => setAddMode((m) => (m === "point" ? "none" : "point"))}
+                    style={{
+                      padding: "10px 10px",
+                      borderRadius: 12,
+                      border: `1px solid ${BORDER}`,
+                      background: addMode === "point" ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.08)",
+                      color: TEXT_LIGHT,
+                      cursor: "pointer",
+                      fontWeight: 900,
+                    }}
+                    title="Kliknij mapę, aby dodać punkt"
+                  >
+                    🎯 Punkt
+                  </button>
+
+                  <button
+                    onClick={() => setAddMode((m) => (m === "tunnel" ? "none" : "tunnel"))}
+                    style={{
+                      padding: "10px 10px",
+                      borderRadius: 12,
+                      border: `1px solid ${BORDER}`,
+                      background: addMode === "tunnel" ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.08)",
+                      color: TEXT_LIGHT,
+                      cursor: "pointer",
+                      fontWeight: 900,
+                    }}
+                    title="Rysuj linię na mapie"
+                  >
+                    🧵 Tunel
+                  </button>
+                </div>
+
+                <div style={{ marginTop: 8, fontSize: 12, color: MUTED, lineHeight: 1.4 }}>
+                  {addMode === "point"
+                    ? "Tryb: Punkt — kliknij na mapie, żeby dodać marker."
+                    : addMode === "tunnel"
+                    ? "Tryb: Tunel — użyj narzędzia rysowania linii (klik/klik/klik i zakończ)."
+                    : "Wybierz tryb dodawania: Punkt albo Tunel."}
+                </div>
+              </div>
+
               {/* POINT EDIT */}
               <div style={{ fontWeight: 900, marginBottom: 8 }}>Punkt</div>
 
@@ -1039,18 +1101,18 @@ export default function App() {
                     </div>
 
                     <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.4 }}>
-                      Geometrię edytujesz na mapie: włącz tryb <b>Tunel</b> i użyj narzędzia <b>Edit</b>.
+                      Geometrię edytujesz na mapie: włącz tryb <b>tunnel</b> i użyj ikonki <b>Edit</b>.
                     </div>
                   </>
                 ) : (
-                  <div style={emptyBoxStyle}>Wybierz tunel (kliknij linię na mapie lub pozycję na liście).</div>
+                  <div style={emptyBoxStyle}>Wybierz tunel (kliknij linię na mapie lub na liście).</div>
                 )}
               </div>
 
               <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
               {/* LISTS */}
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>Lista (punkty + tunele)</div>
+              <div style={{ fontWeight: 900, marginBottom: 8 }}>Lista (tunel + punkty)</div>
 
               <div style={{ display: "grid", gap: 8 }}>
                 {filteredTunnels.map((t) => (
@@ -1079,16 +1141,6 @@ export default function App() {
                     <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
                       węzłów: {Array.isArray(t.path) ? t.path.length : 0}
                     </div>
-                    {t.winner ? (
-                      <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
-                        <b>Firma:</b> {t.winner}
-                      </div>
-                    ) : null}
-                    {t.director ? (
-                      <div style={{ marginTop: 4, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
-                        <b>Dyrektor:</b> {t.director}
-                      </div>
-                    ) : null}
                   </div>
                 ))}
 
@@ -1118,11 +1170,6 @@ export default function App() {
                     <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
                       ({Number(pt.lat).toFixed(4)}, {Number(pt.lng).toFixed(4)})
                     </div>
-                    {pt.note ? (
-                      <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
-                        {pt.note.length > 90 ? pt.note.slice(0, 90) + "…" : pt.note}
-                      </div>
-                    ) : null}
                   </div>
                 ))}
 
@@ -1173,14 +1220,14 @@ export default function App() {
           </button>
         ) : null}
 
-        {/* STATUSY + ADD MODE */}
+        {/* STATUSY */}
         <div
           style={{
             position: "absolute",
             zIndex: 1600,
             top: 12,
             right: 12,
-            width: 260,
+            width: 240,
             borderRadius: 16,
             border: `1px solid ${BORDER}`,
             background: GLASS_BG,
@@ -1220,75 +1267,22 @@ export default function App() {
                     alignItems: "center",
                     gap: 10,
                     cursor: "pointer",
-                    opacity: visibleStatus[s.key] ? 1 : 0.55,
+                    opacity: visibleStatus[s.key] ? 1 : 0.5,
                     userSelect: "none",
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={visibleStatus[s.key]}
-                    onChange={() => toggleStatus(s.key)}
-                  />
+                  <input type="checkbox" checked={visibleStatus[s.key]} onChange={() => toggleStatus(s.key)} />
                   <span style={{ width: 10, height: 10, borderRadius: 999, background: s.color }} />
                   <span style={{ flex: 1, fontWeight: 800 }}>{s.label}</span>
                   <span style={{ fontSize: 12, color: MUTED }}>{counts[s.key] ?? 0}</span>
                 </label>
               ))}
 
-              <div style={{ height: 1, background: BORDER, margin: "8px 0" }} />
-
-              <div style={{ fontWeight: 900, marginBottom: 6 }}>Dodawanie</div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <button
-                  onClick={() => setAddMode((m) => (m === "point" ? "none" : "point"))}
-                  style={{
-                    padding: "10px 10px",
-                    borderRadius: 12,
-                    border: `1px solid ${BORDER}`,
-                    background: addMode === "point" ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.08)",
-                    color: TEXT_LIGHT,
-                    cursor: "pointer",
-                    fontWeight: 900,
-                  }}
-                  title="Kliknij mapę, aby dodać punkt"
-                >
-                  🎯 Punkt
-                </button>
-
-                <button
-                  onClick={() => setAddMode((m) => (m === "tunnel" ? "none" : "tunnel"))}
-                  style={{
-                    padding: "10px 10px",
-                    borderRadius: 12,
-                    border: `1px solid ${BORDER}`,
-                    background: addMode === "tunnel" ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.08)",
-                    color: TEXT_LIGHT,
-                    cursor: "pointer",
-                    fontWeight: 900,
-                  }}
-                  title="Rysuj linię na mapie"
-                >
-                  🧵 Tunel
-                </button>
-              </div>
-
-              <div style={{ marginTop: 8, fontSize: 12, color: MUTED, lineHeight: 1.4 }}>
-                {addMode === "point"
-                  ? "Tryb: Punkt — kliknij na mapie, żeby dodać marker."
-                  : addMode === "tunnel"
-                    ? "Tryb: Tunel — rysuj linię narzędziem (klik/klik/klik i zakończ)."
-                    : "Wybierz tryb dodawania: Punkt albo Tunel."}
-              </div>
-
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 2 }}>
                 <button onClick={showAllStatuses} style={miniBtnStyle}>
                   Pokaż
                 </button>
-                <button
-                  onClick={hideAllStatuses}
-                  style={{ ...miniBtnStyle, background: "rgba(255,255,255,0.05)" }}
-                >
+                <button onClick={hideAllStatuses} style={{ ...miniBtnStyle, background: "rgba(255,255,255,0.05)" }}>
                   Ukryj
                 </button>
               </div>
@@ -1334,7 +1328,7 @@ export default function App() {
                 addMode === "tunnel"
                   ? {
                       polyline: {
-                        shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.95 },
+                        shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
                       },
                       polygon: false,
                       rectangle: false,
@@ -1350,7 +1344,7 @@ export default function App() {
               }}
             />
 
-            {/* Existing tunnels (Popup po kliknięciu) */}
+            {/* Existing tunnels inside FeatureGroup so edit/delete works */}
             {filteredTunnels.map((t) => (
               <Polyline
                 key={`tl-${t.id}`}
@@ -1379,6 +1373,7 @@ export default function App() {
                     <div style={{ fontWeight: 900, marginBottom: 4 }}>
                       {t.name || `Tunel #${t.id}`}
                     </div>
+
                     <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
                       Status: <b>{statusLabel(t.status)}</b> • Węzłów:{" "}
                       <b>{Array.isArray(t.path) ? t.path.length : 0}</b>
