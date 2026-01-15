@@ -18,6 +18,8 @@ import {
   Polyline,
 } from "react-leaflet";
 import L from "leaflet";
+window.L = L;
+
 import { EditControl } from "react-leaflet-draw";
 
 import {
