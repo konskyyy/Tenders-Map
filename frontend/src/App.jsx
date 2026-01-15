@@ -1,4 +1,3 @@
-// frontend/src/App.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { API_BASE, getToken, loginRequest, meRequest, setToken } from "./api";
@@ -173,74 +172,6 @@ function toPath(latlngs) {
   return arr.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }));
 }
 
-/** Polyline wrapper that stamps tunnelId on Leaflet layer (needed for edit/delete mapping) */
-function TunnelPolyline({ tunnel, onClick }) {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const layer = ref.current;
-    if (layer) {
-      // attach custom id so Leaflet.Draw edit/delete can tell which tunnel it is
-      layer.options.tunnelId = tunnel.id;
-    }
-  }, [tunnel?.id]);
-
-  return (
-    <Polyline
-      ref={ref}
-      positions={(tunnel.path || []).map((p) => [p.lat, p.lng])}
-      pathOptions={{
-        color: tunnelColor(tunnel.status),
-        weight: 10, // grubsza kreska
-        opacity: 0.95,
-        lineCap: "round",
-        lineJoin: "round",
-      }}
-      eventHandlers={{
-        click: (e) => {
-          onClick?.(e);
-          try {
-            e?.target?.openPopup?.();
-          } catch {}
-        },
-      }}
-    >
-      <Popup>
-        <div style={{ minWidth: 220 }}>
-          <div style={{ fontWeight: 900, marginBottom: 4 }}>
-            {tunnel.name || `Tunel #${tunnel.id}`}
-          </div>
-
-          <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
-            Status: <b>{statusLabel(tunnel.status)}</b> • Węzłów:{" "}
-            <b>{Array.isArray(tunnel.path) ? tunnel.path.length : 0}</b>
-          </div>
-
-          {tunnel.director ? (
-            <div style={{ marginTop: 6 }}>
-              <b>Dyrektor:</b> {tunnel.director}
-            </div>
-          ) : null}
-
-          {tunnel.winner ? (
-            <div style={{ marginTop: 6 }}>
-              <b>Firma:</b> {tunnel.winner}
-            </div>
-          ) : null}
-
-          <div style={{ marginTop: 8 }}>
-            {tunnel.note ? (
-              tunnel.note
-            ) : (
-              <span style={{ opacity: 0.75 }}>Brak notatki</span>
-            )}
-          </div>
-        </div>
-      </Popup>
-    </Polyline>
-  );
-}
-
 export default function App() {
   /** ===== AUTH ===== */
   const [mode, setMode] = useState("checking"); // checking | login | app
@@ -367,7 +298,7 @@ export default function App() {
 
   const drawGroupRef = useRef(null);
 
-  /** ===== Filters / UI ===== */
+  /** ===== Filters & Add Mode ===== */
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [addMode, setAddMode] = useState("none"); // none | point | tunnel
@@ -413,7 +344,6 @@ export default function App() {
   const [worldMask, setWorldMask] = useState(null);
   useEffect(() => {
     let alive = true;
-
     (async () => {
       try {
         const res = await fetch(NE_COUNTRIES_URL);
@@ -543,7 +473,6 @@ export default function App() {
       const data = await readJsonOrThrow(res);
       setPoints((p) => [data, ...p]);
       setSelectedPointId(data.id);
-      setSelectedTunnelId(null);
       setSidebarOpen(true);
     } catch (e) {
       if (e?.status === 401) return logout("expired");
@@ -613,7 +542,7 @@ export default function App() {
           winner: tunnelForm.winner,
           status: tunnelForm.status,
           note: tunnelForm.note,
-          path: selectedTunnel.path, // zachowaj geometrię
+          path: selectedTunnel.path,
         }),
       });
       const data = await readJsonOrThrow(res);
@@ -652,7 +581,6 @@ export default function App() {
     const latlngs = e.layer.getLatLngs();
     const path = toPath(latlngs);
 
-    // wyczyść “tymczasową” warstwę narysowaną przez draw (bo i tak renderujemy z state)
     try {
       if (drawGroupRef.current) drawGroupRef.current.clearLayers();
     } catch {}
@@ -715,7 +643,6 @@ export default function App() {
             path: u.path,
           }),
         });
-
         const data = await readJsonOrThrow(res);
         setTunnels((prev) => prev.map((x) => (x.id === data.id ? data : x)));
       }
@@ -1112,8 +1039,7 @@ export default function App() {
                     </div>
 
                     <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.4 }}>
-                      Geometrię edytujesz na mapie: wybierz <b>🧵 Tunel</b> po prawej, potem użyj narzędzi{" "}
-                      <b>Edit</b>/<b>Delete</b>.
+                      Geometrię edytujesz na mapie: włącz tryb <b>Tunel</b> i użyj narzędzia <b>Edit</b>.
                     </div>
                   </>
                 ) : (
@@ -1150,17 +1076,14 @@ export default function App() {
                       <span>🟦 {t.name || `Tunel #${t.id}`}</span>
                       <span style={pillStyle}>{statusLabel(t.status)}</span>
                     </div>
-
                     <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
                       węzłów: {Array.isArray(t.path) ? t.path.length : 0}
                     </div>
-
                     {t.winner ? (
                       <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
                         <b>Firma:</b> {t.winner}
                       </div>
                     ) : null}
-
                     {t.director ? (
                       <div style={{ marginTop: 4, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
                         <b>Dyrektor:</b> {t.director}
@@ -1195,18 +1118,6 @@ export default function App() {
                     <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
                       ({Number(pt.lat).toFixed(4)}, {Number(pt.lng).toFixed(4)})
                     </div>
-
-                    {pt.winner ? (
-                      <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
-                        <b>Firma:</b> {pt.winner}
-                      </div>
-                    ) : null}
-                    {pt.director ? (
-                      <div style={{ marginTop: 4, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
-                        <b>Dyrektor:</b> {pt.director}
-                      </div>
-                    ) : null}
-
                     {pt.note ? (
                       <div style={{ marginTop: 6, fontSize: 12, color: "rgba(255,255,255,0.9)" }}>
                         {pt.note.length > 90 ? pt.note.slice(0, 90) + "…" : pt.note}
@@ -1262,7 +1173,7 @@ export default function App() {
           </button>
         ) : null}
 
-        {/* STATUSY + DODAWANIE */}
+        {/* STATUSY + ADD MODE */}
         <div
           style={{
             position: "absolute",
@@ -1309,7 +1220,7 @@ export default function App() {
                     alignItems: "center",
                     gap: 10,
                     cursor: "pointer",
-                    opacity: visibleStatus[s.key] ? 1 : 0.5,
+                    opacity: visibleStatus[s.key] ? 1 : 0.55,
                     userSelect: "none",
                   }}
                 >
@@ -1323,18 +1234,6 @@ export default function App() {
                   <span style={{ fontSize: 12, color: MUTED }}>{counts[s.key] ?? 0}</span>
                 </label>
               ))}
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 2 }}>
-                <button onClick={showAllStatuses} style={miniBtnStyle}>
-                  Pokaż
-                </button>
-                <button
-                  onClick={hideAllStatuses}
-                  style={{ ...miniBtnStyle, background: "rgba(255,255,255,0.05)" }}
-                >
-                  Ukryj
-                </button>
-              </div>
 
               <div style={{ height: 1, background: BORDER, margin: "8px 0" }} />
 
@@ -1378,8 +1277,20 @@ export default function App() {
                 {addMode === "point"
                   ? "Tryb: Punkt — kliknij na mapie, żeby dodać marker."
                   : addMode === "tunnel"
-                  ? "Tryb: Tunel — użyj narzędzia rysowania linii (klik/klik/klik i zakończ)."
-                  : "Wybierz tryb dodawania: Punkt albo Tunel."}
+                    ? "Tryb: Tunel — rysuj linię narzędziem (klik/klik/klik i zakończ)."
+                    : "Wybierz tryb dodawania: Punkt albo Tunel."}
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 2 }}>
+                <button onClick={showAllStatuses} style={miniBtnStyle}>
+                  Pokaż
+                </button>
+                <button
+                  onClick={hideAllStatuses}
+                  style={{ ...miniBtnStyle, background: "rgba(255,255,255,0.05)" }}
+                >
+                  Ukryj
+                </button>
               </div>
             </div>
           ) : null}
@@ -1439,17 +1350,58 @@ export default function App() {
               }}
             />
 
-            {/* Existing tunnels inside FeatureGroup so edit/delete works */}
+            {/* Existing tunnels (Popup po kliknięciu) */}
             {filteredTunnels.map((t) => (
-              <TunnelPolyline
+              <Polyline
                 key={`tl-${t.id}`}
-                tunnel={t}
-                onClick={() => {
-                  setSelectedTunnelId(t.id);
-                  setSelectedPointId(null);
-                  setSidebarOpen(true);
+                positions={(t.path || []).map((p) => [p.lat, p.lng])}
+                pathOptions={{
+                  color: tunnelColor(t.status),
+                  weight: 10,
+                  opacity: 0.95,
+                  lineCap: "round",
+                  lineJoin: "round",
+                  tunnelId: t.id,
                 }}
-              />
+                eventHandlers={{
+                  click: (e) => {
+                    setSelectedTunnelId(t.id);
+                    setSelectedPointId(null);
+                    setSidebarOpen(true);
+                    try {
+                      e?.target?.openPopup?.();
+                    } catch {}
+                  },
+                }}
+              >
+                <Popup>
+                  <div style={{ minWidth: 220 }}>
+                    <div style={{ fontWeight: 900, marginBottom: 4 }}>
+                      {t.name || `Tunel #${t.id}`}
+                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
+                      Status: <b>{statusLabel(t.status)}</b> • Węzłów:{" "}
+                      <b>{Array.isArray(t.path) ? t.path.length : 0}</b>
+                    </div>
+
+                    {t.director ? (
+                      <div style={{ marginTop: 6 }}>
+                        <b>Dyrektor:</b> {t.director}
+                      </div>
+                    ) : null}
+
+                    {t.winner ? (
+                      <div style={{ marginTop: 6 }}>
+                        <b>Firma:</b> {t.winner}
+                      </div>
+                    ) : null}
+
+                    <div style={{ marginTop: 8 }}>
+                      {t.note ? t.note : <span style={{ opacity: 0.75 }}>Brak notatki</span>}
+                    </div>
+                  </div>
+                </Popup>
+              </Polyline>
             ))}
           </FeatureGroup>
 
@@ -1474,19 +1426,16 @@ export default function App() {
                 <Popup>
                   <b>{pt.title}</b>
                   <div style={{ fontSize: 12, opacity: 0.8 }}>{statusLabel(pt.status)}</div>
-
                   {pt.director ? (
                     <div style={{ marginTop: 6 }}>
                       <b>Dyrektor:</b> {pt.director}
                     </div>
                   ) : null}
-
                   {pt.winner ? (
                     <div style={{ marginTop: 6 }}>
                       <b>Firma:</b> {pt.winner}
                     </div>
                   ) : null}
-
                   <div style={{ marginTop: 6 }}>{pt.note || "Brak notatki"}</div>
                 </Popup>
               </Marker>
