@@ -4,7 +4,7 @@ import { API_BASE, getToken, loginRequest, meRequest, setToken } from "./api";
 
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
-import "leaflet-draw/dist/leaflet.draw.js";
+import "leaflet-draw";
 
 import {
   MapContainer,
