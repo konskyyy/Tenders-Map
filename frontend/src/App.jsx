@@ -859,6 +859,48 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
+  async function deleteSelectedProject() {
+  const pt = selectedPoint;
+  const tl = selectedTunnel;
+
+  if (!pt && !tl) return;
+
+  const label = pt ? `punkt #${pt.id} (${pt.title || "bez tytułu"})` : `tunel #${tl.id} (${tl.name || "bez nazwy"})`;
+  const ok = window.confirm(`Na pewno usunąć ${label}?`);
+  if (!ok) return;
+
+  setApiError("");
+
+  try {
+    if (pt) {
+      const res = await authFetch(`${API}/points/${pt.id}`, { method: "DELETE" });
+      await readJsonOrThrow(res);
+
+      setPoints((prev) => prev.filter((p) => p.id !== pt.id));
+      setSelectedPointId(null);
+    } else if (tl) {
+      const res = await authFetch(`${API}/tunnels/${tl.id}`, { method: "DELETE" });
+      await readJsonOrThrow(res);
+
+      setTunnels((prev) => prev.filter((t) => t.id !== tl.id));
+      setSelectedTunnelId(null);
+    }
+
+    try {
+      mapRef.current?.closePopup?.();
+    } catch {}
+  } catch (e) {
+    if (e?.status === 401) return logout("expired");
+    setApiError(`Nie mogę usunąć: ${String(e?.message || e)}`);
+
+    // awaryjnie odśwież listy, żeby UI nie było rozjechane
+    try {
+      await loadPoints();
+      await loadTunnels();
+    } catch {}
+  }
+}
+
   /** ===== Points CRUD (dodawanie tylko) ===== */
   async function addPoint(latlng) {
     setApiError("");
@@ -1301,7 +1343,7 @@ export default function App() {
     </button>
 
     <button
-      onClick={() => {
+      onClick={deleteSelectedProject}
         const what = selectedPoint ? `punkt #${selectedPoint.id}` : `tunel #${selectedTunnel.id}`;
         const ok = window.confirm(`Na pewno usunąć ${what}?`);
         if (!ok) return;
