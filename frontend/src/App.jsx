@@ -1694,79 +1694,114 @@ export default function App() {
               <div style={{ fontWeight: 900, marginBottom: 8 }}>Lista projektów</div>
 
               {/* SCROLL TYLKO LISTY */}
-              <div style={{ overflow: "auto", paddingRight: 4, flex: 1 }}>
-                <div style={{ display: "grid", gap: 8 }}>
-                  {filteredTunnels.map((t) => (
-                    <div
-                      key={`t-${t.id}`}
-                      onClick={() => {
-                        setSelectedTunnelId(t.id);
-                        setSelectedPointId(null);
-                        focusTunnel(t);
-                      }}
-                      style={{
-                        padding: 10,
-                        borderRadius: 14,
-                        border:
-                          t.id === selectedTunnelId
-                            ? `2px solid rgba(255,255,255,0.35)`
-                            : `1px solid ${BORDER}`,
-                        background: "rgba(255,255,255,0.05)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontWeight: 900,
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 10,
-                        }}
-                      >
-                        <span>🟦 {t.name || `Tunel #${t.id}`}</span>
-                        <span style={pillStyle}>{statusLabel(t.status)}</span>
-                      </div>
-                    </div>
-                  ))}
+<div style={{ overflow: "auto", paddingRight: 4, flex: 1 }}>
+  <div style={{ display: "grid", gap: 8 }}>
+    {filteredTunnels.map((t) => (
+      <div
+        key={`t-${t.id}`}
+        onClick={() => {
+          setSelectedTunnelId(t.id);
+          setSelectedPointId(null);
+          focusTunnel(t);
+        }}
+        style={{
+          padding: 10,
+          borderRadius: 14,
+          border:
+            t.id === selectedTunnelId
+              ? `2px solid rgba(255,255,255,0.35)`
+              : `1px solid ${BORDER}`,
+          background: "rgba(255,255,255,0.05)",
+          cursor: "pointer",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span
+            style={{
+              width: 14,
+              display: "flex",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            🟦
+          </span>
 
-                  {filteredPoints.map((pt) => (
-                    <div
-                      key={`p-${pt.id}`}
-                      onClick={() => {
-                        setSelectedPointId(pt.id);
-                        setSelectedTunnelId(null);
-                        focusPoint(pt);
-                      }}
-                      style={{
-                        padding: 10,
-                        borderRadius: 14,
-                        border:
-                          pt.id === selectedPointId
-                            ? `2px solid rgba(255,255,255,0.35)`
-                            : `1px solid ${BORDER}`,
-                        background: "rgba(255,255,255,0.05)",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontWeight: 900,
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 10,
-                        }}
-                      >
-                        <span>📍 {pt.title}</span>
-                        <span style={pillStyle}>{statusLabel(pt.status)}</span>
-                      </div>
-                    </div>
-                  ))}
+          <span
+            style={{
+              fontWeight: 900,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              minWidth: 0,
+            }}
+          >
+            {t.name || `Tunel #${t.id}`}
+          </span>
 
-                  {filteredPoints.length === 0 && filteredTunnels.length === 0 ? (
-                    <div style={emptyBoxStyle}>Brak danych dla zaznaczonych statusów.</div>
-                  ) : null}
-                </div>
-              </div>
+          <span style={{ ...pillStyle, marginLeft: "auto", whiteSpace: "nowrap", flexShrink: 0 }}>
+            {statusLabel(t.status)}
+          </span>
+        </div>
+      </div>
+    ))}
+
+    {filteredPoints.map((pt) => (
+      <div
+        key={`p-${pt.id}`}
+        onClick={() => {
+          setSelectedPointId(pt.id);
+          setSelectedTunnelId(null);
+          focusPoint(pt);
+        }}
+        style={{
+          padding: 10,
+          borderRadius: 14,
+          border:
+            pt.id === selectedPointId
+              ? `2px solid rgba(255,255,255,0.35)`
+              : `1px solid ${BORDER}`,
+          background: "rgba(255,255,255,0.05)",
+          cursor: "pointer",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span
+            style={{
+              width: 14,
+              display: "flex",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            📍
+          </span>
+
+          <span
+            style={{
+              fontWeight: 900,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              minWidth: 0,
+            }}
+          >
+            {pt.title}
+          </span>
+
+          <span style={{ ...pillStyle, marginLeft: "auto", whiteSpace: "nowrap", flexShrink: 0 }}>
+            {statusLabel(pt.status)}
+          </span>
+        </div>
+      </div>
+    ))}
+
+    {filteredPoints.length === 0 && filteredTunnels.length === 0 ? (
+      <div style={emptyBoxStyle}>Brak danych dla zaznaczonych statusów.</div>
+    ) : null}
+  </div>
+</div>
+
             </div>
           </>
         ) : null}
