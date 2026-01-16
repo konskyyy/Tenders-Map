@@ -127,6 +127,62 @@ app.get("/api/points", authRequired, async (req, res) => {
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
+/**
+ * ===== POINT COMMENTS API (DZIENNIK) =====
+ * Tabela: point_comments (id, point_id, user_id, user_email, body, created_at)
+ */
+
+// GET comments for a point
+app.get("/api/points/:id/comments", authRequired, async (req, res) => {
+  try {
+    const pointId = Number(req.params.id);
+    if (!Number.isFinite(pointId)) return res.status(400).json({ error: "Złe ID" });
+
+    // (opcjonalnie) sprawdź czy punkt istnieje
+    const p = await pool.query("SELECT id FROM points WHERE id=$1", [pointId]);
+    if (!p.rows[0]) return res.status(404).json({ error: "Nie znaleziono punktu" });
+
+    const q = await pool.query(
+      `SELECT id, point_id, body, user_id, user_email, created_at
+       FROM point_comments
+       WHERE point_id=$1
+       ORDER BY created_at DESC, id DESC`,
+      [pointId]
+    );
+
+    res.json(q.rows);
+  } catch (e) {
+    console.error("GET POINT COMMENTS ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+
+// CREATE comment for a point
+app.post("/api/points/:id/comments", authRequired, async (req, res) => {
+  try {
+    const pointId = Number(req.params.id);
+    if (!Number.isFinite(pointId)) return res.status(400).json({ error: "Złe ID" });
+
+    const body = String(req.body?.body || "").trim();
+    if (!body) return res.status(400).json({ error: "Brak treści komentarza" });
+
+    // upewnij się, że punkt istnieje
+    const p = await pool.query("SELECT id FROM points WHERE id=$1", [pointId]);
+    if (!p.rows[0]) return res.status(404).json({ error: "Nie znaleziono punktu" });
+
+    const q = await pool.query(
+      `INSERT INTO point_comments (point_id, user_id, user_email, body)
+       VALUES ($1,$2,$3,$4)
+       RETURNING id, point_id, body, user_id, user_email, created_at`,
+      [pointId, req.user?.id ?? null, req.user?.email ?? null, body]
+    );
+
+    res.json(q.rows[0]);
+  } catch (e) {
+    console.error("CREATE POINT COMMENT ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
 
 // CREATE point
 app.post("/api/points", authRequired, async (req, res) => {
