@@ -1850,7 +1850,7 @@ export default function App() {
             }}
           >
             <span style={{ fontSize: 18, lineHeight: 1 }}>⟩</span>
-            <span style={{ fontSize: 13 }}>Panel</span>
+            <span style={{ fontSize: 13 }}>Panel główny</span>
           </button>
         ) : null}
 
