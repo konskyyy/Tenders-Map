@@ -997,14 +997,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* POINT EDIT */}
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>Punkt</div>
-
-              <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-                <InfoCard label="Dyrektor kontraktu" value={pointForm.director} placeholder="(nie ustawiono)" />
-                <InfoCard label="Firma (wykonawca)" value={pointForm.winner} placeholder="(nie ustawiono)" />
-              </div>
-
               <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
                 {selectedPoint ? (
                   <>
