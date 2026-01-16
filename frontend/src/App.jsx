@@ -1381,6 +1381,7 @@ export default function App() {
             <span style={{ fontSize: 13 }}>Panel</span>
           </button>
         ) : null}
+
 {/* PRAWA STRONA: Statusy + Dziennik */}
 <div
   style={{
@@ -1393,7 +1394,7 @@ export default function App() {
     gap: 10,
   }}
 >
-  {/* STATUSY (Twoje obecne) */}
+  {/* STATUSY */}
   <div
     style={{
       borderRadius: 16,
@@ -1405,46 +1406,67 @@ export default function App() {
       color: TEXT_LIGHT,
       overflow: "hidden",
       boxShadow: GLASS_SHADOW,
-      width: "100%",
     }}
-  ></div>
-        {/* STATUSY */}
-        <div
-          style={{
-            position: "absolute",
-            zIndex: 1600,
-            top: 12,
-            right: 12,
-            width: 240,
-            borderRadius: 16,
-            border: `1px solid ${BORDER}`,
-            background: GLASS_BG,
-            backgroundImage:
-              "radial-gradient(500px 300px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
-            backdropFilter: "blur(8px)",
-            color: TEXT_LIGHT,
-            overflow: "hidden",
-            boxShadow: GLASS_SHADOW,
-          }}
-        >
-          <div
-            onClick={() => setFiltersOpen((o) => !o)}
+  >
+    <div
+      onClick={() => setFiltersOpen((o) => !o)}
+      style={{
+        padding: "12px 14px",
+        cursor: "pointer",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        fontWeight: 900,
+      }}
+    >
+      <span>Statusy</span>
+      <span style={{ fontSize: 12, color: MUTED }}>
+        {filteredPoints.length + filteredTunnels.length}/{points.length + tunnels.length}{" "}
+        {filtersOpen ? "▾" : "▸"}
+      </span>
+    </div>
+
+    {filtersOpen ? (
+      <div style={{ padding: "8px 12px 12px", display: "grid", gap: 10 }}>
+        {STATUSES.map((s) => (
+          <label
+            key={s.key}
             style={{
-              padding: "12px 14px",
-              cursor: "pointer",
               display: "flex",
-              justifyContent: "space-between",
               alignItems: "center",
-              fontWeight: 900,
+              gap: 10,
+              cursor: "pointer",
+              opacity: visibleStatus[s.key] ? 1 : 0.5,
+              userSelect: "none",
             }}
           >
-            <span>Statusy</span>
-            <span style={{ fontSize: 12, color: MUTED }}>
-              {filteredPoints.length + filteredTunnels.length}/{points.length + tunnels.length}{" "}
-              {filtersOpen ? "▾" : "▸"}
-            </span>
-          </div>
-          {/* DZIENNIK (POKAZUJE SIĘ TYLKO GDY WYBRANY PROJEKT) */}
+            <input
+              type="checkbox"
+              checked={visibleStatus[s.key]}
+              onChange={() => toggleStatus(s.key)}
+            />
+            <span style={{ width: 10, height: 10, borderRadius: 999, background: s.color }} />
+            <span style={{ flex: 1, fontWeight: 800 }}>{s.label}</span>
+            <span style={{ fontSize: 12, color: MUTED }}>{counts[s.key] ?? 0}</span>
+          </label>
+        ))}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 2 }}>
+          <button onClick={showAllStatuses} style={miniBtnStyle}>
+            Pokaż
+          </button>
+          <button
+            onClick={hideAllStatuses}
+            style={{ ...miniBtnStyle, background: "rgba(255,255,255,0.05)" }}
+          >
+            Ukryj
+          </button>
+        </div>
+      </div>
+    ) : null}
+  </div>
+
+  {/* DZIENNIK (POKAZUJE SIĘ TYLKO GDY WYBRANY PROJEKT) */}
   <JournalPanel
     visible={!!selectedPoint || !!selectedTunnel}
     kind={selectedPoint ? "points" : "tunnels"}
@@ -1458,6 +1480,8 @@ export default function App() {
     GLASS_BG={GLASS_BG}
     GLASS_SHADOW={GLASS_SHADOW}
   />
+</div>
+
 </div>
 
           {filtersOpen ? (
