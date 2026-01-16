@@ -1189,7 +1189,7 @@ export default function App() {
                   marginBottom: 12,
                 }}
               >
-                <div style={{ fontWeight: 900, marginBottom: 8 }}>Dodawanie</div>
+                <div style={{ fontWeight: 900, marginBottom: 8 }}>Dodawanie projektów</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <button
                     onClick={() => setAddMode((m) => (m === "point" ? "none" : "point"))}
