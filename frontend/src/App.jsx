@@ -1169,9 +1169,6 @@ export default function App() {
                       <span>🟦 {t.name || `Tunel #${t.id}`}</span>
                       <span style={pillStyle}>{statusLabel(t.status)}</span>
                     </div>
-                    <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
-                      węzłów: {Array.isArray(t.path) ? t.path.length : 0}
-                    </div>
                   </div>
                 ))}
 
