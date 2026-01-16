@@ -11,6 +11,7 @@ import {
   Marker,
   Popup,
   useMapEvents,
+  useMap,
   ZoomControl,
   GeoJSON,
   FeatureGroup,
@@ -146,7 +147,15 @@ function toPath(latlngs) {
   const arr = Array.isArray(latlngs) ? latlngs : [];
   return arr.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }));
 }
+function MapRefSetter({ onReady }) {
+  const map = useMap();
 
+  useEffect(() => {
+    onReady?.(map);
+  }, [map, onReady]);
+
+  return null;
+}
 export default function App() {
   /** ===== Leaflet Draw FIX (L is not defined) ===== */
   const [DrawEditControl, setDrawEditControl] = useState(null);
@@ -1066,10 +1075,12 @@ export default function App() {
           boundsOptions={{ padding: [20, 20] }}
           style={{ width: "100%", height: "100%" }}
           zoomControl={false}
-          whenCreated={(map) => {
-            mapRef.current = map;
-          }}
-        >
+         >
+  <MapRefSetter
+    onReady={(map) => {
+      mapRef.current = map;
+    }}
+  />
           <ZoomControl position="bottomright" />
           <TileLayer
             attribution="&copy; OpenStreetMap contributors"
