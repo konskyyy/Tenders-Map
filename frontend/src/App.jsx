@@ -1343,7 +1343,7 @@ export default function App() {
     </button>
 
     <button
-      onClick={deleteSelectedProject}
+      onClick={deleteSelectedProject_star}
         const what = selectedPoint ? `punkt #${selectedPoint.id}` : `tunel #${selectedTunnel.id}`;
         const ok = window.confirm(`Na pewno usunąć ${what}?`);
         if (!ok) return;
