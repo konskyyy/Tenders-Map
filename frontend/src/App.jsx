@@ -294,8 +294,8 @@ function JournalPanel({
 
   const title =
     kind === "points"
-      ? `Dziennik — punkt: ${entity?.title || `#${entityId}`}`
-      : `Dziennik — tunel: ${entity?.name || `#${entityId}`}`;
+      ? `Dziennik: ${entity?.title || `#${entityId}`}`
+      : `Dziennik: ${entity?.name || `#${entityId}`}`;
 
   return (
     <div
