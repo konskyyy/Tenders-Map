@@ -4,7 +4,6 @@ import { API_BASE, getToken, loginRequest, meRequest, setToken } from "./api";
 
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
-import "leaflet-draw"; // <-- KLUCZOWE, bez tego często jest czarny ekran przy EditControl
 
 import {
   MapContainer,
@@ -18,10 +17,9 @@ import {
   Polyline,
 } from "react-leaflet";
 import L from "leaflet";
-import { EditControl } from "react-leaflet-draw";
 
 /** ===== API ===== */
-const API = `${API_BASE}/api`;
+const API = API_BASE.endsWith("/api") ? API_BASE : `${API_BASE}/api`;
 
 /** ===== UI CONSTS ===== */
 const TEXT_LIGHT = "#ffffff";
@@ -174,6 +172,35 @@ function toPath(latlngs) {
 }
 
 export default function App() {
+  /** ===== Leaflet Draw FIX (L is not defined) ===== */
+  const [EditControl, setEditControl] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      try {
+        // leaflet-draw wymaga globalnego L
+        window.L = L;
+
+        // 1) plugin
+        await import("leaflet-draw");
+
+        // 2) wrapper reactowy
+        const mod = await import("react-leaflet-draw");
+
+        if (!alive) return;
+        setEditControl(() => mod.EditControl);
+      } catch (e) {
+        console.error("Leaflet draw init failed:", e);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   /** ===== AUTH ===== */
   const [mode, setMode] = useState("checking"); // checking | login | app
   const [login, setLogin] = useState("");
@@ -917,7 +944,15 @@ export default function App() {
               </div>
 
               {/* TABS: Dodawanie (mini) */}
-              <div style={{ padding: 10, borderRadius: 14, border: `1px solid ${BORDER}`, background: "rgba(255,255,255,0.05)", marginBottom: 12 }}>
+              <div
+                style={{
+                  padding: 10,
+                  borderRadius: 14,
+                  border: `1px solid ${BORDER}`,
+                  background: "rgba(255,255,255,0.05)",
+                  marginBottom: 12,
+                }}
+              >
                 <div style={{ fontWeight: 900, marginBottom: 8 }}>Dodawanie</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <button
@@ -1021,11 +1056,7 @@ export default function App() {
                         {savingPoint ? "Zapisuję..." : "Zapisz"}
                       </button>
 
-                      <button
-                        onClick={deletePoint}
-                        disabled={busyDeletePoint}
-                        style={dangerBtnStyle(busyDeletePoint)}
-                      >
+                      <button onClick={deletePoint} disabled={busyDeletePoint} style={dangerBtnStyle(busyDeletePoint)}>
                         {busyDeletePoint ? "Usuwam..." : "Usuń"}
                       </button>
                     </div>
@@ -1319,30 +1350,32 @@ export default function App() {
 
           {/* Tunel: draw + edit/delete */}
           <FeatureGroup ref={drawGroupRef}>
-            <EditControl
-              position="bottomright"
-              onCreated={onDrawCreated}
-              onEdited={onDrawEdited}
-              onDeleted={onDrawDeleted}
-              draw={
-                addMode === "tunnel"
-                  ? {
-                      polyline: {
-                        shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
-                      },
-                      polygon: false,
-                      rectangle: false,
-                      circle: false,
-                      circlemarker: false,
-                      marker: false,
-                    }
-                  : false
-              }
-              edit={{
-                edit: true,
-                remove: true,
-              }}
-            />
+            {EditControl ? (
+              <EditControl
+                position="bottomright"
+                onCreated={onDrawCreated}
+                onEdited={onDrawEdited}
+                onDeleted={onDrawDeleted}
+                draw={
+                  addMode === "tunnel"
+                    ? {
+                        polyline: {
+                          shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
+                        },
+                        polygon: false,
+                        rectangle: false,
+                        circle: false,
+                        circlemarker: false,
+                        marker: false,
+                      }
+                    : false
+                }
+                edit={{
+                  edit: true,
+                  remove: true,
+                }}
+              />
+            ) : null}
 
             {/* Existing tunnels inside FeatureGroup so edit/delete works */}
             {filteredTunnels.map((t) => (
