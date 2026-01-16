@@ -1124,9 +1124,6 @@ export default function App() {
                       Geometrię edytujesz na mapie: włącz tryb <b>tunnel</b> i użyj ikonki <b>Edit</b>.
                     </div>
                   </>
-                ) : (
-                  <div style={emptyBoxStyle}>Wybierz tunel (kliknij linię na mapie lub na liście).</div>
-                )}
               </div>
 
               <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
