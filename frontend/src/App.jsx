@@ -325,6 +325,10 @@ export default function App() {
   const [loadingTunnels, setLoadingTunnels] = useState(false);
 
   const drawGroupRef = useRef(null);
+  const mapRef = useRef(null);
+const markerRefs = useRef({});
+const tunnelRefs = useRef({});
+
 
   /** ===== Filters + Add mode ===== */
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -377,6 +381,47 @@ export default function App() {
       nieaktualny: false,
     });
   }
+
+  function focusPoint(pt) {
+  const map = mapRef.current;
+  if (!map || !pt) return;
+
+  const lat = Number(pt.lat);
+  const lng = Number(pt.lng);
+
+  // zoom do punktu
+  map.flyTo([lat, lng], Math.max(map.getZoom(), 12), { animate: true, duration: 0.6 });
+
+  // otwórz popup
+  setTimeout(() => {
+    const m = markerRefs.current[pt.id];
+    try {
+      m?.openPopup?.();
+    } catch {}
+  }, 250);
+}
+
+function focusTunnel(t) {
+  const map = mapRef.current;
+  if (!map || !t) return;
+
+  const latlngs = (t.path || []).map((p) => [Number(p.lat), Number(p.lng)]);
+  if (latlngs.length === 0) return;
+
+  // dopasuj widok do tunelu
+  try {
+    const bounds = L.latLngBounds(latlngs);
+    map.fitBounds(bounds, { padding: [40, 40], animate: true, duration: 0.6 });
+  } catch {}
+
+  // otwórz popup
+  setTimeout(() => {
+    const pl = tunnelRefs.current[t.id];
+    try {
+      pl?.openPopup?.();
+    } catch {}
+  }, 250);
+}
 
   /** ===== World mask ===== */
   const [worldMask, setWorldMask] = useState(null);
@@ -906,9 +951,10 @@ export default function App() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
                 <button
                   onClick={() => {
-                    loadPoints();
-                    loadTunnels();
-                  }}
+  setSelectedTunnelId(t.id);
+  setSelectedPointId(null);
+  focusTunnel(t);
+}}
                   style={{
                     width: "100%",
                     padding: 10,
@@ -1183,10 +1229,11 @@ export default function App() {
                   <div
                     key={`t-${t.id}`}
                     onClick={() => {
-                      setSelectedTunnelId(t.id);
-                      setSelectedPointId(null);
-                      setSidebarOpen(true);
-                    }}
+  setSelectedTunnelId(t.id);
+  setSelectedPointId(null);
+  focusTunnel(t);
+}}
+
                     style={{
                       padding: 10,
                       borderRadius: 14,
@@ -1209,10 +1256,11 @@ export default function App() {
                   <div
                     key={`p-${pt.id}`}
                     onClick={() => {
-                      setSelectedPointId(pt.id);
-                      setSelectedTunnelId(null);
-                      setSidebarOpen(true);
-                    }}
+  setSelectedPointId(pt.id);
+  setSelectedTunnelId(null);
+  focusPoint(pt);
+}}
+
                     style={{
                       padding: 10,
                       borderRadius: 14,
@@ -1349,11 +1397,14 @@ export default function App() {
         </div>
 
         <MapContainer
-          bounds={POLAND_BOUNDS}
-          boundsOptions={{ padding: [20, 20] }}
-          style={{ width: "100%", height: "100%" }}
-          zoomControl={false}
-        >
+  bounds={POLAND_BOUNDS}
+  boundsOptions={{ padding: [20, 20] }}
+  style={{ width: "100%", height: "100%" }}
+  zoomControl={false}
+  whenCreated={(map) => {
+    mapRef.current = map;
+  }}
+>
           <ZoomControl position="bottomright" />
           <TileLayer
             attribution="&copy; OpenStreetMap contributors"
@@ -1407,6 +1458,9 @@ export default function App() {
             {/* Existing tunnels inside FeatureGroup so edit/delete works */}
             {filteredTunnels.map((t) => (
               <Polyline
+              ref={(ref) => {
+  if (ref) tunnelRefs.current[t.id] = ref;
+}}
                 key={`tl-${t.id}`}
                 positions={(t.path || []).map((p) => [p.lat, p.lng])}
                 pathOptions={{
@@ -1421,7 +1475,6 @@ export default function App() {
                   click: (e) => {
                     setSelectedTunnelId(t.id);
                     setSelectedPointId(null);
-                    setSidebarOpen(true);
                     try {
                       e?.target?.openPopup?.();
                     } catch {}
@@ -1466,15 +1519,20 @@ export default function App() {
 
             return (
               <Marker
+              ref={(ref) => {
+  if (ref) markerRefs.current[pt.id] = ref;
+}}
                 key={pt.id}
                 position={[pt.lat, pt.lng]}
                 icon={icon}
                 eventHandlers={{
                   click: () => {
-                    setSelectedPointId(pt.id);
-                    setSelectedTunnelId(null);
-                    setSidebarOpen(true);
-                  },
+  setSelectedPointId(pt.id);
+  setSelectedTunnelId(null);
+  try {
+    markerRefs.current[pt.id]?.openPopup?.();
+  } catch {}
+},
                 }}
               >
                 <Popup>
