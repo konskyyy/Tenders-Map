@@ -1351,31 +1351,31 @@ export default function App() {
           {/* Tunel: draw + edit/delete */}
           <FeatureGroup ref={drawGroupRef}>
             {EditControl ? (
-              <EditControl
-                position="bottomright"
-                onCreated={onDrawCreated}
-                onEdited={onDrawEdited}
-                onDeleted={onDrawDeleted}
-                draw={
-                  addMode === "tunnel"
-                    ? {
-                        polyline: {
-                          shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
-                        },
-                        polygon: false,
-                        rectangle: false,
-                        circle: false,
-                        circlemarker: false,
-                        marker: false,
-                      }
-                    : false
-                }
-                edit={{
-                  edit: true,
-                  remove: true,
-                }}
-              />
-            ) : null}
+  <EditControl
+    position="bottomright"
+    onCreated={onDrawCreated}
+    onEdited={onDrawEdited}
+    onDeleted={onDrawDeleted}
+    draw={
+      addMode === "tunnel"
+        ? {
+            polyline: {
+              shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
+            },
+            polygon: false,
+            rectangle: false,
+            circle: false,
+            circlemarker: false,
+            marker: false,
+          }
+        : false
+    }
+    edit={{
+      edit: {},
+      remove: {},
+    }}
+  />
+) : null}
 
             {/* Existing tunnels inside FeatureGroup so edit/delete works */}
             {filteredTunnels.map((t) => (
