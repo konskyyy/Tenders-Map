@@ -1195,9 +1195,6 @@ export default function App() {
                       <span>📍 {pt.title}</span>
                       <span style={pillStyle}>{statusLabel(pt.status)}</span>
                     </div>
-                    <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
-                      ({Number(pt.lat).toFixed(4)}, {Number(pt.lng).toFixed(4)})
-                    </div>
                   </div>
                 ))}
 
@@ -1405,9 +1402,8 @@ export default function App() {
                     </div>
 
                     <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
-                      Status: <b>{statusLabel(t.status)}</b> • Węzłów:{" "}
-                      <b>{Array.isArray(t.path) ? t.path.length : 0}</b>
-                    </div>
+  Status: <b>{statusLabel(t.status)}</b>
+</div>
 
                     {t.director ? (
                       <div style={{ marginTop: 6 }}>
@@ -1450,7 +1446,6 @@ export default function App() {
               >
                 <Popup>
                   <b>{pt.title}</b>
-                  <div style={{ fontSize: 12, opacity: 0.8 }}>{statusLabel(pt.status)}</div>
                   {pt.director ? (
                     <div style={{ marginTop: 6 }}>
                       <b>Dyrektor:</b> {pt.director}
