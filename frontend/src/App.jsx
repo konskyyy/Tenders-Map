@@ -100,30 +100,6 @@ function makePinIcon(color) {
   });
 }
 
-function InfoCard({ label, value, placeholder }) {
-  return (
-    <div
-      style={{
-        borderRadius: 14,
-        border: `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.06)",
-        padding: 10,
-        display: "grid",
-        gap: 6,
-      }}
-    >
-      <div style={{ fontSize: 12, color: MUTED }}>{label}</div>
-      <div style={{ fontWeight: 800, color: "rgba(255,255,255,0.95)" }}>
-        {value?.trim?.() ? (
-          value
-        ) : (
-          <span style={{ color: "rgba(255,255,255,0.6)" }}>{placeholder}</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function extractOuterRings(geometry) {
   if (!geometry) return [];
   const { type, coordinates } = geometry;
@@ -173,7 +149,7 @@ function toPath(latlngs) {
 
 export default function App() {
   /** ===== Leaflet Draw FIX (L is not defined) ===== */
-  const [EditControl, setEditControl] = useState(null);
+  const [DrawEditControl, setDrawEditControl] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -188,9 +164,9 @@ export default function App() {
 
         // 2) wrapper reactowy
         const mod = await import("react-leaflet-draw");
-
         if (!alive) return;
-        setEditControl(() => mod.EditControl);
+
+        setDrawEditControl(() => mod.EditControl);
       } catch (e) {
         console.error("Leaflet draw init failed:", e);
       }
@@ -281,16 +257,6 @@ export default function App() {
     [points, selectedPointId]
   );
 
-  const [pointForm, setPointForm] = useState({
-    title: "",
-    director: "",
-    winner: "",
-    note: "",
-    status: "planowany",
-  });
-
-  const [savingPoint, setSavingPoint] = useState(false);
-  const [busyDeletePoint, setBusyDeletePoint] = useState(false);
   const [loadingPoints, setLoadingPoints] = useState(false);
   const [apiError, setApiError] = useState("");
 
@@ -312,23 +278,14 @@ export default function App() {
     [tunnels, selectedTunnelId]
   );
 
-  const [tunnelForm, setTunnelForm] = useState({
-    name: "",
-    director: "",
-    winner: "",
-    status: "planowany",
-    note: "",
-  });
-
-  const [savingTunnel, setSavingTunnel] = useState(false);
-  const [busyDeleteTunnel, setBusyDeleteTunnel] = useState(false);
   const [loadingTunnels, setLoadingTunnels] = useState(false);
 
   const drawGroupRef = useRef(null);
-  const mapRef = useRef(null);
-const markerRefs = useRef({});
-const tunnelRefs = useRef({});
 
+  /** ===== Map + refs (zoom/popup) ===== */
+  const mapRef = useRef(null);
+  const markerRefs = useRef({});
+  const tunnelRefs = useRef({});
 
   /** ===== Filters + Add mode ===== */
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -383,45 +340,44 @@ const tunnelRefs = useRef({});
   }
 
   function focusPoint(pt) {
-  const map = mapRef.current;
-  if (!map || !pt) return;
+    const map = mapRef.current;
+    if (!map || !pt) return;
 
-  const lat = Number(pt.lat);
-  const lng = Number(pt.lng);
+    const lat = Number(pt.lat);
+    const lng = Number(pt.lng);
 
-  // zoom do punktu
-  map.flyTo([lat, lng], Math.max(map.getZoom(), 12), { animate: true, duration: 0.6 });
+    map.flyTo([lat, lng], Math.max(map.getZoom(), 12), {
+      animate: true,
+      duration: 0.6,
+    });
 
-  // otwórz popup
-  setTimeout(() => {
-    const m = markerRefs.current[pt.id];
+    setTimeout(() => {
+      const m = markerRefs.current[pt.id];
+      try {
+        m?.openPopup?.();
+      } catch {}
+    }, 250);
+  }
+
+  function focusTunnel(t) {
+    const map = mapRef.current;
+    if (!map || !t) return;
+
+    const latlngs = (t.path || []).map((p) => [Number(p.lat), Number(p.lng)]);
+    if (latlngs.length === 0) return;
+
     try {
-      m?.openPopup?.();
+      const bounds = L.latLngBounds(latlngs);
+      map.fitBounds(bounds, { padding: [40, 40], animate: true, duration: 0.6 });
     } catch {}
-  }, 250);
-}
 
-function focusTunnel(t) {
-  const map = mapRef.current;
-  if (!map || !t) return;
-
-  const latlngs = (t.path || []).map((p) => [Number(p.lat), Number(p.lng)]);
-  if (latlngs.length === 0) return;
-
-  // dopasuj widok do tunelu
-  try {
-    const bounds = L.latLngBounds(latlngs);
-    map.fitBounds(bounds, { padding: [40, 40], animate: true, duration: 0.6 });
-  } catch {}
-
-  // otwórz popup
-  setTimeout(() => {
-    const pl = tunnelRefs.current[t.id];
-    try {
-      pl?.openPopup?.();
-    } catch {}
-  }, 250);
-}
+    setTimeout(() => {
+      const pl = tunnelRefs.current[t.id];
+      try {
+        pl?.openPopup?.();
+      } catch {}
+    }, 250);
+  }
 
   /** ===== World mask ===== */
   const [worldMask, setWorldMask] = useState(null);
@@ -512,32 +468,7 @@ function focusTunnel(t) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
-  /** ===== Sync forms ===== */
-  useEffect(() => {
-    if (!selectedPoint) return;
-    setPointForm({
-      title: selectedPoint.title || "",
-      director: selectedPoint.director || "",
-      winner: selectedPoint.winner || "",
-      note: selectedPoint.note || "",
-      status: selectedPoint.status || "planowany",
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPointId]);
-
-  useEffect(() => {
-    if (!selectedTunnel) return;
-    setTunnelForm({
-      name: selectedTunnel.name || "",
-      director: selectedTunnel.director || "",
-      winner: selectedTunnel.winner || "",
-      status: selectedTunnel.status || "planowany",
-      note: selectedTunnel.note || "",
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTunnelId]);
-
-  /** ===== Points CRUD ===== */
+  /** ===== Points CRUD (dodawanie tylko) ===== */
   async function addPoint(latlng) {
     setApiError("");
     const body = {
@@ -560,106 +491,13 @@ function focusTunnel(t) {
       setPoints((p) => [data, ...p]);
       setSelectedPointId(data.id);
       setSelectedTunnelId(null);
-      setSidebarOpen(true);
+
+      // nie otwieramy panelu edycji (zgodnie z wymaganiem)
+      // setSidebarOpen(true);
+      focusPoint(data);
     } catch (e) {
       if (e?.status === 401) return logout("expired");
       setApiError(`Nie mogę dodać punktu: ${String(e)}`);
-    }
-  }
-
-  async function savePoint() {
-    if (!selectedPoint) return;
-    setSavingPoint(true);
-    setApiError("");
-    try {
-      const res = await authFetch(`${API}/points/${selectedPoint.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: pointForm.title,
-          director: pointForm.director,
-          winner: pointForm.winner,
-          note: pointForm.note,
-          status: pointForm.status,
-        }),
-      });
-      const data = await readJsonOrThrow(res);
-      setPoints((prev) => prev.map((p) => (p.id === data.id ? data : p)));
-    } catch (e) {
-      if (e?.status === 401) return logout("expired");
-      setApiError(`Nie mogę zapisać punktu: ${String(e)}`);
-    } finally {
-      setSavingPoint(false);
-    }
-  }
-
-  async function deletePoint() {
-    if (!selectedPoint) return;
-    const ok = window.confirm(`Usunąć punkt #${selectedPoint.id}?`);
-    if (!ok) return;
-
-    setBusyDeletePoint(true);
-    setApiError("");
-    try {
-      const res = await authFetch(`${API}/points/${selectedPoint.id}`, {
-        method: "DELETE",
-      });
-      await readJsonOrThrow(res);
-      setPoints((prev) => prev.filter((p) => p.id !== selectedPoint.id));
-      setSelectedPointId(null);
-    } catch (e) {
-      if (e?.status === 401) return logout("expired");
-      setApiError(`Nie mogę usunąć punktu: ${String(e)}`);
-    } finally {
-      setBusyDeletePoint(false);
-    }
-  }
-
-  /** ===== Tunnels CRUD ===== */
-  async function saveTunnelMeta() {
-    if (!selectedTunnel) return;
-
-    setSavingTunnel(true);
-    setApiError("");
-    try {
-      const res = await authFetch(`${API}/tunnels/${selectedTunnel.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: tunnelForm.name,
-          director: tunnelForm.director,
-          winner: tunnelForm.winner,
-          status: tunnelForm.status,
-          note: tunnelForm.note,
-          path: selectedTunnel.path,
-        }),
-      });
-      const data = await readJsonOrThrow(res);
-      setTunnels((prev) => prev.map((t) => (t.id === data.id ? data : t)));
-    } catch (e) {
-      if (e?.status === 401) return logout("expired");
-      setApiError(`Nie mogę zapisać tunelu: ${String(e)}`);
-    } finally {
-      setSavingTunnel(false);
-    }
-  }
-
-  async function deleteTunnel(id) {
-    const ok = window.confirm(`Usunąć tunel #${id}?`);
-    if (!ok) return;
-
-    setBusyDeleteTunnel(true);
-    setApiError("");
-    try {
-      const res = await authFetch(`${API}/tunnels/${id}`, { method: "DELETE" });
-      await readJsonOrThrow(res);
-      setTunnels((prev) => prev.filter((t) => t.id !== id));
-      if (selectedTunnelId === id) setSelectedTunnelId(null);
-    } catch (e) {
-      if (e?.status === 401) return logout("expired");
-      setApiError(`Nie mogę usunąć tunelu: ${String(e)}`);
-    } finally {
-      setBusyDeleteTunnel(false);
     }
   }
 
@@ -692,7 +530,10 @@ function focusTunnel(t) {
       setTunnels((prev) => [data, ...prev]);
       setSelectedTunnelId(data.id);
       setSelectedPointId(null);
-      setSidebarOpen(true);
+
+      // nie otwieramy panelu edycji (zgodnie z wymaganiem)
+      // setSidebarOpen(true);
+      focusTunnel(data);
     } catch (err2) {
       if (err2?.status === 401) return logout("expired");
       setApiError(`Nie mogę dodać tunelu: ${String(err2)}`);
@@ -951,10 +792,9 @@ function focusTunnel(t) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
                 <button
                   onClick={() => {
-  setSelectedTunnelId(t.id);
-  setSelectedPointId(null);
-  focusTunnel(t);
-}}
+                    loadPoints();
+                    loadTunnels();
+                  }}
                   style={{
                     width: "100%",
                     padding: 10,
@@ -973,6 +813,9 @@ function focusTunnel(t) {
                   onClick={() => {
                     setSelectedPointId(null);
                     setSelectedTunnelId(null);
+                    try {
+                      mapRef.current?.closePopup?.();
+                    } catch {}
                   }}
                   style={{
                     width: "100%",
@@ -989,7 +832,7 @@ function focusTunnel(t) {
                 </button>
               </div>
 
-              {/* TABS: Dodawanie (mini) */}
+              {/* Dodawanie */}
               <div
                 style={{
                   padding: 10,
@@ -1043,185 +886,9 @@ function focusTunnel(t) {
                 </div>
               </div>
 
-             <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
-  {selectedPoint ? (
-    <>
-      <div style={{ fontSize: 12, color: MUTED }}>
-        Edycja punktu #{selectedPoint.id}
-      </div>
-
-      <label style={{ fontSize: 12, color: MUTED }}>Tytuł</label>
-      <input
-        value={pointForm.title}
-        onChange={(e) =>
-          setPointForm((f) => ({ ...f, title: e.target.value }))
-        }
-        style={fieldStyle}
-      />
-
-      <label style={{ fontSize: 12, color: MUTED }}>
-        Dyrektor kontraktu
-      </label>
-      <input
-        value={pointForm.director}
-        onChange={(e) =>
-          setPointForm((f) => ({ ...f, director: e.target.value }))
-        }
-        style={fieldStyle}
-      />
-
-      <label style={{ fontSize: 12, color: MUTED }}>
-        Firma (wykonawca)
-      </label>
-      <input
-        value={pointForm.winner}
-        onChange={(e) =>
-          setPointForm((f) => ({ ...f, winner: e.target.value }))
-        }
-        style={fieldStyle}
-      />
-
-      <label style={{ fontSize: 12, color: MUTED }}>Notatka</label>
-      <textarea
-        rows={5}
-        value={pointForm.note}
-        onChange={(e) =>
-          setPointForm((f) => ({ ...f, note: e.target.value }))
-        }
-        style={{ ...fieldStyle, resize: "vertical" }}
-      />
-
-      <label style={{ fontSize: 12, color: MUTED }}>Status</label>
-      <select
-        value={pointForm.status}
-        onChange={(e) =>
-          setPointForm((f) => ({ ...f, status: e.target.value }))
-        }
-        style={fieldStyle}
-      >
-        <option value="planowany">planowany</option>
-        <option value="przetarg">przetarg</option>
-        <option value="realizacja">realizacja</option>
-        <option value="nieaktualny">nieaktualny</option>
-      </select>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 8,
-          marginTop: 6,
-        }}
-      >
-        <button
-          onClick={savePoint}
-          disabled={savingPoint}
-          style={btnStyle(savingPoint)}
-        >
-          {savingPoint ? "Zapisuję..." : "Zapisz"}
-        </button>
-
-        <button
-          onClick={deletePoint}
-          disabled={busyDeletePoint}
-          style={dangerBtnStyle(busyDeletePoint)}
-        >
-          {busyDeletePoint ? "Usuwam..." : "Usuń"}
-        </button>
-      </div>
-    </>
-  ) : null}
-</div>
-
-<div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
-
-<div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
-  {selectedTunnel ? (
-    <>
-      <div style={{ fontSize: 12, color: MUTED }}>
-        Edycja tunelu #{selectedTunnel.id}
-      </div>
-
-      <label style={{ fontSize: 12, color: MUTED }}>Nazwa</label>
-      <input
-        value={tunnelForm.name}
-        onChange={(e) =>
-          setTunnelForm((f) => ({ ...f, name: e.target.value }))
-        }
-        style={fieldStyle}
-      />
-
-      <label style={{ fontSize: 12, color: MUTED }}>
-        Dyrektor kontraktu
-      </label>
-      <input
-        value={tunnelForm.director}
-        onChange={(e) =>
-          setTunnelForm((f) => ({ ...f, director: e.target.value }))
-        }
-        style={fieldStyle}
-      />
-
-      <label style={{ fontSize: 12, color: MUTED }}>
-        Firma (wykonawca)
-      </label>
-      <input
-        value={tunnelForm.winner}
-        onChange={(e) =>
-          setTunnelForm((f) => ({ ...f, winner: e.target.value }))
-        }
-        style={fieldStyle}
-      />
-
-      <label style={{ fontSize: 12, color: MUTED }}>Notatka</label>
-      <textarea
-        rows={4}
-        value={tunnelForm.note}
-        onChange={(e) =>
-          setTunnelForm((f) => ({ ...f, note: e.target.value }))
-        }
-        style={{ ...fieldStyle, resize: "vertical" }}
-      />
-
-      <label style={{ fontSize: 12, color: MUTED }}>Status</label>
-      <select
-        value={tunnelForm.status}
-        onChange={(e) =>
-          setTunnelForm((f) => ({ ...f, status: e.target.value }))
-        }
-        style={fieldStyle}
-      >
-        <option value="planowany">planowany</option>
-        <option value="przetarg">przetarg</option>
-        <option value="realizacja">realizacja</option>
-        <option value="nieaktualny">nieaktualny</option>
-      </select>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-        <button
-          onClick={saveTunnelMeta}
-          disabled={savingTunnel}
-          style={btnStyle(savingTunnel)}
-        >
-          {savingTunnel ? "Zapisuję..." : "Zapisz"}
-        </button>
-
-        <button
-          onClick={() => deleteTunnel(selectedTunnel.id)}
-          disabled={busyDeleteTunnel}
-          style={dangerBtnStyle(busyDeleteTunnel)}
-        >
-          {busyDeleteTunnel ? "Usuwam..." : "Usuń"}
-        </button>
-      </div>
-    </>
-  ) : null}
-</div>
-
-
               <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-              {/* LISTS */}
+              {/* LISTA */}
               <div style={{ fontWeight: 900, marginBottom: 8 }}>Lista projektów</div>
 
               <div style={{ display: "grid", gap: 8 }}>
@@ -1229,11 +896,10 @@ function focusTunnel(t) {
                   <div
                     key={`t-${t.id}`}
                     onClick={() => {
-  setSelectedTunnelId(t.id);
-  setSelectedPointId(null);
-  focusTunnel(t);
-}}
-
+                      setSelectedTunnelId(t.id);
+                      setSelectedPointId(null);
+                      focusTunnel(t);
+                    }}
                     style={{
                       padding: 10,
                       borderRadius: 14,
@@ -1256,11 +922,10 @@ function focusTunnel(t) {
                   <div
                     key={`p-${pt.id}`}
                     onClick={() => {
-  setSelectedPointId(pt.id);
-  setSelectedTunnelId(null);
-  focusPoint(pt);
-}}
-
+                      setSelectedPointId(pt.id);
+                      setSelectedTunnelId(null);
+                      focusPoint(pt);
+                    }}
                     style={{
                       padding: 10,
                       borderRadius: 14,
@@ -1397,14 +1062,14 @@ function focusTunnel(t) {
         </div>
 
         <MapContainer
-  bounds={POLAND_BOUNDS}
-  boundsOptions={{ padding: [20, 20] }}
-  style={{ width: "100%", height: "100%" }}
-  zoomControl={false}
-  whenCreated={(map) => {
-    mapRef.current = map;
-  }}
->
+          bounds={POLAND_BOUNDS}
+          boundsOptions={{ padding: [20, 20] }}
+          style={{ width: "100%", height: "100%" }}
+          zoomControl={false}
+          whenCreated={(map) => {
+            mapRef.current = map;
+          }}
+        >
           <ZoomControl position="bottomright" />
           <TileLayer
             attribution="&copy; OpenStreetMap contributors"
@@ -1428,39 +1093,39 @@ function focusTunnel(t) {
 
           {/* Tunel: draw + edit/delete */}
           <FeatureGroup ref={drawGroupRef}>
-            {EditControl ? (
-  <EditControl
-    position="bottomright"
-    onCreated={onDrawCreated}
-    onEdited={onDrawEdited}
-    onDeleted={onDrawDeleted}
-    draw={
-      addMode === "tunnel"
-        ? {
-            polyline: {
-              shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
-            },
-            polygon: false,
-            rectangle: false,
-            circle: false,
-            circlemarker: false,
-            marker: false,
-          }
-        : false
-    }
-    edit={{
-      edit: {},
-      remove: {},
-    }}
-  />
-) : null}
+            {DrawEditControl ? (
+              <DrawEditControl
+                position="bottomright"
+                onCreated={onDrawCreated}
+                onEdited={onDrawEdited}
+                onDeleted={onDrawDeleted}
+                draw={
+                  addMode === "tunnel"
+                    ? {
+                        polyline: {
+                          shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
+                        },
+                        polygon: false,
+                        rectangle: false,
+                        circle: false,
+                        circlemarker: false,
+                        marker: false,
+                      }
+                    : false
+                }
+                edit={{
+                  edit: {},
+                  remove: {},
+                }}
+              />
+            ) : null}
 
             {/* Existing tunnels inside FeatureGroup so edit/delete works */}
             {filteredTunnels.map((t) => (
               <Polyline
-              ref={(ref) => {
-  if (ref) tunnelRefs.current[t.id] = ref;
-}}
+                ref={(ref) => {
+                  if (ref) tunnelRefs.current[t.id] = ref;
+                }}
                 key={`tl-${t.id}`}
                 positions={(t.path || []).map((p) => [p.lat, p.lng])}
                 pathOptions={{
@@ -1488,8 +1153,8 @@ function focusTunnel(t) {
                     </div>
 
                     <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
-  Status: <b>{statusLabel(t.status)}</b>
-</div>
+                      Status: <b>{statusLabel(t.status)}</b>
+                    </div>
 
                     {t.director ? (
                       <div style={{ marginTop: 6 }}>
@@ -1519,34 +1184,38 @@ function focusTunnel(t) {
 
             return (
               <Marker
-              ref={(ref) => {
-  if (ref) markerRefs.current[pt.id] = ref;
-}}
+                ref={(ref) => {
+                  if (ref) markerRefs.current[pt.id] = ref;
+                }}
                 key={pt.id}
                 position={[pt.lat, pt.lng]}
                 icon={icon}
                 eventHandlers={{
                   click: () => {
-  setSelectedPointId(pt.id);
-  setSelectedTunnelId(null);
-  try {
-    markerRefs.current[pt.id]?.openPopup?.();
-  } catch {}
-},
+                    setSelectedPointId(pt.id);
+                    setSelectedTunnelId(null);
+                    try {
+                      markerRefs.current[pt.id]?.openPopup?.();
+                    } catch {}
+                  },
                 }}
               >
                 <Popup>
                   <b>{pt.title}</b>
+                  <div style={{ fontSize: 12, opacity: 0.8 }}>{statusLabel(pt.status)}</div>
+
                   {pt.director ? (
                     <div style={{ marginTop: 6 }}>
                       <b>Dyrektor:</b> {pt.director}
                     </div>
                   ) : null}
+
                   {pt.winner ? (
                     <div style={{ marginTop: 6 }}>
                       <b>Firma:</b> {pt.winner}
                     </div>
                   ) : null}
+
                   <div style={{ marginTop: 6 }}>{pt.note || "Brak notatki"}</div>
                 </Popup>
               </Marker>
@@ -1559,35 +1228,6 @@ function focusTunnel(t) {
 }
 
 /** ===== small styles ===== */
-
-const fieldStyle = {
-  padding: 10,
-  borderRadius: 12,
-  border: `1px solid ${BORDER}`,
-  background: "rgba(255,255,255,0.06)",
-  color: TEXT_LIGHT,
-  outline: "none",
-};
-
-const btnStyle = (disabled) => ({
-  padding: 10,
-  borderRadius: 12,
-  border: `1px solid ${BORDER}`,
-  background: disabled ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.08)",
-  color: TEXT_LIGHT,
-  cursor: disabled ? "default" : "pointer",
-  fontWeight: 800,
-});
-
-const dangerBtnStyle = (disabled) => ({
-  padding: 10,
-  borderRadius: 12,
-  border: "1px solid rgba(255,80,80,0.55)",
-  background: disabled ? "rgba(255,80,80,0.18)" : "rgba(255,80,80,0.12)",
-  color: TEXT_LIGHT,
-  cursor: disabled ? "default" : "pointer",
-  fontWeight: 800,
-});
 
 const emptyBoxStyle = {
   padding: 12,
