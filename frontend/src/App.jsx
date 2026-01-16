@@ -251,11 +251,14 @@ function JournalPanel({
     setBusyActionId(commentId);
     setErr("");
     try {
-      const res = await authFetch(`${API}/${kind}/${entityId}/comments/${commentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
-      });
+      const res = await authFetch(
+        `${API}/${kind}/${entityId}/comments/${commentId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ body }),
+        }
+      );
       const updated = await readJsonOrThrow(res);
 
       setItems((prev) =>
@@ -278,9 +281,12 @@ function JournalPanel({
     setBusyActionId(commentId);
     setErr("");
     try {
-      const res = await authFetch(`${API}/${kind}/${entityId}/comments/${commentId}`, {
-        method: "DELETE",
-      });
+      const res = await authFetch(
+        `${API}/${kind}/${entityId}/comments/${commentId}`,
+        {
+          method: "DELETE",
+        }
+      );
       await readJsonOrThrow(res);
 
       setItems((prev) => prev.filter((x) => String(x.id) !== String(commentId)));
@@ -404,7 +410,13 @@ function JournalPanel({
                       gap: 8,
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 10,
+                      }}
+                    >
                       <div style={{ fontSize: 12, color: MUTED }}>
                         <b style={{ color: "rgba(255,255,255,0.92)" }}>
                           {c.user_email || "użytkownik"}
@@ -449,7 +461,8 @@ function JournalPanel({
                               border: "1px solid rgba(255,80,80,0.55)",
                               background: "rgba(255,80,80,0.12)",
                               color: TEXT_LIGHT,
-                              cursor: busyActionId === c.id ? "default" : "pointer",
+                              cursor:
+                                busyActionId === c.id ? "default" : "pointer",
                               fontWeight: 900,
                               fontSize: 12,
                             }}
@@ -490,7 +503,8 @@ function JournalPanel({
                               border: `1px solid ${BORDER}`,
                               background: "rgba(255,255,255,0.10)",
                               color: TEXT_LIGHT,
-                              cursor: busyActionId === c.id ? "default" : "pointer",
+                              cursor:
+                                busyActionId === c.id ? "default" : "pointer",
                               fontWeight: 900,
                             }}
                           >
@@ -542,6 +556,237 @@ function JournalPanel({
           </button>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/** ===== EDIT MODAL (wariant 1) ===== */
+function EditProjectModal({
+  open,
+  kind, // "points" | "tunnels"
+  entity, // selectedPoint | selectedTunnel
+  onClose,
+  onSave, // async (payload) => void
+  BORDER,
+  TEXT_LIGHT,
+  MUTED,
+  GLASS_BG,
+}) {
+  const [form, setForm] = useState({
+    titleOrName: "",
+    status: "planowany",
+    director: "",
+    winner: "",
+    note: "",
+  });
+
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    if (!open || !entity) return;
+
+    setErr("");
+    setSaving(false);
+
+    setForm({
+      titleOrName: kind === "points" ? entity.title ?? "" : entity.name ?? "",
+      status: entity.status ?? "planowany",
+      director: entity.director ?? "",
+      winner: entity.winner ?? "",
+      note: entity.note ?? "",
+    });
+  }, [open, kind, entity]);
+
+  if (!open || !entity) return null;
+
+  const title =
+    kind === "points"
+      ? `Edycja punktu: ${entity.title || `#${entity.id}`}`
+      : `Edycja tunelu: ${entity.name || `#${entity.id}`}`;
+
+  async function handleSave() {
+    setErr("");
+
+    const payload = {
+      status: String(form.status || "planowany"),
+      director: String(form.director || ""),
+      winner: String(form.winner || ""),
+      note: String(form.note || ""),
+    };
+
+    if (kind === "points") payload.title = String(form.titleOrName || "");
+    else payload.name = String(form.titleOrName || "");
+
+    const key = kind === "points" ? "title" : "name";
+    if (!String(payload[key] || "").trim()) {
+      setErr(kind === "points" ? "Tytuł nie może być pusty." : "Nazwa nie może być pusta.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onSave(payload);
+      onClose();
+    } catch (e) {
+      setErr(String(e?.message || e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const overlayStyle = {
+    position: "fixed",
+    inset: 0,
+    zIndex: 9999,
+    background: "rgba(0,0,0,0.55)",
+    display: "grid",
+    placeItems: "center",
+    padding: 16,
+  };
+
+  const modalStyle = {
+    width: "min(620px, 100%)",
+    borderRadius: 16,
+    border: `1px solid ${BORDER}`,
+    background: GLASS_BG,
+    color: TEXT_LIGHT,
+    boxShadow: "0 18px 55px rgba(0,0,0,0.55)",
+    overflow: "hidden",
+  };
+
+  const headerStyle = {
+    padding: "12px 14px",
+    borderBottom: `1px solid ${BORDER}`,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    fontWeight: 900,
+  };
+
+  const bodyStyle = {
+    padding: 14,
+    display: "grid",
+    gap: 10,
+  };
+
+  const inputStyleLocal = {
+    boxSizing: "border-box",
+    width: "100%",
+    height: 40,
+    borderRadius: 12,
+    border: `1px solid ${BORDER}`,
+    background: "rgba(255,255,255,0.06)",
+    color: TEXT_LIGHT,
+    padding: "0 12px",
+    outline: "none",
+  };
+
+  const textareaStyleLocal = {
+    ...inputStyleLocal,
+    height: 90,
+    padding: 10,
+    resize: "vertical",
+  };
+
+  const btnStyle = {
+    padding: 10,
+    borderRadius: 12,
+    border: `1px solid ${BORDER}`,
+    background: "rgba(255,255,255,0.10)",
+    color: TEXT_LIGHT,
+    cursor: "pointer",
+    fontWeight: 900,
+  };
+
+  return (
+    <div
+      style={overlayStyle}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div style={modalStyle}>
+        <div style={headerStyle}>
+          <span>{title}</span>
+          <button onClick={onClose} style={{ ...btnStyle, padding: "8px 10px" }}>
+            Zamknij
+          </button>
+        </div>
+
+        <div style={bodyStyle}>
+          {err ? (
+            <div
+              style={{
+                padding: 10,
+                borderRadius: 14,
+                border: "1px solid rgba(255,120,120,0.45)",
+                background: "rgba(255,120,120,0.12)",
+                color: "rgba(255,255,255,0.95)",
+                fontSize: 12,
+              }}
+            >
+              {err}
+            </div>
+          ) : null}
+
+          <label style={{ fontSize: 12, color: MUTED, fontWeight: 800 }}>
+            {kind === "points" ? "Tytuł" : "Nazwa"}
+          </label>
+          <input
+            value={form.titleOrName}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, titleOrName: e.target.value }))
+            }
+            style={inputStyleLocal}
+          />
+
+          <label style={{ fontSize: 12, color: MUTED, fontWeight: 800 }}>Status</label>
+          <select
+            value={form.status}
+            onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+            style={inputStyleLocal}
+          >
+            <option value="planowany">planowany</option>
+            <option value="przetarg">przetarg</option>
+            <option value="realizacja">realizacja</option>
+            <option value="nieaktualny">nieaktualny</option>
+          </select>
+
+          <label style={{ fontSize: 12, color: MUTED, fontWeight: 800 }}>Dyrektor</label>
+          <input
+            value={form.director}
+            onChange={(e) => setForm((f) => ({ ...f, director: e.target.value }))}
+            style={inputStyleLocal}
+          />
+
+          <label style={{ fontSize: 12, color: MUTED, fontWeight: 800 }}>Firma</label>
+          <input
+            value={form.winner}
+            onChange={(e) => setForm((f) => ({ ...f, winner: e.target.value }))}
+            style={inputStyleLocal}
+          />
+
+          <label style={{ fontSize: 12, color: MUTED, fontWeight: 800 }}>Notatka</label>
+          <textarea
+            value={form.note}
+            onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
+            style={textareaStyleLocal}
+          />
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
+            <button
+              onClick={onClose}
+              style={{ ...btnStyle, background: "rgba(255,255,255,0.05)" }}
+            >
+              Anuluj
+            </button>
+            <button onClick={handleSave} disabled={saving} style={btnStyle}>
+              {saving ? "Zapisuję..." : "Zapisz"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -690,6 +935,9 @@ export default function App() {
     realizacja: true,
     nieaktualny: true,
   });
+
+  /** ===== EDIT (wariant 1) ===== */
+  const [editOpen, setEditOpen] = useState(false);
 
   const filteredPoints = useMemo(() => {
     return points.filter((p) => visibleStatus[p.status || "planowany"] !== false);
@@ -905,6 +1153,56 @@ export default function App() {
     }
   }
 
+  async function saveEditedProject(payload) {
+    const pt = selectedPoint;
+    const tl = selectedTunnel;
+    if (!pt && !tl) return;
+
+    setApiError("");
+
+    try {
+      if (pt) {
+        const res = await authFetch(`${API}/points/${pt.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lat: pt.lat,
+            lng: pt.lng,
+            title: payload.title,
+            director: payload.director,
+            winner: payload.winner,
+            note: payload.note,
+            status: payload.status,
+          }),
+        });
+
+        const updated = await readJsonOrThrow(res);
+        setPoints((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+        setSelectedPointId(updated.id);
+      } else {
+        const res = await authFetch(`${API}/tunnels/${tl.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            path: tl.path || [],
+            name: payload.name,
+            director: payload.director,
+            winner: payload.winner,
+            note: payload.note,
+            status: payload.status,
+          }),
+        });
+
+        const updated = await readJsonOrThrow(res);
+        setTunnels((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+        setSelectedTunnelId(updated.id);
+      }
+    } catch (e) {
+      if (e?.status === 401) return logout("expired");
+      throw e;
+    }
+  }
+
   /** ===== Points CRUD (dodawanie tylko) ===== */
   async function addPoint(latlng) {
     setApiError("");
@@ -1106,7 +1404,11 @@ export default function App() {
               style={inputStyle}
             />
 
-            <button type="submit" disabled={loadingAuth} style={primaryButtonStyle(loadingAuth)}>
+            <button
+              type="submit"
+              disabled={loadingAuth}
+              style={primaryButtonStyle(loadingAuth)}
+            >
               {loadingAuth ? "Loguję..." : "Zaloguj"}
             </button>
           </form>
@@ -1183,7 +1485,9 @@ export default function App() {
 
               <div style={{ display: "grid", gap: 2, flex: 1 }}>
                 <div style={{ fontWeight: 800, letterSpacing: 0.2 }}>Mapa projektów - BD</div>
-                <div style={{ fontSize: 12, color: MUTED }}>Zalogowano: {user?.email || "(użytkownik)"}</div>
+                <div style={{ fontSize: 12, color: MUTED }}>
+                  Zalogowano: {user?.email || "(użytkownik)"}
+                </div>
               </div>
 
               <button
@@ -1246,7 +1550,10 @@ export default function App() {
                       padding: "10px 10px",
                       borderRadius: 12,
                       border: `1px solid ${BORDER}`,
-                      background: addMode === "point" ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.08)",
+                      background:
+                        addMode === "point"
+                          ? "rgba(255,255,255,0.14)"
+                          : "rgba(255,255,255,0.08)",
                       color: TEXT_LIGHT,
                       cursor: "pointer",
                       fontWeight: 900,
@@ -1262,7 +1569,10 @@ export default function App() {
                       padding: "10px 10px",
                       borderRadius: 12,
                       border: `1px solid ${BORDER}`,
-                      background: addMode === "tunnel" ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.08)",
+                      background:
+                        addMode === "tunnel"
+                          ? "rgba(255,255,255,0.14)"
+                          : "rgba(255,255,255,0.08)",
                       color: TEXT_LIGHT,
                       cursor: "pointer",
                       fontWeight: 900,
@@ -1294,7 +1604,14 @@ export default function App() {
               >
                 <div style={{ fontWeight: 900, marginBottom: 8 }}>Narzędzia</div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 8,
+                    marginBottom: 10,
+                  }}
+                >
                   <button
                     onClick={() => {
                       loadPoints();
@@ -1340,10 +1657,7 @@ export default function App() {
                 {selectedPoint || selectedTunnel ? (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     <button
-                      onClick={() => {
-                        const what = selectedPoint ? `Punkt #${selectedPoint.id}` : `Tunel #${selectedTunnel.id}`;
-                        alert(`Edytuj: ${what} (do podłączenia)`);
-                      }}
+                      onClick={() => setEditOpen(true)}
                       style={{
                         padding: 10,
                         borderRadius: 12,
@@ -1394,12 +1708,21 @@ export default function App() {
                         padding: 10,
                         borderRadius: 14,
                         border:
-                          t.id === selectedTunnelId ? `2px solid rgba(255,255,255,0.35)` : `1px solid ${BORDER}`,
+                          t.id === selectedTunnelId
+                            ? `2px solid rgba(255,255,255,0.35)`
+                            : `1px solid ${BORDER}`,
                         background: "rgba(255,255,255,0.05)",
                         cursor: "pointer",
                       }}
                     >
-                      <div style={{ fontWeight: 900, display: "flex", justifyContent: "space-between", gap: 10 }}>
+                      <div
+                        style={{
+                          fontWeight: 900,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 10,
+                        }}
+                      >
                         <span>🟦 {t.name || `Tunel #${t.id}`}</span>
                         <span style={pillStyle}>{statusLabel(t.status)}</span>
                       </div>
@@ -1418,12 +1741,21 @@ export default function App() {
                         padding: 10,
                         borderRadius: 14,
                         border:
-                          pt.id === selectedPointId ? `2px solid rgba(255,255,255,0.35)` : `1px solid ${BORDER}`,
+                          pt.id === selectedPointId
+                            ? `2px solid rgba(255,255,255,0.35)`
+                            : `1px solid ${BORDER}`,
                         background: "rgba(255,255,255,0.05)",
                         cursor: "pointer",
                       }}
                     >
-                      <div style={{ fontWeight: 900, display: "flex", justifyContent: "space-between", gap: 10 }}>
+                      <div
+                        style={{
+                          fontWeight: 900,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 10,
+                        }}
+                      >
                         <span>📍 {pt.title}</span>
                         <span style={pillStyle}>{statusLabel(pt.status)}</span>
                       </div>
@@ -1536,8 +1868,14 @@ export default function App() {
                       userSelect: "none",
                     }}
                   >
-                    <input type="checkbox" checked={visibleStatus[s.key]} onChange={() => toggleStatus(s.key)} />
-                    <span style={{ width: 10, height: 10, borderRadius: 999, background: s.color }} />
+                    <input
+                      type="checkbox"
+                      checked={visibleStatus[s.key]}
+                      onChange={() => toggleStatus(s.key)}
+                    />
+                    <span
+                      style={{ width: 10, height: 10, borderRadius: 999, background: s.color }}
+                    />
                     <span style={{ flex: 1, fontWeight: 800 }}>{s.label}</span>
                     <span style={{ fontSize: 12, color: MUTED }}>{counts[s.key] ?? 0}</span>
                   </label>
@@ -1547,7 +1885,10 @@ export default function App() {
                   <button onClick={showAllStatuses} style={miniBtnStyle}>
                     Pokaż
                   </button>
-                  <button onClick={hideAllStatuses} style={{ ...miniBtnStyle, background: "rgba(255,255,255,0.05)" }}>
+                  <button
+                    onClick={hideAllStatuses}
+                    style={{ ...miniBtnStyle, background: "rgba(255,255,255,0.05)" }}
+                  >
                     Ukryj
                   </button>
                 </div>
@@ -1583,7 +1924,10 @@ export default function App() {
             }}
           />
           <ZoomControl position="bottomright" />
-          <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <TileLayer
+            attribution="&copy; OpenStreetMap contributors"
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
 
           {worldMask ? (
             <GeoJSON
@@ -1654,7 +1998,9 @@ export default function App() {
               >
                 <Popup>
                   <div style={{ minWidth: 220 }}>
-                    <div style={{ fontWeight: 900, marginBottom: 4 }}>{t.name || `Tunel #${t.id}`}</div>
+                    <div style={{ fontWeight: 900, marginBottom: 4 }}>
+                      {t.name || `Tunel #${t.id}`}
+                    </div>
 
                     <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
                       Status: <b>{statusLabel(t.status)}</b>
@@ -1725,6 +2071,19 @@ export default function App() {
             );
           })}
         </MapContainer>
+
+        {/* MODAL EDYCJI (wariant 1) */}
+        <EditProjectModal
+          open={editOpen}
+          kind={selectedPoint ? "points" : "tunnels"}
+          entity={selectedPoint || selectedTunnel}
+          onClose={() => setEditOpen(false)}
+          onSave={saveEditedProject}
+          BORDER={BORDER}
+          TEXT_LIGHT={TEXT_LIGHT}
+          MUTED={MUTED}
+          GLASS_BG={GLASS_BG_DARK}
+        />
       </main>
     </div>
   );
