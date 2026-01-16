@@ -156,6 +156,388 @@ function MapRefSetter({ onReady }) {
 
   return null;
 }
+function formatDateTimePL(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleString("pl-PL", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return String(iso);
+  }
+}
+
+function JournalPanel({
+  visible,
+  kind, // "points" | "tunnels"
+  entity, // selectedPoint | selectedTunnel
+  user,
+  authFetch,
+  API,
+  BORDER,
+  MUTED,
+  TEXT_LIGHT,
+  GLASS_BG,
+  GLASS_SHADOW,
+}) {
+  const [open, setOpen] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [items, setItems] = useState([]);
+  const [draft, setDraft] = useState("");
+
+  const [editingId, setEditingId] = useState(null);
+  const [editingBody, setEditingBody] = useState("");
+  const [busyActionId, setBusyActionId] = useState(null);
+
+  const entityId = entity?.id ?? null;
+
+  async function load() {
+    if (!entityId) return;
+    setLoading(true);
+    setErr("");
+    try {
+      const res = await authFetch(`${API}/${kind}/${entityId}/comments`);
+      const data = await readJsonOrThrow(res);
+      setItems(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setErr(String(e?.message || e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!visible) return;
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, kind, entityId]);
+
+  async function addComment() {
+    if (!entityId) return;
+    const body = String(draft || "").trim();
+    if (!body) return;
+
+    setBusyActionId("add");
+    setErr("");
+    try {
+      const res = await authFetch(`${API}/${kind}/${entityId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      const created = await readJsonOrThrow(res);
+      setDraft("");
+      // szybka aktualizacja UI (bez czekania na reload)
+      setItems((prev) => [created, ...prev]);
+    } catch (e) {
+      setErr(String(e?.message || e));
+    } finally {
+      setBusyActionId(null);
+    }
+  }
+
+  async function saveEdit(commentId) {
+    if (!entityId) return;
+    const body = String(editingBody || "").trim();
+    if (!body) return;
+
+    setBusyActionId(commentId);
+    setErr("");
+    try {
+      const res = await authFetch(`${API}/${kind}/${entityId}/comments/${commentId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      const updated = await readJsonOrThrow(res);
+
+      setItems((prev) => prev.map((x) => (String(x.id) === String(updated.id) ? updated : x)));
+      setEditingId(null);
+      setEditingBody("");
+    } catch (e) {
+      setErr(String(e?.message || e));
+    } finally {
+      setBusyActionId(null);
+    }
+  }
+
+  async function removeComment(commentId) {
+    if (!entityId) return;
+    const ok = window.confirm("Usunąć ten wpis z dziennika?");
+    if (!ok) return;
+
+    setBusyActionId(commentId);
+    setErr("");
+    try {
+      const res = await authFetch(`${API}/${kind}/${entityId}/comments/${commentId}`, {
+        method: "DELETE",
+      });
+      await readJsonOrThrow(res);
+
+      setItems((prev) => prev.filter((x) => String(x.id) !== String(commentId)));
+      if (String(editingId) === String(commentId)) {
+        setEditingId(null);
+        setEditingBody("");
+      }
+    } catch (e) {
+      setErr(String(e?.message || e));
+    } finally {
+      setBusyActionId(null);
+    }
+  }
+
+  if (!visible) return null;
+
+  const title =
+    kind === "points"
+      ? `Dziennik — punkt: ${entity?.title || `#${entityId}`}`
+      : `Dziennik — tunel: ${entity?.name || `#${entityId}`}`;
+
+  return (
+    <div
+      style={{
+        borderRadius: 16,
+        border: `1px solid ${BORDER}`,
+        background: GLASS_BG,
+        color: TEXT_LIGHT,
+        overflow: "hidden",
+        boxShadow: GLASS_SHADOW,
+      }}
+    >
+      <div
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          padding: "12px 14px",
+          cursor: "pointer",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontWeight: 900,
+        }}
+      >
+        <span>{title}</span>
+        <span style={{ fontSize: 12, color: MUTED }}>
+          {loading ? "Ładuję..." : `${items.length} wpis(y)`} {open ? "▾" : "▸"}
+        </span>
+      </div>
+
+      {open ? (
+        <div style={{ padding: "10px 12px 12px", display: "grid", gap: 10 }}>
+          {err ? (
+            <div
+              style={{
+                padding: 10,
+                borderRadius: 14,
+                border: "1px solid rgba(255,120,120,0.45)",
+                background: "rgba(255,120,120,0.12)",
+                color: "rgba(255,255,255,0.95)",
+                fontSize: 12,
+              }}
+            >
+              {err}
+            </div>
+          ) : null}
+
+          {/* Dodawanie wpisu */}
+          <div style={{ display: "grid", gap: 8 }}>
+            <textarea
+              rows={3}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Dodaj wpis do dziennika…"
+              style={{
+                padding: 10,
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                background: "rgba(255,255,255,0.06)",
+                color: TEXT_LIGHT,
+                outline: "none",
+                resize: "vertical",
+              }}
+            />
+            <button
+              onClick={addComment}
+              disabled={busyActionId === "add" || !draft.trim()}
+              style={{
+                padding: 10,
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                background: "rgba(255,255,255,0.10)",
+                color: TEXT_LIGHT,
+                cursor: busyActionId === "add" ? "default" : "pointer",
+                fontWeight: 900,
+              }}
+            >
+              {busyActionId === "add" ? "Dodaję..." : "Dodaj wpis"}
+            </button>
+          </div>
+
+          <div style={{ height: 1, background: BORDER, opacity: 0.9 }} />
+
+          {/* Lista */}
+          {items.length === 0 ? (
+            <div style={{ fontSize: 12, color: MUTED }}>Brak wpisów dla tego projektu.</div>
+          ) : (
+            <div style={{ display: "grid", gap: 10 }}>
+              {items.map((c) => {
+                const isMine = String(c.user_id) === String(user?.id);
+                const isEditing = String(editingId) === String(c.id);
+
+                return (
+                  <div
+                    key={c.id}
+                    style={{
+                      borderRadius: 14,
+                      border: `1px solid ${BORDER}`,
+                      background: "rgba(255,255,255,0.05)",
+                      padding: 10,
+                      display: "grid",
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                      <div style={{ fontSize: 12, color: MUTED }}>
+                        <b style={{ color: "rgba(255,255,255,0.92)" }}>{c.user_email || "użytkownik"}</b>{" "}
+                        • {formatDateTimePL(c.created_at)}
+                        {c.edited ? (
+                          <span style={{ marginLeft: 6, opacity: 0.8 }}>(edytowano)</span>
+                        ) : null}
+                      </div>
+
+                      {isMine ? (
+                        <div style={{ display: "flex", gap: 8 }}>
+                          {!isEditing ? (
+                            <button
+                              onClick={() => {
+                                setEditingId(c.id);
+                                setEditingBody(c.body || "");
+                              }}
+                              style={{
+                                padding: "6px 10px",
+                                borderRadius: 12,
+                                border: `1px solid ${BORDER}`,
+                                background: "rgba(255,255,255,0.08)",
+                                color: TEXT_LIGHT,
+                                cursor: "pointer",
+                                fontWeight: 900,
+                                fontSize: 12,
+                              }}
+                            >
+                              Edytuj
+                            </button>
+                          ) : null}
+
+                          <button
+                            onClick={() => removeComment(c.id)}
+                            disabled={busyActionId === c.id}
+                            style={{
+                              padding: "6px 10px",
+                              borderRadius: 12,
+                              border: "1px solid rgba(255,80,80,0.55)",
+                              background: "rgba(255,80,80,0.12)",
+                              color: TEXT_LIGHT,
+                              cursor: busyActionId === c.id ? "default" : "pointer",
+                              fontWeight: 900,
+                              fontSize: 12,
+                            }}
+                          >
+                            {busyActionId === c.id ? "..." : "Usuń"}
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {!isEditing ? (
+                      <div style={{ whiteSpace: "pre-wrap" }}>{c.body}</div>
+                    ) : (
+                      <div style={{ display: "grid", gap: 8 }}>
+                        <textarea
+                          rows={3}
+                          value={editingBody}
+                          onChange={(e) => setEditingBody(e.target.value)}
+                          style={{
+                            padding: 10,
+                            borderRadius: 12,
+                            border: `1px solid ${BORDER}`,
+                            background: "rgba(255,255,255,0.06)",
+                            color: TEXT_LIGHT,
+                            outline: "none",
+                            resize: "vertical",
+                          }}
+                        />
+
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button
+                            onClick={() => saveEdit(c.id)}
+                            disabled={busyActionId === c.id || !editingBody.trim()}
+                            style={{
+                              flex: 1,
+                              padding: 10,
+                              borderRadius: 12,
+                              border: `1px solid ${BORDER}`,
+                              background: "rgba(255,255,255,0.10)",
+                              color: TEXT_LIGHT,
+                              cursor: busyActionId === c.id ? "default" : "pointer",
+                              fontWeight: 900,
+                            }}
+                          >
+                            {busyActionId === c.id ? "Zapisuję..." : "Zapisz"}
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setEditingId(null);
+                              setEditingBody("");
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: 10,
+                              borderRadius: 12,
+                              border: `1px solid ${BORDER}`,
+                              background: "rgba(255,255,255,0.05)",
+                              color: TEXT_LIGHT,
+                              cursor: "pointer",
+                              fontWeight: 900,
+                            }}
+                          >
+                            Anuluj
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <button
+            onClick={load}
+            disabled={loading}
+            style={{
+              padding: 10,
+              borderRadius: 12,
+              border: `1px solid ${BORDER}`,
+              background: "rgba(255,255,255,0.06)",
+              color: TEXT_LIGHT,
+              cursor: loading ? "default" : "pointer",
+              fontWeight: 900,
+              fontSize: 12,
+            }}
+          >
+            {loading ? "Odświeżam..." : "Odśwież dziennik"}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function App() {
   /** ===== Leaflet Draw FIX (L is not defined) ===== */
   const [DrawEditControl, setDrawEditControl] = useState(null);
@@ -999,7 +1381,33 @@ export default function App() {
             <span style={{ fontSize: 13 }}>Panel</span>
           </button>
         ) : null}
-
+{/* PRAWA STRONA: Statusy + Dziennik */}
+<div
+  style={{
+    position: "absolute",
+    zIndex: 1600,
+    top: 12,
+    right: 12,
+    width: 360,
+    display: "grid",
+    gap: 10,
+  }}
+>
+  {/* STATUSY (Twoje obecne) */}
+  <div
+    style={{
+      borderRadius: 16,
+      border: `1px solid ${BORDER}`,
+      background: GLASS_BG,
+      backgroundImage:
+        "radial-gradient(500px 300px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
+      backdropFilter: "blur(8px)",
+      color: TEXT_LIGHT,
+      overflow: "hidden",
+      boxShadow: GLASS_SHADOW,
+      width: "100%",
+    }}
+  ></div>
         {/* STATUSY */}
         <div
           style={{
@@ -1036,6 +1444,21 @@ export default function App() {
               {filtersOpen ? "▾" : "▸"}
             </span>
           </div>
+          {/* DZIENNIK (POKAZUJE SIĘ TYLKO GDY WYBRANY PROJEKT) */}
+  <JournalPanel
+    visible={!!selectedPoint || !!selectedTunnel}
+    kind={selectedPoint ? "points" : "tunnels"}
+    entity={selectedPoint || selectedTunnel}
+    user={user}
+    authFetch={authFetch}
+    API={API}
+    BORDER={BORDER}
+    MUTED={MUTED}
+    TEXT_LIGHT={TEXT_LIGHT}
+    GLASS_BG={GLASS_BG}
+    GLASS_SHADOW={GLASS_SHADOW}
+  />
+</div>
 
           {filtersOpen ? (
             <div style={{ padding: "8px 12px 12px", display: "grid", gap: 10 }}>
