@@ -1060,9 +1060,6 @@ export default function App() {
 
               <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-              {/* TUNNEL EDIT */}
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>Tunel (linia)</div>
-
               <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
                 {selectedTunnel ? (
                   <>
