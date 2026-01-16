@@ -1179,9 +1179,6 @@ export default function App() {
                 </div>
               ) : null}
 
-     
-              </div>
-
               {/* Dodawanie */}
               <div
                 style={{
