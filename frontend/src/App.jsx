@@ -997,134 +997,181 @@ export default function App() {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
-                {selectedPoint ? (
-                  <>
-                    <div style={{ fontSize: 12, color: MUTED }}>Edycja punktu #{selectedPoint.id}</div>
+             <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+  {selectedPoint ? (
+    <>
+      <div style={{ fontSize: 12, color: MUTED }}>
+        Edycja punktu #{selectedPoint.id}
+      </div>
 
-                    <label style={{ fontSize: 12, color: MUTED }}>Tytuł</label>
-                    <input
-                      value={pointForm.title}
-                      onChange={(e) => setPointForm((f) => ({ ...f, title: e.target.value }))}
-                      style={fieldStyle}
-                    />
+      <label style={{ fontSize: 12, color: MUTED }}>Tytuł</label>
+      <input
+        value={pointForm.title}
+        onChange={(e) =>
+          setPointForm((f) => ({ ...f, title: e.target.value }))
+        }
+        style={fieldStyle}
+      />
 
-                    <label style={{ fontSize: 12, color: MUTED }}>Dyrektor kontraktu</label>
-                    <input
-                      value={pointForm.director}
-                      onChange={(e) => setPointForm((f) => ({ ...f, director: e.target.value }))}
-                      style={fieldStyle}
-                    />
+      <label style={{ fontSize: 12, color: MUTED }}>
+        Dyrektor kontraktu
+      </label>
+      <input
+        value={pointForm.director}
+        onChange={(e) =>
+          setPointForm((f) => ({ ...f, director: e.target.value }))
+        }
+        style={fieldStyle}
+      />
 
-                    <label style={{ fontSize: 12, color: MUTED }}>Firma (wykonawca)</label>
-                    <input
-                      value={pointForm.winner}
-                      onChange={(e) => setPointForm((f) => ({ ...f, winner: e.target.value }))}
-                      style={fieldStyle}
-                    />
+      <label style={{ fontSize: 12, color: MUTED }}>
+        Firma (wykonawca)
+      </label>
+      <input
+        value={pointForm.winner}
+        onChange={(e) =>
+          setPointForm((f) => ({ ...f, winner: e.target.value }))
+        }
+        style={fieldStyle}
+      />
 
-                    <label style={{ fontSize: 12, color: MUTED }}>Notatka</label>
-                    <textarea
-                      rows={5}
-                      value={pointForm.note}
-                      onChange={(e) => setPointForm((f) => ({ ...f, note: e.target.value }))}
-                      style={{ ...fieldStyle, resize: "vertical" }}
-                    />
+      <label style={{ fontSize: 12, color: MUTED }}>Notatka</label>
+      <textarea
+        rows={5}
+        value={pointForm.note}
+        onChange={(e) =>
+          setPointForm((f) => ({ ...f, note: e.target.value }))
+        }
+        style={{ ...fieldStyle, resize: "vertical" }}
+      />
 
-                    <label style={{ fontSize: 12, color: MUTED }}>Status</label>
-                    <select
-                      value={pointForm.status}
-                      onChange={(e) => setPointForm((f) => ({ ...f, status: e.target.value }))}
-                      style={fieldStyle}
-                    >
-                      <option value="planowany">planowany</option>
-                      <option value="przetarg">przetarg</option>
-                      <option value="realizacja">realizacja</option>
-                      <option value="nieaktualny">nieaktualny</option>
-                    </select>
+      <label style={{ fontSize: 12, color: MUTED }}>Status</label>
+      <select
+        value={pointForm.status}
+        onChange={(e) =>
+          setPointForm((f) => ({ ...f, status: e.target.value }))
+        }
+        style={fieldStyle}
+      >
+        <option value="planowany">planowany</option>
+        <option value="przetarg">przetarg</option>
+        <option value="realizacja">realizacja</option>
+        <option value="nieaktualny">nieaktualny</option>
+      </select>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 6 }}>
-                      <button onClick={savePoint} disabled={savingPoint} style={btnStyle(savingPoint)}>
-                        {savingPoint ? "Zapisuję..." : "Zapisz"}
-                      </button>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 8,
+          marginTop: 6,
+        }}
+      >
+        <button
+          onClick={savePoint}
+          disabled={savingPoint}
+          style={btnStyle(savingPoint)}
+        >
+          {savingPoint ? "Zapisuję..." : "Zapisz"}
+        </button>
 
-                      <button onClick={deletePoint} disabled={busyDeletePoint} style={dangerBtnStyle(busyDeletePoint)}>
-                        {busyDeletePoint ? "Usuwam..." : "Usuń"}
-                      </button>
-                    </div>
-                  </>
-                
+        <button
+          onClick={deletePoint}
+          disabled={busyDeletePoint}
+          style={dangerBtnStyle(busyDeletePoint)}
+        >
+          {busyDeletePoint ? "Usuwam..." : "Usuń"}
+        </button>
+      </div>
+    </>
+  ) : null}
+</div>
 
-              <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
+<div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-              <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
-                {selectedTunnel ? (
-                  <>
-                    <div style={{ fontSize: 12, color: MUTED }}>Edycja tunelu #{selectedTunnel.id}</div>
+<div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+  {selectedTunnel ? (
+    <>
+      <div style={{ fontSize: 12, color: MUTED }}>
+        Edycja tunelu #{selectedTunnel.id}
+      </div>
 
-                    <label style={{ fontSize: 12, color: MUTED }}>Nazwa</label>
-                    <input
-                      value={tunnelForm.name}
-                      onChange={(e) => setTunnelForm((f) => ({ ...f, name: e.target.value }))}
-                      style={fieldStyle}
-                    />
+      <label style={{ fontSize: 12, color: MUTED }}>Nazwa</label>
+      <input
+        value={tunnelForm.name}
+        onChange={(e) =>
+          setTunnelForm((f) => ({ ...f, name: e.target.value }))
+        }
+        style={fieldStyle}
+      />
 
-                    <label style={{ fontSize: 12, color: MUTED }}>Dyrektor kontraktu</label>
-                    <input
-                      value={tunnelForm.director}
-                      onChange={(e) => setTunnelForm((f) => ({ ...f, director: e.target.value }))}
-                      style={fieldStyle}
-                    />
+      <label style={{ fontSize: 12, color: MUTED }}>
+        Dyrektor kontraktu
+      </label>
+      <input
+        value={tunnelForm.director}
+        onChange={(e) =>
+          setTunnelForm((f) => ({ ...f, director: e.target.value }))
+        }
+        style={fieldStyle}
+      />
 
-                    <label style={{ fontSize: 12, color: MUTED }}>Firma (wykonawca)</label>
-                    <input
-                      value={tunnelForm.winner}
-                      onChange={(e) => setTunnelForm((f) => ({ ...f, winner: e.target.value }))}
-                      style={fieldStyle}
-                    />
+      <label style={{ fontSize: 12, color: MUTED }}>
+        Firma (wykonawca)
+      </label>
+      <input
+        value={tunnelForm.winner}
+        onChange={(e) =>
+          setTunnelForm((f) => ({ ...f, winner: e.target.value }))
+        }
+        style={fieldStyle}
+      />
 
-                    <label style={{ fontSize: 12, color: MUTED }}>Notatka</label>
-                    <textarea
-                      rows={4}
-                      value={tunnelForm.note}
-                      onChange={(e) => setTunnelForm((f) => ({ ...f, note: e.target.value }))}
-                      style={{ ...fieldStyle, resize: "vertical" }}
-                    />
+      <label style={{ fontSize: 12, color: MUTED }}>Notatka</label>
+      <textarea
+        rows={4}
+        value={tunnelForm.note}
+        onChange={(e) =>
+          setTunnelForm((f) => ({ ...f, note: e.target.value }))
+        }
+        style={{ ...fieldStyle, resize: "vertical" }}
+      />
 
-                    <label style={{ fontSize: 12, color: MUTED }}>Status</label>
-                    <select
-                      value={tunnelForm.status}
-                      onChange={(e) => setTunnelForm((f) => ({ ...f, status: e.target.value }))}
-                      style={fieldStyle}
-                    >
-                      <option value="planowany">planowany</option>
-                      <option value="przetarg">przetarg</option>
-                      <option value="realizacja">realizacja</option>
-                      <option value="nieaktualny">nieaktualny</option>
-                    </select>
+      <label style={{ fontSize: 12, color: MUTED }}>Status</label>
+      <select
+        value={tunnelForm.status}
+        onChange={(e) =>
+          setTunnelForm((f) => ({ ...f, status: e.target.value }))
+        }
+        style={fieldStyle}
+      >
+        <option value="planowany">planowany</option>
+        <option value="przetarg">przetarg</option>
+        <option value="realizacja">realizacja</option>
+        <option value="nieaktualny">nieaktualny</option>
+      </select>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                      <button onClick={saveTunnelMeta} disabled={savingTunnel} style={btnStyle(savingTunnel)}>
-                        {savingTunnel ? "Zapisuję..." : "Zapisz"}
-                      </button>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <button
+          onClick={saveTunnelMeta}
+          disabled={savingTunnel}
+          style={btnStyle(savingTunnel)}
+        >
+          {savingTunnel ? "Zapisuję..." : "Zapisz"}
+        </button>
 
-                      <button
-                        onClick={() => deleteTunnel(selectedTunnel.id)}
-                        disabled={busyDeleteTunnel}
-                        style={dangerBtnStyle(busyDeleteTunnel)}
-                      >
-                        {busyDeleteTunnel ? "Usuwam..." : "Usuń"}
-                      </button>
-                    </div>
+        <button
+          onClick={() => deleteTunnel(selectedTunnel.id)}
+          disabled={busyDeleteTunnel}
+          style={dangerBtnStyle(busyDeleteTunnel)}
+        >
+          {busyDeleteTunnel ? "Usuwam..." : "Usuń"}
+        </button>
+      </div>
+    </>
+  ) : null}
+</div>
 
-                    <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.4 }}>
-                      Geometrię edytujesz na mapie: włącz tryb <b>tunnel</b> i użyj ikonki <b>Edit</b>.
-                    </div>
-                  </>
-                ) : (
-                  <div style={emptyBoxStyle}>Wybierz tunel (kliknij linię na mapie lub na liście).</div>
-                )}
-              </div>
 
               <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
