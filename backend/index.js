@@ -219,34 +219,6 @@ app.put("/api/points/:id", authRequired, async (req, res) => {
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
-// SET point priority
-app.patch("/api/points/:id/priority", authRequired, async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    const priority = !!req.body.priority;
-
-    if (!Number.isFinite(id)) {
-      return res.status(400).json({ error: "Złe ID" });
-    }
-
-    const q = await pool.query(
-      `UPDATE points
-       SET priority=$1
-       WHERE id=$2
-       RETURNING id, priority`,
-      [priority, id]
-    );
-
-    if (!q.rows[0]) {
-      return res.status(404).json({ error: "Nie znaleziono punktu" });
-    }
-
-    res.json(q.rows[0]);
-  } catch (e) {
-    console.error("SET POINT PRIORITY ERROR:", e);
-    res.status(500).json({ error: "DB error" });
-  }
-});
 
 // DELETE point
 app.delete("/api/points/:id", authRequired, async (req, res) => {
