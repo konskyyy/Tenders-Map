@@ -1728,16 +1728,20 @@ export default function App() {
           </span>
 
           <span
-            style={{
-              fontWeight: 900,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              minWidth: 0,
-            }}
-          >
-            {t.name || `Tunel #${t.id}`}
-          </span>
+  style={{
+    fontWeight: 900,
+    minWidth: 0,
+    overflow: "hidden",
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: 2,   // <- 2 linie
+    lineClamp: 2,        // (niektóre przeglądarki)
+    whiteSpace: "normal",// <- pozwól łamać
+    lineHeight: 1.2,
+  }}
+>
+  {t.name || `Tunel #${t.id}`}
+</span>
 
           <span style={{ ...pillStyle, marginLeft: "auto", whiteSpace: "nowrap", flexShrink: 0 }}>
             {statusLabel(t.status)}
@@ -1778,16 +1782,21 @@ export default function App() {
           </span>
 
           <span
-            style={{
-              fontWeight: 900,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              minWidth: 0,
-            }}
-          >
-            {pt.title}
-          </span>
+  style={{
+    fontWeight: 900,
+    minWidth: 0,
+    overflow: "hidden",
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: 2,
+    lineClamp: 2,
+    whiteSpace: "normal",
+    lineHeight: 1.2,
+  }}
+>
+  {pt.title}
+</span>
+
 
           <span style={{ ...pillStyle, marginLeft: "auto", whiteSpace: "nowrap", flexShrink: 0 }}>
             {statusLabel(pt.status)}
