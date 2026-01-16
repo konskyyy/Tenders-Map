@@ -1143,7 +1143,7 @@ export default function App() {
               <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
               {/* LISTS */}
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>Lista (tunel + punkty)</div>
+              <div style={{ fontWeight: 900, marginBottom: 8 }}>Lista projektów</div>
 
               <div style={{ display: "grid", gap: 8 }}>
                 {filteredTunnels.map((t) => (
