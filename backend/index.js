@@ -345,7 +345,7 @@ app.get("/api/points/:id/comments", authRequired, async (req, res) => {
       return res.status(404).json({ error: "Nie znaleziono punktu" });
 
     const q = await pool.query(
-      `SELECT id, point_id, user_id, user_email, body, created_at
+      `SELECT id, point_id, user_id, user_email, body, created_at, edited, updated_at
        FROM point_comments
        WHERE point_id=$1
        ORDER BY created_at DESC, id DESC`,
@@ -395,6 +395,84 @@ app.post("/api/points/:id/comments", authRequired, async (req, res) => {
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
+// EDIT point comment (only author)
+app.put("/api/points/:id/comments/:commentId", authRequired, async (req, res) => {
+  try {
+    const pointId = Number(req.params.id);
+    const commentId = Number(req.params.commentId);
+    if (!Number.isFinite(pointId) || !Number.isFinite(commentId)) {
+      return res.status(400).json({ error: "Złe ID" });
+    }
+
+    const body = String(req.body.body || "").trim();
+    if (!body) return res.status(400).json({ error: "Treść komentarza jest wymagana" });
+    if (body.length > 5000) return res.status(400).json({ error: "Komentarz za długi (max 5000 znaków)" });
+
+    // znajdź komentarz i sprawdź autora
+    const cur = await pool.query(
+      `SELECT id, point_id, user_id
+       FROM point_comments
+       WHERE id=$1 AND point_id=$2`,
+      [commentId, pointId]
+    );
+
+    const row = cur.rows[0];
+    if (!row) return res.status(404).json({ error: "Nie znaleziono komentarza" });
+
+    if (Number(row.user_id) !== Number(req.user.id)) {
+      return res.status(403).json({ error: "Brak uprawnień (to nie jest Twój komentarz)" });
+    }
+
+    const q = await pool.query(
+      `UPDATE point_comments
+       SET body=$1, edited=true, updated_at=NOW()
+       WHERE id=$2
+       RETURNING id, point_id, user_id, user_email, body, created_at, edited, updated_at`,
+      [body, commentId]
+    );
+
+    res.json(q.rows[0]);
+  } catch (e) {
+    console.error("EDIT POINT COMMENT ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+
+// DELETE point comment (only author)
+app.delete("/api/points/:id/comments/:commentId", authRequired, async (req, res) => {
+  try {
+    const pointId = Number(req.params.id);
+    const commentId = Number(req.params.commentId);
+    if (!Number.isFinite(pointId) || !Number.isFinite(commentId)) {
+      return res.status(400).json({ error: "Złe ID" });
+    }
+
+    const cur = await pool.query(
+      `SELECT id, point_id, user_id
+       FROM point_comments
+       WHERE id=$1 AND point_id=$2`,
+      [commentId, pointId]
+    );
+
+    const row = cur.rows[0];
+    if (!row) return res.status(404).json({ error: "Nie znaleziono komentarza" });
+
+    if (Number(row.user_id) !== Number(req.user.id)) {
+      return res.status(403).json({ error: "Brak uprawnień (to nie jest Twój komentarz)" });
+    }
+
+    await pool.query(
+      `DELETE FROM point_comments WHERE id=$1 AND point_id=$2`,
+      [commentId, pointId]
+    );
+
+    res.json({ ok: true, id: commentId });
+  } catch (e) {
+    console.error("DELETE POINT COMMENT ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+
 
 // GET tunnel comments
 app.get("/api/tunnels/:id/comments", authRequired, async (req, res) => {
@@ -410,7 +488,7 @@ app.get("/api/tunnels/:id/comments", authRequired, async (req, res) => {
       return res.status(404).json({ error: "Nie znaleziono tunelu" });
 
     const q = await pool.query(
-      `SELECT id, tunnel_id, user_id, user_email, body, created_at
+      `SELECT id, tunnel_id, user_id, user_email, body, created_at, edited, updated_at
        FROM tunnel_comments
        WHERE tunnel_id=$1
        ORDER BY created_at DESC, id DESC`,
@@ -420,6 +498,82 @@ app.get("/api/tunnels/:id/comments", authRequired, async (req, res) => {
     res.json(q.rows);
   } catch (e) {
     console.error("GET TUNNEL COMMENTS ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+// EDIT tunnel comment (only author)
+app.put("/api/tunnels/:id/comments/:commentId", authRequired, async (req, res) => {
+  try {
+    const tunnelId = Number(req.params.id);
+    const commentId = Number(req.params.commentId);
+    if (!Number.isFinite(tunnelId) || !Number.isFinite(commentId)) {
+      return res.status(400).json({ error: "Złe ID" });
+    }
+
+    const body = String(req.body.body || "").trim();
+    if (!body) return res.status(400).json({ error: "Treść komentarza jest wymagana" });
+    if (body.length > 5000) return res.status(400).json({ error: "Komentarz za długi (max 5000 znaków)" });
+
+    const cur = await pool.query(
+      `SELECT id, tunnel_id, user_id
+       FROM tunnel_comments
+       WHERE id=$1 AND tunnel_id=$2`,
+      [commentId, tunnelId]
+    );
+
+    const row = cur.rows[0];
+    if (!row) return res.status(404).json({ error: "Nie znaleziono komentarza" });
+
+    if (Number(row.user_id) !== Number(req.user.id)) {
+      return res.status(403).json({ error: "Brak uprawnień (to nie jest Twój komentarz)" });
+    }
+
+    const q = await pool.query(
+      `UPDATE tunnel_comments
+       SET body=$1, edited=true, updated_at=NOW()
+       WHERE id=$2
+       RETURNING id, tunnel_id, user_id, user_email, body, created_at, edited, updated_at`,
+      [body, commentId]
+    );
+
+    res.json(q.rows[0]);
+  } catch (e) {
+    console.error("EDIT TUNNEL COMMENT ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+
+// DELETE tunnel comment (only author)
+app.delete("/api/tunnels/:id/comments/:commentId", authRequired, async (req, res) => {
+  try {
+    const tunnelId = Number(req.params.id);
+    const commentId = Number(req.params.commentId);
+    if (!Number.isFinite(tunnelId) || !Number.isFinite(commentId)) {
+      return res.status(400).json({ error: "Złe ID" });
+    }
+
+    const cur = await pool.query(
+      `SELECT id, tunnel_id, user_id
+       FROM tunnel_comments
+       WHERE id=$1 AND tunnel_id=$2`,
+      [commentId, tunnelId]
+    );
+
+    const row = cur.rows[0];
+    if (!row) return res.status(404).json({ error: "Nie znaleziono komentarza" });
+
+    if (Number(row.user_id) !== Number(req.user.id)) {
+      return res.status(403).json({ error: "Brak uprawnień (to nie jest Twój komentarz)" });
+    }
+
+    await pool.query(
+      `DELETE FROM tunnel_comments WHERE id=$1 AND tunnel_id=$2`,
+      [commentId, tunnelId]
+    );
+
+    res.json({ ok: true, id: commentId });
+  } catch (e) {
+    console.error("DELETE TUNNEL COMMENT ERROR:", e);
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
