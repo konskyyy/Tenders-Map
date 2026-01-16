@@ -173,7 +173,7 @@ function formatDateTimePL(iso) {
   }
 }
 
-/** ===== JOURNAL (nie ruszam logiki, tylko zostawiam jak było) ===== */
+/** ===== JOURNAL (bez zmian logiki) ===== */
 function JournalPanel({
   visible,
   kind, // "points" | "tunnels"
@@ -258,7 +258,9 @@ function JournalPanel({
       });
       const updated = await readJsonOrThrow(res);
 
-      setItems((prev) => prev.map((x) => (String(x.id) === String(updated.id) ? updated : x)));
+      setItems((prev) =>
+        prev.map((x) => (String(x.id) === String(updated.id) ? updated : x))
+      );
       setEditingId(null);
       setEditingBody("");
     } catch (e) {
@@ -345,7 +347,6 @@ function JournalPanel({
             </div>
           ) : null}
 
-          {/* Dodawanie wpisu */}
           <div style={{ display: "grid", gap: 8 }}>
             <textarea
               rows={3}
@@ -381,9 +382,10 @@ function JournalPanel({
 
           <div style={{ height: 1, background: BORDER, opacity: 0.9 }} />
 
-          {/* Lista */}
           {items.length === 0 ? (
-            <div style={{ fontSize: 12, color: MUTED }}>Brak wpisów dla tego projektu.</div>
+            <div style={{ fontSize: 12, color: MUTED }}>
+              Brak wpisów dla tego projektu.
+            </div>
           ) : (
             <div style={{ display: "grid", gap: 10 }}>
               {items.map((c) => {
@@ -404,9 +406,15 @@ function JournalPanel({
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
                       <div style={{ fontSize: 12, color: MUTED }}>
-                        <b style={{ color: "rgba(255,255,255,0.92)" }}>{c.user_email || "użytkownik"}</b>{" "}
+                        <b style={{ color: "rgba(255,255,255,0.92)" }}>
+                          {c.user_email || "użytkownik"}
+                        </b>{" "}
                         • {formatDateTimePL(c.created_at)}
-                        {c.edited ? <span style={{ marginLeft: 6, opacity: 0.8 }}>(edytowano)</span> : null}
+                        {c.edited ? (
+                          <span style={{ marginLeft: 6, opacity: 0.8 }}>
+                            (edytowano)
+                          </span>
+                        ) : null}
                       </div>
 
                       {isMine ? (
@@ -547,16 +555,10 @@ export default function App() {
 
     (async () => {
       try {
-        // leaflet-draw wymaga globalnego L
         window.L = L;
-
-        // 1) plugin
         await import("leaflet-draw");
-
-        // 2) wrapper reactowy
         const mod = await import("react-leaflet-draw");
         if (!alive) return;
-
         setDrawEditControl(() => mod.EditControl);
       } catch (e) {
         console.error("Leaflet draw init failed:", e);
@@ -860,46 +862,48 @@ export default function App() {
   }, [mode]);
 
   async function deleteSelectedProject() {
-  const pt = selectedPoint;
-  const tl = selectedTunnel;
+    const pt = selectedPoint;
+    const tl = selectedTunnel;
 
-  if (!pt && !tl) return;
+    if (!pt && !tl) return;
 
-  const label = pt ? `punkt #${pt.id} (${pt.title || "bez tytułu"})` : `tunel #${tl.id} (${tl.name || "bez nazwy"})`;
-  const ok = window.confirm(`Na pewno usunąć ${label}?`);
-  if (!ok) return;
+    const label = pt
+      ? `punkt #${pt.id} (${pt.title || "bez tytułu"})`
+      : `tunel #${tl.id} (${tl.name || "bez nazwy"})`;
 
-  setApiError("");
+    const ok = window.confirm(`Na pewno usunąć ${label}?`);
+    if (!ok) return;
 
-  try {
-    if (pt) {
-      const res = await authFetch(`${API}/points/${pt.id}`, { method: "DELETE" });
-      await readJsonOrThrow(res);
+    setApiError("");
 
-      setPoints((prev) => prev.filter((p) => p.id !== pt.id));
-      setSelectedPointId(null);
-    } else if (tl) {
-      const res = await authFetch(`${API}/tunnels/${tl.id}`, { method: "DELETE" });
-      await readJsonOrThrow(res);
+    try {
+      if (pt) {
+        const res = await authFetch(`${API}/points/${pt.id}`, { method: "DELETE" });
+        await readJsonOrThrow(res);
 
-      setTunnels((prev) => prev.filter((t) => t.id !== tl.id));
-      setSelectedTunnelId(null);
+        setPoints((prev) => prev.filter((p) => p.id !== pt.id));
+        setSelectedPointId(null);
+      } else {
+        const res = await authFetch(`${API}/tunnels/${tl.id}`, { method: "DELETE" });
+        await readJsonOrThrow(res);
+
+        setTunnels((prev) => prev.filter((t) => t.id !== tl.id));
+        setSelectedTunnelId(null);
+      }
+
+      try {
+        mapRef.current?.closePopup?.();
+      } catch {}
+    } catch (e) {
+      if (e?.status === 401) return logout("expired");
+      setApiError(`Nie mogę usunąć: ${String(e?.message || e)}`);
+
+      try {
+        await loadPoints();
+        await loadTunnels();
+      } catch {}
     }
-
-    try {
-      mapRef.current?.closePopup?.();
-    } catch {}
-  } catch (e) {
-    if (e?.status === 401) return logout("expired");
-    setApiError(`Nie mogę usunąć: ${String(e?.message || e)}`);
-
-    // awaryjnie odśwież listy, żeby UI nie było rozjechane
-    try {
-      await loadPoints();
-      await loadTunnels();
-    } catch {}
   }
-}
 
   /** ===== Points CRUD (dodawanie tylko) ===== */
   async function addPoint(latlng) {
@@ -1179,9 +1183,7 @@ export default function App() {
 
               <div style={{ display: "grid", gap: 2, flex: 1 }}>
                 <div style={{ fontWeight: 800, letterSpacing: 0.2 }}>Mapa projektów - BD</div>
-                <div style={{ fontSize: 12, color: MUTED }}>
-                  Zalogowano: {user?.email || "(użytkownik)"}
-                </div>
+                <div style={{ fontSize: 12, color: MUTED }}>Zalogowano: {user?.email || "(użytkownik)"}</div>
               </div>
 
               <button
@@ -1201,7 +1203,15 @@ export default function App() {
               </button>
             </div>
 
-            <div style={{ padding: 12, height: "calc(100% - 59px)", overflow: "auto" }}>
+            <div
+              style={{
+                padding: 12,
+                height: "calc(100% - 59px)",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
               {apiError ? (
                 <div
                   style={{
@@ -1272,157 +1282,159 @@ export default function App() {
                 </div>
               </div>
 
+              {/* NARZĘDZIA (w ramce jak Dodawanie) */}
+              <div
+                style={{
+                  padding: 10,
+                  borderRadius: 14,
+                  border: `1px solid ${BORDER}`,
+                  background: "rgba(255,255,255,0.05)",
+                  marginBottom: 12,
+                }}
+              >
+                <div style={{ fontWeight: 900, marginBottom: 8 }}>Narzędzia</div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+                  <button
+                    onClick={() => {
+                      loadPoints();
+                      loadTunnels();
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: 10,
+                      borderRadius: 12,
+                      border: `1px solid ${BORDER}`,
+                      background: "rgba(255,255,255,0.08)",
+                      color: TEXT_LIGHT,
+                      cursor: "pointer",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {loadingPoints || loadingTunnels ? "Ładuję..." : "Odśwież"}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSelectedPointId(null);
+                      setSelectedTunnelId(null);
+                      try {
+                        mapRef.current?.closePopup?.();
+                      } catch {}
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: 10,
+                      borderRadius: 12,
+                      border: `1px solid ${BORDER}`,
+                      background: "rgba(255,255,255,0.05)",
+                      color: TEXT_LIGHT,
+                      cursor: "pointer",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Odznacz
+                  </button>
+                </div>
+
+                {selectedPoint || selectedTunnel ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <button
+                      onClick={() => {
+                        const what = selectedPoint ? `Punkt #${selectedPoint.id}` : `Tunel #${selectedTunnel.id}`;
+                        alert(`Edytuj: ${what} (do podłączenia)`);
+                      }}
+                      style={{
+                        padding: 10,
+                        borderRadius: 12,
+                        border: `1px solid ${BORDER}`,
+                        background: "rgba(255,255,255,0.10)",
+                        color: TEXT_LIGHT,
+                        cursor: "pointer",
+                        fontWeight: 900,
+                      }}
+                    >
+                      Edytuj
+                    </button>
+
+                    <button
+                      onClick={deleteSelectedProject}
+                      style={{
+                        padding: 10,
+                        borderRadius: 12,
+                        border: "1px solid rgba(255,80,80,0.55)",
+                        background: "rgba(255,80,80,0.14)",
+                        color: TEXT_LIGHT,
+                        cursor: "pointer",
+                        fontWeight: 900,
+                      }}
+                    >
+                      Usuń
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
               <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-              {/* NARZĘDZIA */}
-<div style={{ fontWeight: 900, marginBottom: 8 }}>Narzędzia</div>
+              <div style={{ fontWeight: 900, marginBottom: 8 }}>Lista projektów</div>
 
-{/* Odśwież / Odznacz */}
-<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-  <button
-    onClick={() => {
-      loadPoints();
-      loadTunnels();
-    }}
-    style={{
-      width: "100%",
-      padding: 10,
-      borderRadius: 12,
-      border: `1px solid ${BORDER}`,
-      background: "rgba(255,255,255,0.08)",
-      color: TEXT_LIGHT,
-      cursor: "pointer",
-      fontWeight: 700,
-    }}
-  >
-    {loadingPoints || loadingTunnels ? "Ładuję..." : "Odśwież"}
-  </button>
+              {/* SCROLL TYLKO LISTY */}
+              <div style={{ overflow: "auto", paddingRight: 4, flex: 1 }}>
+                <div style={{ display: "grid", gap: 8 }}>
+                  {filteredTunnels.map((t) => (
+                    <div
+                      key={`t-${t.id}`}
+                      onClick={() => {
+                        setSelectedTunnelId(t.id);
+                        setSelectedPointId(null);
+                        focusTunnel(t);
+                      }}
+                      style={{
+                        padding: 10,
+                        borderRadius: 14,
+                        border:
+                          t.id === selectedTunnelId ? `2px solid rgba(255,255,255,0.35)` : `1px solid ${BORDER}`,
+                        background: "rgba(255,255,255,0.05)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={{ fontWeight: 900, display: "flex", justifyContent: "space-between", gap: 10 }}>
+                        <span>🟦 {t.name || `Tunel #${t.id}`}</span>
+                        <span style={pillStyle}>{statusLabel(t.status)}</span>
+                      </div>
+                    </div>
+                  ))}
 
-  <button
-    onClick={() => {
-      setSelectedPointId(null);
-      setSelectedTunnelId(null);
-      try {
-        mapRef.current?.closePopup?.();
-      } catch {}
-    }}
-    style={{
-      width: "100%",
-      padding: 10,
-      borderRadius: 12,
-      border: `1px solid ${BORDER}`,
-      background: "rgba(255,255,255,0.05)",
-      color: TEXT_LIGHT,
-      cursor: "pointer",
-      fontWeight: 700,
-    }}
-  >
-    Odznacz
-  </button>
-</div>
+                  {filteredPoints.map((pt) => (
+                    <div
+                      key={`p-${pt.id}`}
+                      onClick={() => {
+                        setSelectedPointId(pt.id);
+                        setSelectedTunnelId(null);
+                        focusPoint(pt);
+                      }}
+                      style={{
+                        padding: 10,
+                        borderRadius: 14,
+                        border:
+                          pt.id === selectedPointId ? `2px solid rgba(255,255,255,0.35)` : `1px solid ${BORDER}`,
+                        background: "rgba(255,255,255,0.05)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={{ fontWeight: 900, display: "flex", justifyContent: "space-between", gap: 10 }}>
+                        <span>📍 {pt.title}</span>
+                        <span style={pillStyle}>{statusLabel(pt.status)}</span>
+                      </div>
+                    </div>
+                  ))}
 
-{/* Edytuj/Usuń dopiero po wybraniu projektu */}
-{selectedPoint || selectedTunnel ? (
-  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-    <button
-      onClick={() => {
-        const what = selectedPoint ? `Punkt #${selectedPoint.id}` : `Tunel #${selectedTunnel.id}`;
-        alert(`Edytuj: ${what} (do podłączenia)`);
-      }}
-      style={{
-        padding: 10,
-        borderRadius: 12,
-        border: `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.10)",
-        color: TEXT_LIGHT,
-        cursor: "pointer",
-        fontWeight: 900,
-      }}
-    >
-      Edytuj
-    </button>
-
-    <button
-      onClick={deleteSelectedProject_star}
-        const what = selectedPoint ? `punkt #${selectedPoint.id}` : `tunel #${selectedTunnel.id}`;
-        const ok = window.confirm(`Na pewno usunąć ${what}?`);
-        if (!ok) return;
-        alert(`Usuń: ${what} (do podłączenia)`);
-      }}
-      style={{
-        padding: 10,
-        borderRadius: 12,
-        border: "1px solid rgba(255,80,80,0.55)",
-        background: "rgba(255,80,80,0.14)",
-        color: TEXT_LIGHT,
-        cursor: "pointer",
-        fontWeight: 900,
-      }}
-    >
-      Usuń
-    </button>
-  </div>
-) : null}
-
-<div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
-
-{/* LISTA PROJEKTÓW (przeniesiona pod przyciski) */}
-<div style={{ fontWeight: 900, marginBottom: 8 }}>Lista projektów</div>
-
-<div style={{ display: "grid", gap: 8 }}>
-  {filteredTunnels.map((t) => (
-    <div
-      key={`t-${t.id}`}
-      onClick={() => {
-        setSelectedTunnelId(t.id);
-        setSelectedPointId(null);
-        focusTunnel(t);
-      }}
-      style={{
-        padding: 10,
-        borderRadius: 14,
-        border:
-          t.id === selectedTunnelId ? `2px solid rgba(255,255,255,0.35)` : `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.05)",
-        cursor: "pointer",
-      }}
-    >
-      <div style={{ fontWeight: 900, display: "flex", justifyContent: "space-between", gap: 10 }}>
-        <span>🟦 {t.name || `Tunel #${t.id}`}</span>
-        <span style={pillStyle}>{statusLabel(t.status)}</span>
-      </div>
-    </div>
-  ))}
-
-  {filteredPoints.map((pt) => (
-    <div
-      key={`p-${pt.id}`}
-      onClick={() => {
-        setSelectedPointId(pt.id);
-        setSelectedTunnelId(null);
-        focusPoint(pt);
-      }}
-      style={{
-        padding: 10,
-        borderRadius: 14,
-        border:
-          pt.id === selectedPointId ? `2px solid rgba(255,255,255,0.35)` : `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.05)",
-        cursor: "pointer",
-      }}
-    >
-      <div style={{ fontWeight: 900, display: "flex", justifyContent: "space-between", gap: 10 }}>
-        <span>📍 {pt.title}</span>
-        <span style={pillStyle}>{statusLabel(pt.status)}</span>
-      </div>
-    </div>
-  ))}
-
-  {filteredPoints.length === 0 && filteredTunnels.length === 0 ? (
-    <div style={emptyBoxStyle}>Brak danych dla zaznaczonych statusów.</div>
-  ) : null}
-</div>
-
+                  {filteredPoints.length === 0 && filteredTunnels.length === 0 ? (
+                    <div style={emptyBoxStyle}>Brak danych dla zaznaczonych statusów.</div>
+                  ) : null}
+                </div>
+              </div>
             </div>
           </>
         ) : null}
@@ -1585,10 +1597,8 @@ export default function App() {
             />
           ) : null}
 
-          {/* Punkty: klik działa tylko w trybie "point" */}
           <ClickHandler enabled={addMode === "point"} onAdd={addPoint} />
 
-          {/* Tunel: draw + edit/delete */}
           <FeatureGroup ref={drawGroupRef}>
             {DrawEditControl ? (
               <DrawEditControl
@@ -1617,7 +1627,6 @@ export default function App() {
               />
             ) : null}
 
-            {/* Existing tunnels inside FeatureGroup so edit/delete works */}
             {filteredTunnels.map((t) => (
               <Polyline
                 ref={(ref) => {
@@ -1672,7 +1681,6 @@ export default function App() {
             ))}
           </FeatureGroup>
 
-          {/* Points markers */}
           {filteredPoints.map((pt) => {
             const st = pt.status || "planowany";
             const icon = pinIcons[st] || pinIcons.planowany;
