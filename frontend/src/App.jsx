@@ -1179,47 +1179,7 @@ export default function App() {
                 </div>
               ) : null}
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                <button
-                  onClick={() => {
-                    loadPoints();
-                    loadTunnels();
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: 10,
-                    borderRadius: 12,
-                    border: `1px solid ${BORDER}`,
-                    background: "rgba(255,255,255,0.08)",
-                    color: TEXT_LIGHT,
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
-                >
-                  {loadingPoints || loadingTunnels ? "Ładuję..." : "Odśwież"}
-                </button>
-
-                <button
-                  onClick={() => {
-                    setSelectedPointId(null);
-                    setSelectedTunnelId(null);
-                    try {
-                      mapRef.current?.closePopup?.();
-                    } catch {}
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: 10,
-                    borderRadius: 12,
-                    border: `1px solid ${BORDER}`,
-                    background: "rgba(255,255,255,0.05)",
-                    color: TEXT_LIGHT,
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
-                >
-                  Odznacz
-                </button>
+     
               </div>
 
               {/* Dodawanie */}
