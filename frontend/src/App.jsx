@@ -1232,157 +1232,155 @@ export default function App() {
 
               <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-              {/* LISTA */}
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>Lista projektów</div>
+              {/* NARZĘDZIA */}
+<div style={{ fontWeight: 900, marginBottom: 8 }}>Narzędzia</div>
 
-              {/* Odśwież / Odznacz pod listą */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-                <button
-                  onClick={() => {
-                    loadPoints();
-                    loadTunnels();
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: 10,
-                    borderRadius: 12,
-                    border: `1px solid ${BORDER}`,
-                    background: "rgba(255,255,255,0.08)",
-                    color: TEXT_LIGHT,
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
-                >
-                  {loadingPoints || loadingTunnels ? "Ładuję..." : "Odśwież"}
-                </button>
+{/* Odśwież / Odznacz */}
+<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+  <button
+    onClick={() => {
+      loadPoints();
+      loadTunnels();
+    }}
+    style={{
+      width: "100%",
+      padding: 10,
+      borderRadius: 12,
+      border: `1px solid ${BORDER}`,
+      background: "rgba(255,255,255,0.08)",
+      color: TEXT_LIGHT,
+      cursor: "pointer",
+      fontWeight: 700,
+    }}
+  >
+    {loadingPoints || loadingTunnels ? "Ładuję..." : "Odśwież"}
+  </button>
 
-                <button
-                  onClick={() => {
-                    setSelectedPointId(null);
-                    setSelectedTunnelId(null);
-                    try {
-                      mapRef.current?.closePopup?.();
-                    } catch {}
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: 10,
-                    borderRadius: 12,
-                    border: `1px solid ${BORDER}`,
-                    background: "rgba(255,255,255,0.05)",
-                    color: TEXT_LIGHT,
-                    cursor: "pointer",
-                    fontWeight: 700,
-                  }}
-                >
-                  Odznacz
-                </button>
-              </div>
+  <button
+    onClick={() => {
+      setSelectedPointId(null);
+      setSelectedTunnelId(null);
+      try {
+        mapRef.current?.closePopup?.();
+      } catch {}
+    }}
+    style={{
+      width: "100%",
+      padding: 10,
+      borderRadius: 12,
+      border: `1px solid ${BORDER}`,
+      background: "rgba(255,255,255,0.05)",
+      color: TEXT_LIGHT,
+      cursor: "pointer",
+      fontWeight: 700,
+    }}
+  >
+    Odznacz
+  </button>
+</div>
 
-              {/* Edytuj/Usuń dopiero po wybraniu projektu */}
-              {selectedPoint || selectedTunnel ? (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-                  <button
-                    onClick={() => {
-                      const what = selectedPoint
-                        ? `Punkt #${selectedPoint.id}`
-                        : `Tunel #${selectedTunnel.id}`;
-                      alert(`Edytuj: ${what} (do podłączenia)`);
-                    }}
-                    style={{
-                      padding: 10,
-                      borderRadius: 12,
-                      border: `1px solid ${BORDER}`,
-                      background: "rgba(255,255,255,0.10)",
-                      color: TEXT_LIGHT,
-                      cursor: "pointer",
-                      fontWeight: 900,
-                    }}
-                  >
-                    Edytuj
-                  </button>
+{/* Edytuj/Usuń dopiero po wybraniu projektu */}
+{selectedPoint || selectedTunnel ? (
+  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+    <button
+      onClick={() => {
+        const what = selectedPoint ? `Punkt #${selectedPoint.id}` : `Tunel #${selectedTunnel.id}`;
+        alert(`Edytuj: ${what} (do podłączenia)`);
+      }}
+      style={{
+        padding: 10,
+        borderRadius: 12,
+        border: `1px solid ${BORDER}`,
+        background: "rgba(255,255,255,0.10)",
+        color: TEXT_LIGHT,
+        cursor: "pointer",
+        fontWeight: 900,
+      }}
+    >
+      Edytuj
+    </button>
 
-                  <button
-                    onClick={() => {
-                      const what = selectedPoint
-                        ? `punkt #${selectedPoint.id}`
-                        : `tunel #${selectedTunnel.id}`;
-                      const ok = window.confirm(`Na pewno usunąć ${what}?`);
-                      if (!ok) return;
-                      alert(`Usuń: ${what} (do podłączenia)`);
-                    }}
-                    style={{
-                      padding: 10,
-                      borderRadius: 12,
-                      border: "1px solid rgba(255,80,80,0.55)",
-                      background: "rgba(255,80,80,0.14)",
-                      color: TEXT_LIGHT,
-                      cursor: "pointer",
-                      fontWeight: 900,
-                    }}
-                  >
-                    Usuń
-                  </button>
-                </div>
-              ) : null}
+    <button
+      onClick={() => {
+        const what = selectedPoint ? `punkt #${selectedPoint.id}` : `tunel #${selectedTunnel.id}`;
+        const ok = window.confirm(`Na pewno usunąć ${what}?`);
+        if (!ok) return;
+        alert(`Usuń: ${what} (do podłączenia)`);
+      }}
+      style={{
+        padding: 10,
+        borderRadius: 12,
+        border: "1px solid rgba(255,80,80,0.55)",
+        background: "rgba(255,80,80,0.14)",
+        color: TEXT_LIGHT,
+        cursor: "pointer",
+        fontWeight: 900,
+      }}
+    >
+      Usuń
+    </button>
+  </div>
+) : null}
 
-              <div style={{ display: "grid", gap: 8 }}>
-                {filteredTunnels.map((t) => (
-                  <div
-                    key={`t-${t.id}`}
-                    onClick={() => {
-                      setSelectedTunnelId(t.id);
-                      setSelectedPointId(null);
-                      focusTunnel(t);
-                    }}
-                    style={{
-                      padding: 10,
-                      borderRadius: 14,
-                      border:
-                        t.id === selectedTunnelId
-                          ? `2px solid rgba(255,255,255,0.35)`
-                          : `1px solid ${BORDER}`,
-                      background: "rgba(255,255,255,0.05)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div style={{ fontWeight: 900, display: "flex", justifyContent: "space-between", gap: 10 }}>
-                      <span>🟦 {t.name || `Tunel #${t.id}`}</span>
-                      <span style={pillStyle}>{statusLabel(t.status)}</span>
-                    </div>
-                  </div>
-                ))}
+<div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-                {filteredPoints.map((pt) => (
-                  <div
-                    key={`p-${pt.id}`}
-                    onClick={() => {
-                      setSelectedPointId(pt.id);
-                      setSelectedTunnelId(null);
-                      focusPoint(pt);
-                    }}
-                    style={{
-                      padding: 10,
-                      borderRadius: 14,
-                      border:
-                        pt.id === selectedPointId
-                          ? `2px solid rgba(255,255,255,0.35)`
-                          : `1px solid ${BORDER}`,
-                      background: "rgba(255,255,255,0.05)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div style={{ fontWeight: 900, display: "flex", justifyContent: "space-between", gap: 10 }}>
-                      <span>📍 {pt.title}</span>
-                      <span style={pillStyle}>{statusLabel(pt.status)}</span>
-                    </div>
-                  </div>
-                ))}
+{/* LISTA PROJEKTÓW (przeniesiona pod przyciski) */}
+<div style={{ fontWeight: 900, marginBottom: 8 }}>Lista projektów</div>
 
-                {filteredPoints.length === 0 && filteredTunnels.length === 0 ? (
-                  <div style={emptyBoxStyle}>Brak danych dla zaznaczonych statusów.</div>
-                ) : null}
-              </div>
+<div style={{ display: "grid", gap: 8 }}>
+  {filteredTunnels.map((t) => (
+    <div
+      key={`t-${t.id}`}
+      onClick={() => {
+        setSelectedTunnelId(t.id);
+        setSelectedPointId(null);
+        focusTunnel(t);
+      }}
+      style={{
+        padding: 10,
+        borderRadius: 14,
+        border:
+          t.id === selectedTunnelId ? `2px solid rgba(255,255,255,0.35)` : `1px solid ${BORDER}`,
+        background: "rgba(255,255,255,0.05)",
+        cursor: "pointer",
+      }}
+    >
+      <div style={{ fontWeight: 900, display: "flex", justifyContent: "space-between", gap: 10 }}>
+        <span>🟦 {t.name || `Tunel #${t.id}`}</span>
+        <span style={pillStyle}>{statusLabel(t.status)}</span>
+      </div>
+    </div>
+  ))}
+
+  {filteredPoints.map((pt) => (
+    <div
+      key={`p-${pt.id}`}
+      onClick={() => {
+        setSelectedPointId(pt.id);
+        setSelectedTunnelId(null);
+        focusPoint(pt);
+      }}
+      style={{
+        padding: 10,
+        borderRadius: 14,
+        border:
+          pt.id === selectedPointId ? `2px solid rgba(255,255,255,0.35)` : `1px solid ${BORDER}`,
+        background: "rgba(255,255,255,0.05)",
+        cursor: "pointer",
+      }}
+    >
+      <div style={{ fontWeight: 900, display: "flex", justifyContent: "space-between", gap: 10 }}>
+        <span>📍 {pt.title}</span>
+        <span style={pillStyle}>{statusLabel(pt.status)}</span>
+      </div>
+    </div>
+  ))}
+
+  {filteredPoints.length === 0 && filteredTunnels.length === 0 ? (
+    <div style={emptyBoxStyle}>Brak danych dla zaznaczonych statusów.</div>
+  ) : null}
+</div>
+
             </div>
           </>
         ) : null}
