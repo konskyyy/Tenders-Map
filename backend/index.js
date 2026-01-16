@@ -121,13 +121,42 @@ app.get("/api/auth/me", authRequired, (req, res) => {
 app.get("/api/points", authRequired, async (req, res) => {
   try {
     const q = await pool.query(
-      `SELECT id, title, director, winner, note, status, lat, lng
+      `SELECT id, title, director, winner, note, status, lat, lng, priority
        FROM points
-       ORDER BY id DESC`
+       ORDER BY priority DESC NULLS LAST, id DESC`
     );
     res.json(q.rows);
   } catch (e) {
     console.error("GET POINTS ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+
+// SET point priority (true/false)
+app.patch("/api/points/:id/priority", authRequired, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "Złe ID" });
+
+    const priority = req.body?.priority;
+    if (typeof priority !== "boolean") {
+      return res.status(400).json({ error: "priority musi być boolean (true/false)" });
+    }
+
+    const q = await pool.query(
+      `UPDATE points
+       SET priority=$1
+       WHERE id=$2
+       RETURNING id, title, director, winner, note, status, lat, lng, priority`,
+      [priority, id]
+    );
+
+    const row = q.rows[0];
+    if (!row) return res.status(404).json({ error: "Nie znaleziono punktu" });
+
+    res.json(row);
+  } catch (e) {
+    console.error("PATCH POINT PRIORITY ERROR:", e);
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
@@ -150,7 +179,7 @@ app.post("/api/points", authRequired, async (req, res) => {
     const q = await pool.query(
       `INSERT INTO points (title, director, winner, note, status, lat, lng)
        VALUES ($1,$2,$3,$4,$5,$6,$7)
-       RETURNING id, title, director, winner, note, status, lat, lng`,
+       RETURNING id, title, director, winner, note, status, lat, lng, priority`,
       [title, director, winner, note, status, lat, lng]
     );
 
@@ -177,7 +206,7 @@ app.put("/api/points/:id", authRequired, async (req, res) => {
       `UPDATE points
        SET title=$1, director=$2, winner=$3, note=$4, status=$5
        WHERE id=$6
-       RETURNING id, title, director, winner, note, status, lat, lng`,
+       RETURNING id, title, director, winner, note, status, lat, lng, priority`,
       [title, director, winner, note, status, id]
     );
 
@@ -221,13 +250,42 @@ app.delete("/api/points/:id", authRequired, async (req, res) => {
 app.get("/api/tunnels", authRequired, async (req, res) => {
   try {
     const q = await pool.query(
-      `SELECT id, name, status, note, path
+      `SELECT id, name, status, note, path, priority
        FROM tunnels
-       ORDER BY id DESC`
+       ORDER BY priority DESC NULLS LAST, id DESC`
     );
     res.json(q.rows);
   } catch (e) {
     console.error("GET TUNNELS ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+
+// SET tunnel priority (true/false)
+app.patch("/api/tunnels/:id/priority", authRequired, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isFinite(id)) return res.status(400).json({ error: "Złe ID" });
+
+    const priority = req.body?.priority;
+    if (typeof priority !== "boolean") {
+      return res.status(400).json({ error: "priority musi być boolean (true/false)" });
+    }
+
+    const q = await pool.query(
+      `UPDATE tunnels
+       SET priority=$1
+       WHERE id=$2
+       RETURNING id, name, status, note, path, priority`,
+      [priority, id]
+    );
+
+    const row = q.rows[0];
+    if (!row) return res.status(404).json({ error: "Nie znaleziono tunelu" });
+
+    res.json(row);
+  } catch (e) {
+    console.error("PATCH TUNNEL PRIORITY ERROR:", e);
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
@@ -246,7 +304,6 @@ app.post("/api/tunnels", authRequired, async (req, res) => {
         .json({ error: "Tunel musi mieć co najmniej 2 punkty" });
     }
 
-    // prosta walidacja
     for (const p of path) {
       const lat = Number(p?.lat);
       const lng = Number(p?.lng);
@@ -258,7 +315,7 @@ app.post("/api/tunnels", authRequired, async (req, res) => {
     const q = await pool.query(
       `INSERT INTO tunnels (name, status, note, path)
        VALUES ($1,$2,$3,$4::jsonb)
-       RETURNING id, name, status, note, path`,
+       RETURNING id, name, status, note, path, priority`,
       [name, status, note, JSON.stringify(path)]
     );
 
@@ -290,7 +347,7 @@ app.put("/api/tunnels/:id", authRequired, async (req, res) => {
       `UPDATE tunnels
        SET name=$1, status=$2, note=$3, path=$4::jsonb
        WHERE id=$5
-       RETURNING id, name, status, note, path`,
+       RETURNING id, name, status, note, path, priority`,
       [name, status, note, JSON.stringify(path), id]
     );
 
@@ -337,7 +394,6 @@ app.get("/api/points/:id/comments", authRequired, async (req, res) => {
     if (!Number.isFinite(pointId))
       return res.status(400).json({ error: "Złe ID" });
 
-    // sprawdź czy punkt istnieje
     const exists = await pool.query("SELECT id FROM points WHERE id=$1", [
       pointId,
     ]);
@@ -395,6 +451,7 @@ app.post("/api/points/:id/comments", authRequired, async (req, res) => {
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
+
 // EDIT point comment (only author)
 app.put("/api/points/:id/comments/:commentId", authRequired, async (req, res) => {
   try {
@@ -408,7 +465,6 @@ app.put("/api/points/:id/comments/:commentId", authRequired, async (req, res) =>
     if (!body) return res.status(400).json({ error: "Treść komentarza jest wymagana" });
     if (body.length > 5000) return res.status(400).json({ error: "Komentarz za długi (max 5000 znaków)" });
 
-    // znajdź komentarz i sprawdź autora
     const cur = await pool.query(
       `SELECT id, point_id, user_id
        FROM point_comments
@@ -473,7 +529,6 @@ app.delete("/api/points/:id/comments/:commentId", authRequired, async (req, res)
   }
 });
 
-
 // GET tunnel comments
 app.get("/api/tunnels/:id/comments", authRequired, async (req, res) => {
   try {
@@ -501,6 +556,7 @@ app.get("/api/tunnels/:id/comments", authRequired, async (req, res) => {
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
+
 // EDIT tunnel comment (only author)
 app.put("/api/tunnels/:id/comments/:commentId", authRequired, async (req, res) => {
   try {
