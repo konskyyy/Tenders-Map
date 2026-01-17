@@ -870,26 +870,49 @@ function RecentUpdatesPanel({
         </button>
 
         {/* REFRESH */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            load();
-          }}
-          disabled={loading}
-          style={{
-            padding: "10px 12px",
-            borderRadius: 12,
-            border: `1px solid ${BORDER}`,
-            background: "rgba(255,255,255,0.06)",
-            color: TEXT_LIGHT,
-            cursor: loading ? "default" : "pointer",
-            fontWeight: 900,
-            fontSize: 12,
-            flexShrink: 0,
-          }}
-        >
-          {loading ? "Odświeżam..." : "Odśwież"}
-        </button>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      load();
+    }}
+    disabled={loading}
+    style={{
+      padding: "10px 12px",
+      borderRadius: 12,
+      border: `1px solid ${BORDER}`,
+      background: "rgba(255,255,255,0.06)",
+      color: TEXT_LIGHT,
+      cursor: loading ? "default" : "pointer",
+      fontWeight: 900,
+      fontSize: 12,
+    }}
+  >
+    {loading ? "Odświeżam..." : "Odśwież"}
+  </button>
+
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      markAllRead();
+    }}
+    disabled={items.length === 0}
+    title="Oznacz wszystkie widoczne aktualizacje jako przeczytane"
+    style={{
+      padding: "10px 12px",
+      borderRadius: 12,
+      border: `1px solid ${BORDER}`,
+      background: items.length === 0 ? "rgba(255,255,255,0.04)" : "rgba(34,197,94,0.12)",
+      color: TEXT_LIGHT,
+      cursor: items.length === 0 ? "default" : "pointer",
+      fontWeight: 900,
+      fontSize: 12,
+    }}
+  >
+    Oznacz wszystko
+  </button>
+</div>
+
       </div>
 
       {/* BODY */}
@@ -967,6 +990,7 @@ function RecentUpdatesPanel({
                         lineHeight: 0,
                       }}
                     >
+                  
                       <svg
                         width="18"
                         height="18"
@@ -1064,6 +1088,24 @@ function RecentUpdatesPanel({
       ) : null}
     </div>
   );
+}
+async function markAllRead() {
+  if (items.length === 0) return;
+
+  // optymistycznie czyścimy UI
+  setItems([]);
+  setExpanded({});
+
+  try {
+    const res = await authFetch(`${API}/updates/read-all?limit=500`, {
+      method: "POST",
+    });
+    await readJsonOrThrow(res);
+  } catch (e) {
+    if (e?.status === 401) return onUnauthorized?.();
+    setErr(String(e?.message || e));
+    load(); // wróć do realnego stanu
+  }
 }
 
 /** ===== EDIT MODAL ===== */
