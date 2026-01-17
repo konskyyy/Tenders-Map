@@ -292,6 +292,7 @@ function JournalPanel({
   GLASS_SHADOW,
   onCountsChange,
   onUnauthorized,
+  onGlobalUpdatesChange, // ✅ NEW: trigger refresh of updates feed
 }) {
   const entityId = entity?.id ?? null;
 
@@ -375,6 +376,9 @@ function JournalPanel({
         onCountsChange?.(kind, entityId, next.length);
         return next;
       });
+
+      // ✅ NEW: refresh global updates feed (so new entry shows immediately)
+      onGlobalUpdatesChange?.();
     } catch (e) {
       if (e?.status === 401) return onUnauthorized?.();
       setErr(String(e?.message || e));
@@ -403,6 +407,9 @@ function JournalPanel({
       );
       setEditingId(null);
       setEditingBody("");
+
+      // ✅ NEW
+      onGlobalUpdatesChange?.();
     } catch (e) {
       if (e?.status === 401) return onUnauthorized?.();
       setErr(String(e?.message || e));
@@ -434,6 +441,9 @@ function JournalPanel({
         setEditingId(null);
         setEditingBody("");
       }
+
+      // ✅ NEW
+      onGlobalUpdatesChange?.();
     } catch (e) {
       if (e?.status === 401) return onUnauthorized?.();
       setErr(String(e?.message || e));
@@ -694,6 +704,7 @@ function JournalPanel({
     </div>
   );
 }
+
 function RecentUpdatesPanel({
   user,
   authFetch,
@@ -705,57 +716,12 @@ function RecentUpdatesPanel({
   GLASS_SHADOW,
   onUnauthorized,
   onJumpToProject,
+  updatesTick, // ✅ NEW: refresh trigger
 }) {
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [items, setItems] = useState([]);
-
-  const readKey = user?.id ? `readUpdates:${user.id}` : "readUpdates:anon";
-  const [readMap, setReadMap] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(readKey) || "{}") || {};
-    } catch {
-      return {};
-    }
-  });
-
-  useEffect(() => {
-    try {
-    } catch {}
-  }, [readKey, readMap]);
-
-  async function markRead(u) {
-  // optymistycznie usuń z UI od razu
-  setItems((prev) =>
-    prev.filter(
-      (x) => !(x.id === u.id && x.kind === u.kind && x.entity_id === u.entity_id)
-    )
-  );
-
-  try {
-    const res = await authFetch(`${API}/updates/read`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        kind: u.kind,
-        entity_id: u.entity_id,
-        comment_id: u.id,
-      }),
-    });
-    await readJsonOrThrow(res);
-  } catch (e) {
-    if (e?.status === 401) return onUnauthorized?.();
-    // jak błąd → wrzuć komunikat i odśwież listę z serwera
-    setErr(String(e?.message || e));
-    load();
-  }
-}
-
-  function isRead(u) {
-    const key = `${u.kind}:${u.entity_id}:comment:${u.id}`;
-    return readMap?.[key] === true;
-  }
 
   async function load() {
     setLoading(true);
@@ -764,6 +730,7 @@ function RecentUpdatesPanel({
       const res = await authFetch(`${API}/updates/recent?limit=30`);
       const data = await readJsonOrThrow(res);
       const list = Array.isArray(data) ? data : [];
+      setItems(list);
     } catch (e) {
       if (e?.status === 401) return onUnauthorized?.();
       setErr(String(e?.message || e));
@@ -772,10 +739,36 @@ function RecentUpdatesPanel({
     }
   }
 
+  async function markRead(u) {
+    // optymistycznie usuń z UI od razu
+    setItems((prev) =>
+      prev.filter(
+        (x) => !(x.id === u.id && x.kind === u.kind && x.entity_id === u.entity_id)
+      )
+    );
+
+    try {
+      const res = await authFetch(`${API}/updates/read`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: u.kind,
+          entity_id: u.entity_id,
+          comment_id: u.id,
+        }),
+      });
+      await readJsonOrThrow(res);
+    } catch (e) {
+      if (e?.status === 401) return onUnauthorized?.();
+      setErr(String(e?.message || e));
+      load();
+    }
+  }
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, updatesTick]);
 
   return (
     <div
@@ -903,10 +896,19 @@ function RecentUpdatesPanel({
                       {u.entity_title || `${u.kind} #${u.entity_id}`}
                     </b>{" "}
                     • {u.user_email || "użytkownik"} • {formatDateTimePL(u.created_at)}
-                    {u.edited ? <span style={{ marginLeft: 6, opacity: 0.8 }}>(edytowano)</span> : null}
+                    {u.edited ? (
+                      <span style={{ marginLeft: 6, opacity: 0.8 }}>(edytowano)</span>
+                    ) : null}
                   </div>
 
-                  <div style={{ whiteSpace: "pre-wrap", paddingRight: 40, fontSize: 13, lineHeight: 1.35 }}>
+                  <div
+                    style={{
+                      whiteSpace: "pre-wrap",
+                      paddingRight: 40,
+                      fontSize: 13,
+                      lineHeight: 1.35,
+                    }}
+                  >
                     {u.body}
                   </div>
 
@@ -1210,19 +1212,25 @@ export default function App() {
     };
   }, []);
 
+  /** ✅ NEW: global refresh trigger for updates feed */
+  const [updatesTick, setUpdatesTick] = useState(0);
+  function bumpUpdates() {
+    setUpdatesTick((x) => x + 1);
+  }
+
   /** ===== JOURNAL COUNTS + ACQUIRED (localStorage) ===== */
   const [journalCounts, setJournalCounts] = useState(() => {
-  try {
-    const raw = localStorage.getItem("journalCounts");
-    const parsed = raw ? JSON.parse(raw) : null;
-    return {
-      points: parsed?.points && typeof parsed.points === "object" ? parsed.points : {},
-      tunnels: parsed?.tunnels && typeof parsed.tunnels === "object" ? parsed.tunnels : {},
-    };
-  } catch {
-    return { points: {}, tunnels: {} };
-  }
-});
+    try {
+      const raw = localStorage.getItem("journalCounts");
+      const parsed = raw ? JSON.parse(raw) : null;
+      return {
+        points: parsed?.points && typeof parsed.points === "object" ? parsed.points : {},
+        tunnels: parsed?.tunnels && typeof parsed.tunnels === "object" ? parsed.tunnels : {},
+      };
+    } catch {
+      return { points: {}, tunnels: {} };
+    }
+  });
 
   function handleCountsChange(kind, id, count) {
     setJournalCounts((prev) => ({
@@ -1231,10 +1239,13 @@ export default function App() {
     }));
   }
   useEffect(() => {
-  try {
-    localStorage.setItem("journalCounts", JSON.stringify(journalCounts || { points: {}, tunnels: {} }));
-  } catch {}
-}, [journalCounts]);
+    try {
+      localStorage.setItem(
+        "journalCounts",
+        JSON.stringify(journalCounts || { points: {}, tunnels: {} })
+      );
+    } catch {}
+  }, [journalCounts]);
 
   const [acquiredMap, setAcquiredMap] = useState(() => {
     try {
@@ -1245,7 +1256,9 @@ export default function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem("acquiredMap", JSON.stringify(acquiredMap || {}));
+    try {
+      localStorage.setItem("acquiredMap", JSON.stringify(acquiredMap || {}));
+    } catch {}
   }, [acquiredMap]);
 
   function isAcquired(kind, id) {
@@ -1488,24 +1501,25 @@ export default function App() {
       } catch {}
     }, 250);
   }
-  function jumpToProject(kind, entityId) {
-  if (kind === "points") {
-    const pt = points.find((x) => String(x.id) === String(entityId));
-    if (!pt) return;
-    setSelectedPointId(pt.id);
-    setSelectedTunnelId(null);
-    focusPoint(pt);
-    return;
-  }
 
-  if (kind === "tunnels") {
-    const t = tunnels.find((x) => String(x.id) === String(entityId));
-    if (!t) return;
-    setSelectedTunnelId(t.id);
-    setSelectedPointId(null);
-    focusTunnel(t);
+  function jumpToProject(kind, entityId) {
+    if (kind === "points") {
+      const pt = points.find((x) => String(x.id) === String(entityId));
+      if (!pt) return;
+      setSelectedPointId(pt.id);
+      setSelectedTunnelId(null);
+      focusPoint(pt);
+      return;
+    }
+
+    if (kind === "tunnels") {
+      const t = tunnels.find((x) => String(x.id) === String(entityId));
+      if (!t) return;
+      setSelectedTunnelId(t.id);
+      setSelectedPointId(null);
+      focusTunnel(t);
+    }
   }
-}
 
   /** ===== World mask ===== */
   const [worldMask, setWorldMask] = useState(null);
@@ -2231,8 +2245,8 @@ export default function App() {
                           lineHeight: 1,
                           color:
                             selectedPoint?.priority || selectedTunnel?.priority
-                              ? "rgba(255,255,255,0.65)" // już ważne → neutralny
-                              : "rgba(245,158,11,0.95)", // nieważne → kolorowy
+                              ? "rgba(255,255,255,0.65)"
+                              : "rgba(245,158,11,0.95)",
                           textShadow:
                             selectedPoint?.priority || selectedTunnel?.priority
                               ? "none"
@@ -2280,7 +2294,6 @@ export default function App() {
 
                 <div style={{ fontWeight: 900, marginBottom: 8 }}>Lista projektów</div>
 
-                {/* SCROLL TYLKO LISTY */}
                 <div style={{ overflow: "auto", paddingRight: 4, flex: 1, minHeight: 0 }}>
                   <div style={{ display: "grid", gap: 8 }}>
                     {filteredProjects.map((x) => {
@@ -2307,7 +2320,7 @@ export default function App() {
                             padding: 10,
                             borderRadius: 14,
                             border: x.priority
-                              ? "2px solid rgba(239,68,68,0.9)" // 🔴 WAŻNE
+                              ? "2px solid rgba(239,68,68,0.9)"
                               : selected
                               ? "2px solid rgba(255,255,255,0.35)"
                               : `1px solid ${BORDER}`,
@@ -2408,18 +2421,20 @@ export default function App() {
             <span style={{ fontSize: 13 }}>Panel główny</span>
           </button>
         ) : null}
-<RecentUpdatesPanel
-  user={user}
-  authFetch={authFetch}
-  API={API}
-  BORDER={BORDER}
-  MUTED={MUTED}
-  TEXT_LIGHT={TEXT_LIGHT}
-  GLASS_BG={GLASS_BG}
-  GLASS_SHADOW={GLASS_SHADOW}
-  onUnauthorized={() => logout("expired")}
-  onJumpToProject={jumpToProject}
-/>
+
+        <RecentUpdatesPanel
+          user={user}
+          authFetch={authFetch}
+          API={API}
+          BORDER={BORDER}
+          MUTED={MUTED}
+          TEXT_LIGHT={TEXT_LIGHT}
+          GLASS_BG={GLASS_BG}
+          GLASS_SHADOW={GLASS_SHADOW}
+          onUnauthorized={() => logout("expired")}
+          onJumpToProject={jumpToProject}
+          updatesTick={updatesTick}
+        />
 
         {/* PRAWA STRONA: Statusy + Dziennik */}
         <div
@@ -2527,6 +2542,7 @@ export default function App() {
             GLASS_SHADOW={GLASS_SHADOW}
             onCountsChange={handleCountsChange}
             onUnauthorized={() => logout("expired")}
+            onGlobalUpdatesChange={bumpUpdates}
           />
         </div>
 
@@ -2731,7 +2747,6 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* ✅ FIX: punkty liczą szansę z points + pt.id */}
                       <ChanceRing
                         value={projectChance({
                           acquired: isAcquired("points", pt.id),
