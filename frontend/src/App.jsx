@@ -181,7 +181,7 @@ function ringColor(pct) {
   return "rgba(239,68,68,0.95)";                // czerwony
 }
 
-function ChanceRing({ value = 50, size = 44 }) {
+function ChanceRing({ value = 50, size = 44, tooltip = "" }) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
   const stroke = 5;
   const r = (size - stroke) / 2;
@@ -199,7 +199,6 @@ function ChanceRing({ value = 50, size = 44 }) {
         flexShrink: 0,
       }}
     >
-      {/* LABEL */}
       <div
         style={{
           fontSize: 11,
@@ -211,8 +210,15 @@ function ChanceRing({ value = 50, size = 44 }) {
         Szansa
       </div>
 
-      {/* RING */}
-      <div style={{ width: size, height: size, position: "relative" }}>
+      <div
+        title={tooltip || undefined}
+        style={{
+          width: size,
+          height: size,
+          position: "relative",
+          cursor: tooltip ? "help" : "default",
+        }}
+      >
         <svg width={size} height={size}>
           <circle
             cx={size / 2}
@@ -244,6 +250,7 @@ function ChanceRing({ value = 50, size = 44 }) {
             fontWeight: 900,
             fontSize: 12,
             color: "rgba(255,255,255,0.92)",
+            pointerEvents: "none",
           }}
         >
           {v}%
@@ -262,6 +269,12 @@ function chanceFromJournalCount(count) {
 function projectChance({ acquired, journalCount }) {
   if (acquired) return 100;
   return chanceFromJournalCount(journalCount);
+}
+function chanceTooltip({ acquired, journalCount }) {
+  if (acquired) return "Szansa: 100% (projekt pozyskany)";
+  const n = Math.max(0, Number(journalCount) || 0);
+  const pct = chanceFromJournalCount(n);
+  return `Szansa: ${pct}% (liczona z liczby wpisów w dzienniku: ${n})\n0=50%, 1=60%, 2=70%, 3=80%, 4+=90%`;
 }
 
 /** ===== JOURNAL ===== */
@@ -2295,11 +2308,16 @@ export default function App() {
                       </div>
 
                       <ChanceRing
-                        value={projectChance({
-                          acquired: isAcquired("tunnels", t.id),
-                          journalCount: journalCounts.tunnels?.[t.id] || 0,
-                        })}
-                      />
+  value={projectChance({
+    acquired: isAcquired("tunnels", t.id),
+    journalCount: journalCounts.tunnels?.[t.id] || 0,
+  })}
+  tooltip={chanceTooltip({
+    acquired: isAcquired("tunnels", t.id),
+    journalCount: journalCounts.tunnels?.[t.id] || 0,
+  })}
+/>
+
                     </div>
 
                     <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
@@ -2379,11 +2397,16 @@ export default function App() {
                       </div>
 
                       <ChanceRing
-                        value={projectChance({
-                          acquired: isAcquired("points", pt.id),
-                          journalCount: journalCounts.points?.[pt.id] || 0,
-                        })}
-                      />
+  value={projectChance({
+    acquired: isAcquired("tunnels", t.id),
+    journalCount: journalCounts.tunnels?.[t.id] || 0,
+  })}
+  tooltip={chanceTooltip({
+    acquired: isAcquired("tunnels", t.id),
+    journalCount: journalCounts.tunnels?.[t.id] || 0,
+  })}
+/>
+
                     </div>
 
                     <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
