@@ -958,6 +958,17 @@ const filteredTunnels = useMemo(() => {
     .slice()
     .sort(byPriorityThenIdDesc);
 }, [tunnels, visibleStatus]);
+const filteredProjects = useMemo(() => {
+  const pts = points
+    .filter((p) => visibleStatus[p.status || "planowany"] !== false)
+    .map((p) => ({ kind: "point", ...p }));
+
+  const tls = tunnels
+    .filter((t) => visibleStatus[t.status || "planowany"] !== false)
+    .map((t) => ({ kind: "tunnel", ...t }));
+
+  return [...tls, ...pts].sort(byPriorityThenIdDesc);
+}, [points, tunnels, visibleStatus]);
 
   const counts = useMemo(() => {
     const c = { planowany: 0, przetarg: 0, realizacja: 0, nieaktualny: 0 };
@@ -1664,8 +1675,18 @@ async function toggleTunnelPriority(t) {
   >
     <button
       onClick={() => {
-        loadPoints();
-        loadTunnels();
+        setPoints(
+  Array.isArray(data)
+    ? data.map((p) => ({ ...p, priority: p.priority === true }))
+    : []
+);
+
+        setTunnels(
+  Array.isArray(data)
+    ? data.map((t) => ({ ...t, priority: t.priority === true }))
+    : []
+);
+
       }}
       style={{
         width: "100%",
@@ -1767,133 +1788,75 @@ async function toggleTunnelPriority(t) {
   {/* SCROLL TYLKO LISTY */}
   <div style={{ overflow: "auto", paddingRight: 4, flex: 1, minHeight: 0 }}>
     <div style={{ display: "grid", gap: 8 }}>
-      {filteredTunnels.map((t) => (
-        <div
-          key={`t-${t.id}`}
-          onClick={() => {
-            setSelectedTunnelId(t.id);
-            setSelectedPointId(null);
-            focusTunnel(t);
-          }}
+      {filteredProjects.map((x) => {
+  const isTunnel = x.kind === "tunnel";
+  const selected = isTunnel ? x.id === selectedTunnelId : x.id === selectedPointId;
+
+  return (
+    <div
+      key={`${x.kind}-${x.id}`}
+      onClick={() => {
+        if (isTunnel) {
+          setSelectedTunnelId(x.id);
+          setSelectedPointId(null);
+          focusTunnel(x);
+        } else {
+          setSelectedPointId(x.id);
+          setSelectedTunnelId(null);
+          focusPoint(x);
+        }
+      }}
+      style={{
+        padding: 10,
+        borderRadius: 14,
+        border: selected
+          ? `2px solid rgba(255,255,255,0.35)`
+          : `1px solid ${BORDER}`,
+        background: "rgba(255,255,255,0.05)",
+        cursor: "pointer",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <span
           style={{
-            padding: 10,
-            borderRadius: 14,
-            border:
-              t.id === selectedTunnelId
-                ? `2px solid rgba(255,255,255,0.35)`
-                : `1px solid ${BORDER}`,
-            background: "rgba(255,255,255,0.05)",
-            cursor: "pointer",
+            width: 14,
+            display: "flex",
+            justifyContent: "center",
+            flexShrink: 0,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span
-              style={{
-                width: 14,
-                display: "flex",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              🟦
-            </span>
+          {isTunnel ? "🟦" : "📍"}
+        </span>
 
-            <span
-              style={{
-                fontWeight: 900,
-                minWidth: 0,
-                overflow: "hidden",
-                display: "-webkit-box",
-                WebkitBoxOrient: "vertical",
-                WebkitLineClamp: 2,
-                lineClamp: 2,
-                whiteSpace: "normal",
-                lineHeight: 1.2,
-              }}
-            >
-              {t.priority ? "⭐ " : ""}
-              {t.name || `Tunel #${t.id}`}
-            </span>
-
-            <span
-              style={{
-                ...pillStyle,
-                marginLeft: "auto",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
-            >
-              {statusLabel(t.status)}
-            </span>
-          </div>
-        </div>
-      ))}
-
-      {filteredPoints.map((pt) => (
-        <div
-          key={`p-${pt.id}`}
-          onClick={() => {
-            setSelectedPointId(pt.id);
-            setSelectedTunnelId(null);
-            focusPoint(pt);
-          }}
+        <span
           style={{
-            padding: 10,
-            borderRadius: 14,
-            border:
-              pt.id === selectedPointId
-                ? `2px solid rgba(255,255,255,0.35)`
-                : `1px solid ${BORDER}`,
-            background: "rgba(255,255,255,0.05)",
-            cursor: "pointer",
+            fontWeight: 900,
+            minWidth: 0,
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            WebkitLineClamp: 2,
+            lineClamp: 2,
+            whiteSpace: "normal",
+            lineHeight: 1.2,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span
-              style={{
-                width: 14,
-                display: "flex",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              📍
-            </span>
+          {x.priority ? "⭐ " : ""}
+          {isTunnel ? x.name || `Tunel #${x.id}` : x.title}
+        </span>
 
-            <span
-              style={{
-                fontWeight: 900,
-                minWidth: 0,
-                overflow: "hidden",
-                display: "-webkit-box",
-                WebkitBoxOrient: "vertical",
-                WebkitLineClamp: 2,
-                lineClamp: 2,
-                whiteSpace: "normal",
-                lineHeight: 1.2,
-              }}
-            >
-              {pt.priority ? "⭐ " : ""}
-              {pt.title}
-            </span>
+        <span style={{ ...pillStyle, marginLeft: "auto", whiteSpace: "nowrap", flexShrink: 0 }}>
+          {statusLabel(x.status)}
+        </span>
+      </div>
+    </div>
+  );
+})}
 
-            <span
-              style={{
-                ...pillStyle,
-                marginLeft: "auto",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
-            >
-              {statusLabel(pt.status)}
-            </span>
-          </div>
-        </div>
-      ))}
+{filteredProjects.length === 0 ? (
+  <div style={emptyBoxStyle}>Brak danych dla zaznaczonych statusów.</div>
+) : null}
 
-      {filteredPoints.length === 0 && filteredTunnels.length === 0 ? (
-        <div style={emptyBoxStyle}>Brak danych dla zaznaczonych statusów.</div>
-      ) : null}
     </div>
   </div>
 </div>
