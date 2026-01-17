@@ -938,14 +938,26 @@ export default function App() {
 
   /** ===== EDIT (wariant 1) ===== */
   const [editOpen, setEditOpen] = useState(false);
+  function byPriorityThenIdDesc(a, b) {
+  const ap = a?.priority ? 1 : 0;
+  const bp = b?.priority ? 1 : 0;
+  if (bp !== ap) return bp - ap; // priority=true na górze
+  return Number(b.id) - Number(a.id); // potem po id malejąco
+}
 
   const filteredPoints = useMemo(() => {
-    return points.filter((p) => visibleStatus[p.status || "planowany"] !== false);
-  }, [points, visibleStatus]);
+  return points
+    .filter((p) => visibleStatus[p.status || "planowany"] !== false)
+    .slice()
+    .sort(byPriorityThenIdDesc);
+}, [points, visibleStatus]);
 
-  const filteredTunnels = useMemo(() => {
-    return tunnels.filter((t) => visibleStatus[t.status || "planowany"] !== false);
-  }, [tunnels, visibleStatus]);
+const filteredTunnels = useMemo(() => {
+  return tunnels
+    .filter((t) => visibleStatus[t.status || "planowany"] !== false)
+    .slice()
+    .sort(byPriorityThenIdDesc);
+}, [tunnels, visibleStatus]);
 
   const counts = useMemo(() => {
     const c = { planowany: 0, przetarg: 0, realizacja: 0, nieaktualny: 0 };
@@ -1202,6 +1214,40 @@ export default function App() {
       throw e;
     }
   }
+  async function togglePointPriority(pt) {
+  if (!pt) return;
+  setApiError("");
+  try {
+    const res = await authFetch(`${API}/points/${pt.id}/priority`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ priority: !pt.priority }),
+    });
+    const updated = await readJsonOrThrow(res);
+    setPoints((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+  } catch (e) {
+    if (e?.status === 401) return logout("expired");
+    setApiError(`Nie mogę ustawić priorytetu punktu: ${String(e?.message || e)}`);
+  }
+}
+
+async function toggleTunnelPriority(t) {
+  if (!t) return;
+  setApiError("");
+  try {
+    const res = await authFetch(`${API}/tunnels/${t.id}/priority`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ priority: !t.priority }),
+    });
+    const updated = await readJsonOrThrow(res);
+    setTunnels((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
+  } catch (e) {
+    if (e?.status === 401) return logout("expired");
+    setApiError(`Nie mogę ustawić priorytetu tunelu: ${String(e?.message || e)}`);
+  }
+}
+
 
   /** ===== Points CRUD (dodawanie tylko) ===== */
   async function addPoint(latlng) {
@@ -1655,39 +1701,64 @@ export default function App() {
                 </div>
 
                 {selectedPoint || selectedTunnel ? (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    <button
-                      onClick={() => setEditOpen(true)}
-                      style={{
-                        padding: 10,
-                        borderRadius: 12,
-                        border: `1px solid ${BORDER}`,
-                        background: "rgba(255,255,255,0.10)",
-                        color: TEXT_LIGHT,
-                        cursor: "pointer",
-                        fontWeight: 900,
-                      }}
-                    >
-                      Edytuj
-                    </button>
+  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+    <button
+      onClick={() => {
+        if (selectedPoint) togglePointPriority(selectedPoint);
+        else toggleTunnelPriority(selectedTunnel);
+      }}
+      style={{
+        padding: 10,
+        borderRadius: 12,
+        border: `1px solid ${BORDER}`,
+        background: (selectedPoint?.priority || selectedTunnel?.priority)
+          ? "rgba(255,255,255,0.16)"
+          : "rgba(255,255,255,0.08)",
+        color: TEXT_LIGHT,
+        cursor: "pointer",
+        fontWeight: 900,
+      }}
+      title="Przełącz priorytet"
+    >
+      {(selectedPoint?.priority || selectedTunnel?.priority) ? "⭐ Tak" : "☆ Nie"}
+    </button>
 
-                    <button
-                      onClick={deleteSelectedProject}
-                      style={{
-                        padding: 10,
-                        borderRadius: 12,
-                        border: "1px solid rgba(255,80,80,0.55)",
-                        background: "rgba(255,80,80,0.14)",
-                        color: TEXT_LIGHT,
-                        cursor: "pointer",
-                        fontWeight: 900,
-                      }}
-                    >
-                      Usuń
-                    </button>
-                  </div>
-                ) : null}
-              </div>
+    <button
+      onClick={() => {
+        const what = selectedPoint
+          ? `Punkt #${selectedPoint.id}`
+          : `Tunel #${selectedTunnel.id}`;
+        alert(`Edytuj: ${what} (do podłączenia)`);
+      }}
+      style={{
+        padding: 10,
+        borderRadius: 12,
+        border: `1px solid ${BORDER}`,
+        background: "rgba(255,255,255,0.10)",
+        color: TEXT_LIGHT,
+        cursor: "pointer",
+        fontWeight: 900,
+      }}
+    >
+      Edytuj
+    </button>
+
+    <button
+      onClick={deleteSelectedProject}
+      style={{
+        padding: 10,
+        borderRadius: 12,
+        border: "1px solid rgba(255,80,80,0.55)",
+        background: "rgba(255,80,80,0.14)",
+        color: TEXT_LIGHT,
+        cursor: "pointer",
+        fontWeight: 900,
+      }}
+    >
+      Usuń
+    </button>
+  </div>
+) : null}
 
               <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
