@@ -1758,28 +1758,34 @@ export default function App() {
                 {selectedPoint || selectedTunnel ? (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                     <button
-                      onClick={() => {
-                        if (selectedPoint) togglePointPriority(selectedPoint);
-                        else toggleTunnelPriority(selectedTunnel);
-                      }}
-                      style={{
-                        padding: 10,
-                        borderRadius: 12,
-                        border: `1px solid ${BORDER}`,
-                        background:
-                          selectedPoint?.priority === true || selectedTunnel?.priority === true
-                            ? "rgba(255,255,255,0.16)"
-                            : "rgba(255,255,255,0.08)",
-                        color: TEXT_LIGHT,
-                        cursor: "pointer",
-                        fontWeight: 900,
-                      }}
-                      title="Przełącz priorytet"
-                    >
-                      {selectedPoint?.priority === true || selectedTunnel?.priority === true
-                        ? "⭐ Tak"
-                        : "☆ Nie"}
-                    </button>
+  onClick={() => {
+    if (selectedPoint) togglePointPriority(selectedPoint);
+    else toggleTunnelPriority(selectedTunnel);
+  }}
+  style={{
+    padding: 10,
+    borderRadius: 12,
+    border: `1px solid ${BORDER}`,
+    background:
+      selectedPoint?.priority || selectedTunnel?.priority
+        ? "rgba(255,255,255,0.18)"
+        : "rgba(255,255,255,0.08)",
+    color: TEXT_LIGHT,
+    cursor: "pointer",
+    fontWeight: 900,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  }}
+  title="Oznacz jako ważne"
+>
+  <span style={{ fontSize: 16 }}>
+    {selectedPoint?.priority || selectedTunnel?.priority ? "❗" : "⭕"}
+  </span>
+  <span>Ważne</span>
+</button>
+
 
                     <button
                       onClick={() => setEditOpen(true)}
