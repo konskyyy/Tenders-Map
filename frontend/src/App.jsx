@@ -1638,128 +1638,265 @@ async function toggleTunnelPriority(t) {
                 </div>
               </div>
 
-              {/* NARZĘDZIA (w ramce jak Dodawanie) */}
-              <div
-                style={{
-                  padding: 10,
-                  borderRadius: 14,
-                  border: `1px solid ${BORDER}`,
-                  background: "rgba(255,255,255,0.05)",
-                  marginBottom: 12,
-                }}
-              >
-                <div style={{ fontWeight: 900, marginBottom: 8 }}>Narzędzia</div>
+             {/* NARZĘDZIA (w ramce jak Dodawanie) */}
+<div
+  style={{
+    padding: 10,
+    borderRadius: 14,
+    border: `1px solid ${BORDER}`,
+    background: "rgba(255,255,255,0.05)",
+    marginBottom: 12,
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
+    flex: 1,
+  }}
+>
+  <div style={{ fontWeight: 900, marginBottom: 8 }}>Narzędzia</div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 8,
-                    marginBottom: 10,
-                  }}
-                >
-                  <button
-                    onClick={() => {
-                      loadPoints();
-                      loadTunnels();
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: 10,
-                      borderRadius: 12,
-                      border: `1px solid ${BORDER}`,
-                      background: "rgba(255,255,255,0.08)",
-                      color: TEXT_LIGHT,
-                      cursor: "pointer",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {loadingPoints || loadingTunnels ? "Ładuję..." : "Odśwież"}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setSelectedPointId(null);
-                      setSelectedTunnelId(null);
-                      try {
-                        mapRef.current?.closePopup?.();
-                      } catch {}
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: 10,
-                      borderRadius: 12,
-                      border: `1px solid ${BORDER}`,
-                      background: "rgba(255,255,255,0.05)",
-                      color: TEXT_LIGHT,
-                      cursor: "pointer",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Odznacz
-                  </button>
-                </div>
-
-                {selectedPoint || selectedTunnel ? (
-  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 8,
+      marginBottom: 10,
+    }}
+  >
     <button
       onClick={() => {
-        if (selectedPoint) togglePointPriority(selectedPoint);
-        else toggleTunnelPriority(selectedTunnel);
+        loadPoints();
+        loadTunnels();
       }}
       style={{
+        width: "100%",
         padding: 10,
         borderRadius: 12,
         border: `1px solid ${BORDER}`,
-        background: (selectedPoint?.priority || selectedTunnel?.priority)
-          ? "rgba(255,255,255,0.16)"
-          : "rgba(255,255,255,0.08)",
+        background: "rgba(255,255,255,0.08)",
         color: TEXT_LIGHT,
         cursor: "pointer",
-        fontWeight: 900,
+        fontWeight: 700,
       }}
-      title="Przełącz priorytet"
     >
-      {(selectedPoint?.priority || selectedTunnel?.priority) ? "⭐ Tak" : "☆ Nie"}
+      {loadingPoints || loadingTunnels ? "Ładuję..." : "Odśwież"}
     </button>
 
     <button
       onClick={() => {
-        const what = selectedPoint
-          ? `Punkt #${selectedPoint.id}`
-          : `Tunel #${selectedTunnel.id}`;
-        alert(`Edytuj: ${what} (do podłączenia)`);
+        setSelectedPointId(null);
+        setSelectedTunnelId(null);
+        try {
+          mapRef.current?.closePopup?.();
+        } catch {}
       }}
       style={{
+        width: "100%",
         padding: 10,
         borderRadius: 12,
         border: `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.10)",
+        background: "rgba(255,255,255,0.05)",
         color: TEXT_LIGHT,
         cursor: "pointer",
-        fontWeight: 900,
+        fontWeight: 700,
       }}
     >
-      Edytuj
-    </button>
-
-    <button
-      onClick={deleteSelectedProject}
-      style={{
-        padding: 10,
-        borderRadius: 12,
-        border: "1px solid rgba(255,80,80,0.55)",
-        background: "rgba(255,80,80,0.14)",
-        color: TEXT_LIGHT,
-        cursor: "pointer",
-        fontWeight: 900,
-      }}
-    >
-      Usuń
+      Odznacz
     </button>
   </div>
-) : null}
 
+  {selectedPoint || selectedTunnel ? (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+      <button
+        onClick={() => {
+          if (selectedPoint) togglePointPriority(selectedPoint);
+          else toggleTunnelPriority(selectedTunnel);
+        }}
+        style={{
+          padding: 10,
+          borderRadius: 12,
+          border: `1px solid ${BORDER}`,
+          background:
+            selectedPoint?.priority || selectedTunnel?.priority
+              ? "rgba(255,255,255,0.16)"
+              : "rgba(255,255,255,0.08)",
+          color: TEXT_LIGHT,
+          cursor: "pointer",
+          fontWeight: 900,
+        }}
+        title="Przełącz priorytet"
+      >
+        {selectedPoint?.priority || selectedTunnel?.priority ? "⭐ Tak" : "☆ Nie"}
+      </button>
+
+      <button
+        onClick={() => setEditOpen(true)}
+        style={{
+          padding: 10,
+          borderRadius: 12,
+          border: `1px solid ${BORDER}`,
+          background: "rgba(255,255,255,0.10)",
+          color: TEXT_LIGHT,
+          cursor: "pointer",
+          fontWeight: 900,
+        }}
+      >
+        Edytuj
+      </button>
+
+      <button
+        onClick={deleteSelectedProject}
+        style={{
+          padding: 10,
+          borderRadius: 12,
+          border: "1px solid rgba(255,80,80,0.55)",
+          background: "rgba(255,80,80,0.14)",
+          color: TEXT_LIGHT,
+          cursor: "pointer",
+          fontWeight: 900,
+        }}
+      >
+        Usuń
+      </button>
+    </div>
+  ) : null}
+
+  <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
+
+  <div style={{ fontWeight: 900, marginBottom: 8 }}>Lista projektów</div>
+
+  {/* SCROLL TYLKO LISTY */}
+  <div style={{ overflow: "auto", paddingRight: 4, flex: 1, minHeight: 0 }}>
+    <div style={{ display: "grid", gap: 8 }}>
+      {filteredTunnels.map((t) => (
+        <div
+          key={`t-${t.id}`}
+          onClick={() => {
+            setSelectedTunnelId(t.id);
+            setSelectedPointId(null);
+            focusTunnel(t);
+          }}
+          style={{
+            padding: 10,
+            borderRadius: 14,
+            border:
+              t.id === selectedTunnelId
+                ? `2px solid rgba(255,255,255,0.35)`
+                : `1px solid ${BORDER}`,
+            background: "rgba(255,255,255,0.05)",
+            cursor: "pointer",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span
+              style={{
+                width: 14,
+                display: "flex",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              🟦
+            </span>
+
+            <span
+              style={{
+                fontWeight: 900,
+                minWidth: 0,
+                overflow: "hidden",
+                display: "-webkit-box",
+                WebkitBoxOrient: "vertical",
+                WebkitLineClamp: 2,
+                lineClamp: 2,
+                whiteSpace: "normal",
+                lineHeight: 1.2,
+              }}
+            >
+              {t.priority ? "⭐ " : ""}
+              {t.name || `Tunel #${t.id}`}
+            </span>
+
+            <span
+              style={{
+                ...pillStyle,
+                marginLeft: "auto",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+              }}
+            >
+              {statusLabel(t.status)}
+            </span>
+          </div>
+        </div>
+      ))}
+
+      {filteredPoints.map((pt) => (
+        <div
+          key={`p-${pt.id}`}
+          onClick={() => {
+            setSelectedPointId(pt.id);
+            setSelectedTunnelId(null);
+            focusPoint(pt);
+          }}
+          style={{
+            padding: 10,
+            borderRadius: 14,
+            border:
+              pt.id === selectedPointId
+                ? `2px solid rgba(255,255,255,0.35)`
+                : `1px solid ${BORDER}`,
+            background: "rgba(255,255,255,0.05)",
+            cursor: "pointer",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span
+              style={{
+                width: 14,
+                display: "flex",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              📍
+            </span>
+
+            <span
+              style={{
+                fontWeight: 900,
+                minWidth: 0,
+                overflow: "hidden",
+                display: "-webkit-box",
+                WebkitBoxOrient: "vertical",
+                WebkitLineClamp: 2,
+                lineClamp: 2,
+                whiteSpace: "normal",
+                lineHeight: 1.2,
+              }}
+            >
+              {pt.priority ? "⭐ " : ""}
+              {pt.title}
+            </span>
+
+            <span
+              style={{
+                ...pillStyle,
+                marginLeft: "auto",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+              }}
+            >
+              {statusLabel(pt.status)}
+            </span>
+          </div>
+        </div>
+      ))}
+
+      {filteredPoints.length === 0 && filteredTunnels.length === 0 ? (
+        <div style={emptyBoxStyle}>Brak danych dla zaznaczonych statusów.</div>
+      ) : null}
+    </div>
+  </div>
+</div>
               <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
               <div style={{ fontWeight: 900, marginBottom: 8 }}>Lista projektów</div>
