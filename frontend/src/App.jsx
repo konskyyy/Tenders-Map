@@ -801,28 +801,32 @@ function RecentUpdatesPanel({
           background: "rgba(0,0,0,0.10)",
         }}
       >
-        <span>Najnowsze aktualizacje</span>
-        <span style={{ fontSize: 12, color: MUTED }}>
-          {loading ? "Ładuję..." : `${items.length} nowości`} {open ? "▾" : "▸"}
-        </span>
-      </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+  <span>Najnowsze aktualizacje</span>
 
-      {open ? (
-        <div style={{ padding: 12, display: "grid", gap: 10 }}>
-          {err ? (
-            <div
-              style={{
-                padding: 10,
-                borderRadius: 14,
-                border: "1px solid rgba(255,120,120,0.45)",
-                background: "rgba(255,120,120,0.12)",
-                color: "rgba(255,255,255,0.95)",
-                fontSize: 12,
-              }}
-            >
-              {err}
-            </div>
-          ) : null}
+  {items.length > 0 ? (
+    <span
+      style={{
+        minWidth: 26,
+        height: 22,
+        padding: "0 8px",
+        borderRadius: 999,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 12,
+        fontWeight: 900,
+        color: "rgba(255,255,255,0.92)",
+        background: "rgba(239,68,68,0.22)",
+        border: "1px solid rgba(239,68,68,0.55)",
+        boxShadow: "0 0 18px rgba(239,68,68,0.15)",
+      }}
+      title="Liczba nieprzeczytanych aktualizacji"
+    >
+      {items.length}
+    </span>
+  ) : null}
+</div>
 
           <div style={{ display: "flex", gap: 8 }}>
             <button
