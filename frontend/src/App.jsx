@@ -970,7 +970,18 @@ export default function App() {
   }, []);
 
   /** ===== JOURNAL COUNTS + ACQUIRED (localStorage) ===== */
-  const [journalCounts, setJournalCounts] = useState({ points: {}, tunnels: {} });
+  const [journalCounts, setJournalCounts] = useState(() => {
+  try {
+    const raw = localStorage.getItem("journalCounts");
+    const parsed = raw ? JSON.parse(raw) : null;
+    return {
+      points: parsed?.points && typeof parsed.points === "object" ? parsed.points : {},
+      tunnels: parsed?.tunnels && typeof parsed.tunnels === "object" ? parsed.tunnels : {},
+    };
+  } catch {
+    return { points: {}, tunnels: {} };
+  }
+});
 
   function handleCountsChange(kind, id, count) {
     setJournalCounts((prev) => ({
@@ -978,6 +989,11 @@ export default function App() {
       [kind]: { ...(prev[kind] || {}), [id]: Number(count) || 0 },
     }));
   }
+  useEffect(() => {
+  try {
+    localStorage.setItem("journalCounts", JSON.stringify(journalCounts || { points: {}, tunnels: {} }));
+  } catch {}
+}, [journalCounts]);
 
   const [acquiredMap, setAcquiredMap] = useState(() => {
     try {
