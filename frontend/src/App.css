@@ -1,42 +1,54 @@
+/* ===== App layout (pełny ekran, bez szablonu Vite) ===== */
+html,
+body,
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+body {
+  overflow: hidden;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* ===== Leaflet fixes ===== */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* Ikony z divIcon (żeby nie łapały białych marginesów) */
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
 }
 
-.card {
-  padding: 2em;
+/* ===== Leaflet popup – usuwamy białe tło i zostawiamy Twój "glass" ===== */
+.leaflet-popup-content-wrapper {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
 }
 
-.read-the-docs {
-  color: #888;
+.leaflet-popup-content {
+  margin: 0 !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(22, 42, 64, 0.9) !important; /* dopasowane do GLASS_BG_DARK */
+  box-shadow: none !important;
+}
+
+/* Opcjonalnie: lekki blur na strzałce (wygląda premium) */
+.leaflet-popup-tip {
+  backdrop-filter: blur(6px);
+}
+
+/* ===== Leaflet controls (opcjonalne lekkie dopasowanie do dark UI) ===== */
+.leaflet-control-zoom,
+.leaflet-control-attribution {
+  filter: saturate(0.9);
+  opacity: 0.92;
 }
