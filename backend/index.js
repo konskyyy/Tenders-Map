@@ -691,6 +691,59 @@ app.delete("/api/tunnels/:id/comments/:commentId", authRequired, async (req, res
   }
 });
 
+/**
+ * ===== UPDATES FEED =====
+ * GET /api/updates/recent?limit=30
+ * Najnowsze wpisy z point_comments + tunnel_comments
+ */
+app.get("/api/updates/recent", authRequired, async (req, res) => {
+  try {
+    const rawLimit = Number(req.query.limit);
+    const limit = Number.isFinite(rawLimit)
+      ? Math.max(1, Math.min(100, rawLimit))
+      : 30;
+
+    const sql = `
+      select
+        pc.id as id,
+        'points'::text as kind,
+        pc.point_id as entity_id,
+        p.title as entity_title,
+        pc.user_id,
+        pc.user_email,
+        pc.body,
+        pc.created_at,
+        pc.edited
+      from point_comments pc
+      join points p on p.id = pc.point_id
+
+      union all
+
+      select
+        tc.id as id,
+        'tunnels'::text as kind,
+        tc.tunnel_id as entity_id,
+        t.name as entity_title,
+        tc.user_id,
+        tc.user_email,
+        tc.body,
+        tc.created_at,
+        tc.edited
+      from tunnel_comments tc
+      join tunnels t on t.id = tc.tunnel_id
+
+      order by created_at desc
+      limit $1;
+    `;
+
+    const q = await pool.query(sql, [limit]);
+    res.json(q.rows);
+  } catch (e) {
+    console.error("GET UPDATES RECENT ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+
 // ===== START =====
 app.listen(PORT, () => {
   console.log(`Backend działa na porcie ${PORT}`);
