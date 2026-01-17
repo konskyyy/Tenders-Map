@@ -1865,14 +1865,21 @@ export default function App() {
                             }
                           }}
                           style={{
-                            padding: 10,
-                            borderRadius: 14,
-                            border: selected
-                              ? `2px solid rgba(255,255,255,0.35)`
-                              : `1px solid ${BORDER}`,
-                            background: "rgba(255,255,255,0.05)",
-                            cursor: "pointer",
-                          }}
+  padding: 10,
+  borderRadius: 14,
+
+  border: x.priority
+    ? "2px solid rgba(239,68,68,0.9)"          // 🔴 WAŻNE
+    : selected
+    ? "2px solid rgba(255,255,255,0.35)"       // zaznaczone
+    : `1px solid ${BORDER}`,
+
+  background: x.priority
+    ? "rgba(239,68,68,0.08)"                    // delikatne tło (opcjonalne)
+    : "rgba(255,255,255,0.05)",
+
+  cursor: "pointer",
+}}
                         >
                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                             <span
@@ -1899,7 +1906,7 @@ export default function App() {
                                 lineHeight: 1.2,
                               }}
                             >
-                              {x.priority === true ? "⭐ " : ""}
+
                               {isTunnel ? x.name || `Tunel #${x.id}` : x.title}
                             </span>
 
