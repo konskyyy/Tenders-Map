@@ -54,7 +54,7 @@ app.get("/api/health", (req, res) => {
 
 // ===== VERSION (debug deploy check) =====
 app.get("/api/version", (req, res) => {
-  res.json({ version: "priority-v1", ts: Date.now() });
+  res.json({ version: "priority-feed-v1", ts: Date.now() });
 });
 
 // ===== AUTH =====
