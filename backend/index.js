@@ -708,10 +708,10 @@ app.get("/api/updates/recent", authRequired, async (req, res) => {
       ? Math.max(1, Math.min(100, rawLimit))
       : 30;
 
-    const userId = Number(req.user.id);
+    const userId = req.user.id;
 
     const sql = `
-      with u as (
+      with feed as (
         select
           pc.id as id,
           'points'::text as kind,
@@ -740,22 +740,60 @@ app.get("/api/updates/recent", authRequired, async (req, res) => {
         from tunnel_comments tc
         join tunnels t on t.id = tc.tunnel_id
       )
-      select u.*
-      from u
-      left join read_updates ru
-        on ru.user_id = $2
-       and ru.kind = u.kind
-       and ru.entity_id = u.entity_id
-       and ru.comment_id = u.id
-      where ru.id is null
-      order by u.created_at desc
-      limit $1;
+      select f.*
+      from feed f
+      where not exists (
+        select 1
+        from updates_read ur
+        where ur.user_id = $1
+          and ur.kind = f.kind
+          and ur.entity_id = f.entity_id
+          and ur.comment_id = f.id
+      )
+      order by f.created_at desc
+      limit $2;
     `;
 
-    const q = await pool.query(sql, [limit, userId]);
+    const q = await pool.query(sql, [userId, limit]);
     res.json(q.rows);
   } catch (e) {
     console.error("GET UPDATES RECENT ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+
+/**
+ * POST /api/updates/read
+ * body: { kind: 'points'|'tunnels', entity_id: number, comment_id: number }
+ * zapisuje, że user przeczytał wpis
+ */
+app.post("/api/updates/read", authRequired, async (req, res) => {
+  try {
+    const kind = String(req.body?.kind || "");
+    const entityId = Number(req.body?.entity_id);
+    const commentId = Number(req.body?.comment_id);
+
+    if (kind !== "points" && kind !== "tunnels") {
+      return res.status(400).json({ error: "kind musi być points albo tunnels" });
+    }
+    if (!Number.isFinite(entityId) || !Number.isFinite(commentId)) {
+      return res.status(400).json({ error: "Złe entity_id/comment_id" });
+    }
+
+    const q = await pool.query(
+      `
+      insert into updates_read (user_id, kind, entity_id, comment_id)
+      values ($1,$2,$3,$4)
+      on conflict (user_id, kind, entity_id, comment_id)
+      do update set read_at = now()
+      returning user_id, kind, entity_id, comment_id, read_at
+      `,
+      [req.user.id, kind, entityId, commentId]
+    );
+
+    res.json({ ok: true, row: q.rows[0] });
+  } catch (e) {
+    console.error("POST UPDATES READ ERROR:", e);
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
