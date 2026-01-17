@@ -742,6 +742,24 @@ function RecentUpdatesPanel({
 
   async function markRead(u) {
     const itemKey = `${u.kind}:${u.entity_id}:${u.id}`;
+      async function markAllRead() {
+    if (items.length === 0) return;
+
+    // optymistycznie czyścimy UI
+    setItems([]);
+    setExpanded({});
+
+    try {
+      const res = await authFetch(`${API}/updates/read-all?limit=500`, {
+        method: "POST",
+      });
+      await readJsonOrThrow(res);
+    } catch (e) {
+      if (e?.status === 401) return onUnauthorized?.();
+      setErr(String(e?.message || e));
+      load(); // wróć do realnego stanu
+    }
+  }
 
     // optymistycznie usuń z UI od razu
     setItems((prev) => prev.filter((x) => `${x.kind}:${x.entity_id}:${x.id}` !== itemKey));
@@ -1088,24 +1106,6 @@ function RecentUpdatesPanel({
       ) : null}
     </div>
   );
-}
-async function markAllRead() {
-  if (items.length === 0) return;
-
-  // optymistycznie czyścimy UI
-  setItems([]);
-  setExpanded({});
-
-  try {
-    const res = await authFetch(`${API}/updates/read-all?limit=500`, {
-      method: "POST",
-    });
-    await readJsonOrThrow(res);
-  } catch (e) {
-    if (e?.status === 401) return onUnauthorized?.();
-    setErr(String(e?.message || e));
-    load(); // wróć do realnego stanu
-  }
 }
 
 /** ===== EDIT MODAL ===== */
