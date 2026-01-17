@@ -2618,7 +2618,7 @@ export default function App() {
   boundsOptions={{ padding: [20, 20] }}
   style={{ width: "100%", height: "100%" }}
   zoomControl={false}
-  minZoom={4}
+  minZoom={3}
   maxBounds={POLAND_BOUNDS}
   maxBoundsViscosity={0.7}
 >
