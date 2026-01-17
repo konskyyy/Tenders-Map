@@ -722,19 +722,35 @@ function RecentUpdatesPanel({
 
   useEffect(() => {
     try {
-      localStorage.setItem(readKey, JSON.stringify(readMap || {}));
     } catch {}
   }, [readKey, readMap]);
 
-  function markRead(u) {
-    const key = `${u.kind}:${u.entity_id}:comment:${u.id}`;
-    setReadMap((prev) => ({ ...(prev || {}), [key]: true }));
-    setItems((prev) =>
-      prev.filter(
-        (x) => !(x.id === u.id && x.kind === u.kind && x.entity_id === u.entity_id)
-      )
-    );
+  async function markRead(u) {
+  // optymistycznie usuń z UI od razu
+  setItems((prev) =>
+    prev.filter(
+      (x) => !(x.id === u.id && x.kind === u.kind && x.entity_id === u.entity_id)
+    )
+  );
+
+  try {
+    const res = await authFetch(`${API}/updates/read`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: u.kind,
+        entity_id: u.entity_id,
+        comment_id: u.id,
+      }),
+    });
+    await readJsonOrThrow(res);
+  } catch (e) {
+    if (e?.status === 401) return onUnauthorized?.();
+    // jak błąd → wrzuć komunikat i odśwież listę z serwera
+    setErr(String(e?.message || e));
+    load();
   }
+}
 
   function isRead(u) {
     const key = `${u.kind}:${u.entity_id}:comment:${u.id}`;
@@ -748,7 +764,6 @@ function RecentUpdatesPanel({
       const res = await authFetch(`${API}/updates/recent?limit=30`);
       const data = await readJsonOrThrow(res);
       const list = Array.isArray(data) ? data : [];
-      setItems(list.filter((x) => !isRead(x)));
     } catch (e) {
       if (e?.status === 401) return onUnauthorized?.();
       setErr(String(e?.message || e));
