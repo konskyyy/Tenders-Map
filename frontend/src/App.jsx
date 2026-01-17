@@ -479,7 +479,7 @@ function JournalPanel({
           });
         }}
         style={{
-          padding: "12px 14px",
+          padding: "10px 12px",
           cursor: "pointer",
           display: "flex",
           justifyContent: "space-between",
@@ -494,7 +494,7 @@ function JournalPanel({
       </div>
 
       {open ? (
-        <div style={{ padding: "10px 12px 12px", display: "grid", gap: 10 }}>
+        <div style={{ padding: "8px 10px 10px", display: "grid", gap: 8 }}>
           {err ? (
             <div
               style={{
@@ -512,12 +512,12 @@ function JournalPanel({
 
           <div style={{ display: "grid", gap: 8 }}>
             <textarea
-              rows={3}
+              rows={2}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Dodaj wpis do dziennika…"
               style={{
-                padding: 10,
+                padding: 9,
                 borderRadius: 12,
                 border: `1px solid ${BORDER}`,
                 background: "rgba(255,255,255,0.06)",
@@ -548,23 +548,31 @@ function JournalPanel({
           {items.length === 0 ? (
             <div style={{ fontSize: 12, color: MUTED }}>Brak wpisów dla tego projektu.</div>
           ) : (
-            <div style={{ display: "grid", gap: 10 }}>
-              {items.map((c) => {
-                const isMine = String(c.user_id) === String(user?.id);
-                const isEditing = String(editingId) === String(c.id);
+            <div
+  style={{
+    display: "grid",
+    gap: 10,
+    maxHeight: 340,        // ✅ tu możesz zmienić wysokość listy
+    overflow: "auto",
+    paddingRight: 4,
+  }}
+>
+  {items.map((c) => {
+    const isMine = String(c.user_id) === String(user?.id);
+    const isEditing = String(editingId) === String(c.id);
 
-                return (
-                  <div
-                    key={c.id}
-                    style={{
-                      borderRadius: 14,
-                      border: `1px solid ${BORDER}`,
-                      background: "rgba(255,255,255,0.05)",
-                      padding: 10,
-                      display: "grid",
-                      gap: 8,
-                    }}
-                  >
+    return (
+      <div
+        key={c.id}
+        style={{
+          borderRadius: 14,
+          border: `1px solid ${BORDER}`,
+          background: "rgba(255,255,255,0.05)",
+          padding: 10,
+          display: "grid",
+          gap: 8,
+        }}
+      >
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
                       <div style={{ fontSize: 12, color: MUTED }}>
                         <b style={{ color: "rgba(255,255,255,0.92)" }}>
@@ -624,7 +632,7 @@ function JournalPanel({
                     ) : (
                       <div style={{ display: "grid", gap: 8 }}>
                         <textarea
-                          rows={3}
+                          rows={2}
                           value={editingBody}
                           onChange={(e) => setEditingBody(e.target.value)}
                           style={{
