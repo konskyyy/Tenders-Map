@@ -20,3 +20,16 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- Indexes for recent updates feed
+create index if not exists point_comments_created_at_idx
+  on point_comments (created_at desc);
+
+create index if not exists tunnel_comments_created_at_idx
+  on tunnel_comments (created_at desc);
+
+create index if not exists point_comments_point_id_idx
+  on point_comments (point_id);
+
+create index if not exists tunnel_comments_tunnel_id_idx
+  on tunnel_comments (tunnel_id);
+
