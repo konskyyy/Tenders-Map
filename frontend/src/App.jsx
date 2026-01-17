@@ -1766,25 +1766,40 @@ export default function App() {
     padding: 10,
     borderRadius: 12,
     border: `1px solid ${BORDER}`,
-    background:
-      selectedPoint?.priority || selectedTunnel?.priority
-        ? "rgba(255,255,255,0.18)"
-        : "rgba(255,255,255,0.08)",
-    color: TEXT_LIGHT,
+    background: "rgba(255,255,255,0.08)",
     cursor: "pointer",
     fontWeight: 900,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+
+    // żeby ikona była idealnie wyśrodkowana
+    display: "grid",
+    placeItems: "center",
   }}
-  title="Oznacz jako ważne"
+  title={
+    selectedPoint?.priority || selectedTunnel?.priority
+      ? "Projekt oznaczony jako ważny"
+      : "Kliknij, aby oznaczyć jako ważne"
+  }
 >
-  <span style={{ fontSize: 16 }}>
-    {selectedPoint?.priority || selectedTunnel?.priority ? "❗" : "⭕"}
+  <span
+    style={{
+      fontSize: 18,
+      lineHeight: 1,
+
+      // ODWROTNIE: brak priorytetu = kolorowy wykrzyknik
+      color:
+        selectedPoint?.priority || selectedTunnel?.priority
+          ? "rgba(255,255,255,0.65)" // "bezbarwny"/neutralny
+          : "rgba(245,158,11,0.95)", // kolor (np. bursztyn)
+      textShadow:
+        selectedPoint?.priority || selectedTunnel?.priority
+          ? "none"
+          : "0 0 12px rgba(245,158,11,0.25)",
+    }}
+  >
+    ❗
   </span>
-  <span>Ważne</span>
 </button>
+
 
 
                     <button
