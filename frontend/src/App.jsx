@@ -1798,7 +1798,7 @@ export default function App() {
   </span>
 
   <span style={{ fontSize: 13, whiteSpace: "nowrap" }}>
-    Oznacz jako ważne
+    Ważne
   </span>
 </button>
 
