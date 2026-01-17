@@ -697,6 +697,8 @@ app.delete("/api/tunnels/:id/comments/:commentId", authRequired, async (req, res
  * Najnowsze wpisy z point_comments + tunnel_comments
  */
 /**
+ * 
+ * 
  * ===== UPDATES FEED =====
  * GET /api/updates/recent?limit=30
  * Zwraca tylko NIEPRZECZYTANE wpisy dla zalogowanego usera
@@ -758,6 +760,64 @@ app.get("/api/updates/recent", authRequired, async (req, res) => {
     res.json(q.rows);
   } catch (e) {
     console.error("GET UPDATES RECENT ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+
+/**
+ * POST /api/updates/read-all
+ * Oznacza wszystkie aktualnie "nieprzeczytane" wpisy jako przeczytane (dla zalogowanego usera)
+ */
+app.post("/api/updates/read-all", authRequired, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Limit bezpieczeństwa (żeby nie ładować tysięcy naraz)
+    const rawLimit = Number(req.query.limit);
+    const limit = Number.isFinite(rawLimit)
+      ? Math.max(1, Math.min(500, rawLimit))
+      : 300;
+
+    const sql = `
+      with feed as (
+        select
+          pc.id as comment_id,
+          'points'::text as kind,
+          pc.point_id as entity_id
+        from point_comments pc
+
+        union all
+
+        select
+          tc.id as comment_id,
+          'tunnels'::text as kind,
+          tc.tunnel_id as entity_id
+        from tunnel_comments tc
+      ),
+      unread as (
+        select f.*
+        from feed f
+        where not exists (
+          select 1
+          from updates_read ur
+          where ur.user_id = $1
+            and ur.kind = f.kind
+            and ur.entity_id = f.entity_id
+            and ur.comment_id = f.comment_id
+        )
+        limit $2
+      )
+      insert into updates_read (user_id, kind, entity_id, comment_id)
+      select $1, kind, entity_id, comment_id
+      from unread
+      on conflict (user_id, kind, entity_id, comment_id) do nothing
+      returning id;
+    `;
+
+    const q = await pool.query(sql, [userId, limit]);
+    res.json({ ok: true, inserted: q.rowCount });
+  } catch (e) {
+    console.error("POST UPDATES READ-ALL ERROR:", e);
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
