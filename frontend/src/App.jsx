@@ -716,7 +716,7 @@ function RecentUpdatesPanel({
   GLASS_SHADOW,
   onUnauthorized,
   onJumpToProject,
-  updatesTick, // ✅ NEW: refresh trigger
+  updatesTick, // refresh trigger
 }) {
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -766,6 +766,7 @@ function RecentUpdatesPanel({
   }
 
   useEffect(() => {
+    if (!user?.id) return;
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, updatesTick]);
@@ -789,64 +790,100 @@ function RecentUpdatesPanel({
         backdropFilter: "blur(8px)",
       }}
     >
+      {/* HEADER */}
       <div
-        onClick={() => setOpen((o) => !o)}
         style={{
-          padding: "12px 14px",
-          cursor: "pointer",
+          padding: "10px 12px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          gap: 10,
           fontWeight: 900,
           background: "rgba(0,0,0,0.10)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-  <span>Najnowsze aktualizacje</span>
+        <button
+          onClick={() => setOpen((o) => !o)}
+          style={{
+            all: "unset",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            minWidth: 0,
+          }}
+          title={open ? "Zwiń" : "Rozwiń"}
+        >
+          <span style={{ whiteSpace: "nowrap" }}>Najnowsze aktualizacje</span>
 
-  {items.length > 0 ? (
-    <span
-      style={{
-        minWidth: 26,
-        height: 22,
-        padding: "0 8px",
-        borderRadius: 999,
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 12,
-        fontWeight: 900,
-        color: "rgba(255,255,255,0.92)",
-        background: "rgba(239,68,68,0.22)",
-        border: "1px solid rgba(239,68,68,0.55)",
-        boxShadow: "0 0 18px rgba(239,68,68,0.15)",
-      }}
-      title="Liczba nieprzeczytanych aktualizacji"
-    >
-      {items.length}
-    </span>
-  ) : null}
-</div>
-
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              onClick={load}
-              disabled={loading}
+          {items.length > 0 ? (
+            <span
               style={{
-                padding: "10px 12px",
-                borderRadius: 12,
-                border: `1px solid ${BORDER}`,
-                background: "rgba(255,255,255,0.06)",
-                color: TEXT_LIGHT,
-                cursor: loading ? "default" : "pointer",
+                minWidth: 26,
+                height: 22,
+                padding: "0 8px",
+                borderRadius: 999,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 12,
                 fontWeight: 900,
+                color: "rgba(255,255,255,0.92)",
+                background: "rgba(239,68,68,0.22)",
+                border: "1px solid rgba(239,68,68,0.55)",
+                boxShadow: "0 0 18px rgba(239,68,68,0.15)",
+                flexShrink: 0,
+              }}
+              title="Liczba nieprzeczytanych aktualizacji"
+            >
+              {items.length}
+            </span>
+          ) : null}
+
+          <span style={{ fontSize: 12, color: MUTED, marginLeft: 2, flexShrink: 0 }}>
+            {loading ? "Ładuję..." : open ? "▾" : "▸"}
+          </span>
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); // ważne: nie zwijaj panelu
+            load();
+          }}
+          disabled={loading}
+          style={{
+            padding: "10px 12px",
+            borderRadius: 12,
+            border: `1px solid ${BORDER}`,
+            background: "rgba(255,255,255,0.06)",
+            color: TEXT_LIGHT,
+            cursor: loading ? "default" : "pointer",
+            fontWeight: 900,
+            fontSize: 12,
+            flexShrink: 0,
+          }}
+        >
+          {loading ? "Odświeżam..." : "Odśwież"}
+        </button>
+      </div>
+
+      {/* BODY */}
+      {open ? (
+        <div style={{ padding: 12, display: "grid", gap: 10 }}>
+          {err ? (
+            <div
+              style={{
+                padding: 10,
+                borderRadius: 14,
+                border: "1px solid rgba(255,120,120,0.45)",
+                background: "rgba(255,120,120,0.12)",
+                color: "rgba(255,255,255,0.95)",
                 fontSize: 12,
               }}
             >
-              {loading ? "Odświeżam..." : "Odśwież"}
-            </button>
-            <div style={{ flex: 1 }} />
-          </div>
+              {err}
+            </div>
+          ) : null}
 
           {items.length === 0 ? (
             <div style={{ fontSize: 12, color: MUTED }}>Brak nowych aktualizacji 🎉</div>
@@ -874,7 +911,10 @@ function RecentUpdatesPanel({
                   }}
                 >
                   <button
-                    onClick={() => markRead(u)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      markRead(u);
+                    }}
                     title="Oznacz jako przeczytane"
                     style={{
                       position: "absolute",
@@ -917,7 +957,10 @@ function RecentUpdatesPanel({
                   </div>
 
                   <button
-                    onClick={() => onJumpToProject?.(u.kind, u.entity_id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onJumpToProject?.(u.kind, u.entity_id);
+                    }}
                     style={{
                       justifySelf: "start",
                       padding: "8px 10px",
