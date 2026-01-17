@@ -52,3 +52,9 @@ body {
   filter: saturate(0.9);
   opacity: 0.92;
 }
+@keyframes pulseBadge {
+  0%   { transform: scale(1);   opacity: 1; }
+  50%  { transform: scale(1.08); opacity: 0.85; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+

@@ -718,7 +718,7 @@ function RecentUpdatesPanel({
   onJumpToProject,
   updatesTick, // refresh trigger
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [items, setItems] = useState([]);
@@ -776,8 +776,9 @@ function RecentUpdatesPanel({
       style={{
         position: "absolute",
         left: 12,
-        right: 12,
         bottom: 12,
+        width: "min(720px, calc(100% - 420px))",
+        maxWidth: "52vw",
         zIndex: 1700,
         borderRadius: 16,
         border: `1px solid ${BORDER}`,
@@ -814,36 +815,51 @@ function RecentUpdatesPanel({
           }}
           title={open ? "Zwiń" : "Rozwiń"}
         >
-          <span style={{ whiteSpace: "nowrap" }}>Najnowsze aktualizacje</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+  <span>Najnowsze aktualizacje</span>
 
-          {items.length > 0 ? (
-            <span
-              style={{
-                minWidth: 26,
-                height: 22,
-                padding: "0 8px",
-                borderRadius: 999,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 12,
-                fontWeight: 900,
-                color: "rgba(255,255,255,0.92)",
-                background: "rgba(239,68,68,0.22)",
-                border: "1px solid rgba(239,68,68,0.55)",
-                boxShadow: "0 0 18px rgba(239,68,68,0.15)",
-                flexShrink: 0,
-              }}
-              title="Liczba nieprzeczytanych aktualizacji"
-            >
-              {items.length}
-            </span>
-          ) : null}
+  {items.length > 0 ? (
+    <span
+      style={{
+        minWidth: 26,
+        height: 22,
+        padding: "0 8px",
+        borderRadius: 999,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 12,
+        fontWeight: 900,
+        color: "rgba(255,255,255,0.92)",
+        background: "rgba(239,68,68,0.22)",
+        border: "1px solid rgba(239,68,68,0.55)",
+        boxShadow: "0 0 18px rgba(239,68,68,0.15)",
+        animation: items.length > 0
+          ? "pulseBadge 1.25s ease-in-out infinite"
+          : "none",
+      }}
+      title="Liczba nieprzeczytanych aktualizacji"
+    >
+      {items.length}
+    </span>
+  ) : null}
 
-          <span style={{ fontSize: 12, color: MUTED, marginLeft: 2, flexShrink: 0 }}>
-            {loading ? "Ładuję..." : open ? "▾" : "▸"}
-          </span>
-        </button>
+  {/* 🔽 DOPISEK */}
+  {!open ? (
+    <span
+      style={{
+        fontSize: 12,
+        color: MUTED,
+        fontWeight: 700,
+        marginLeft: 4,
+        whiteSpace: "nowrap",
+      }}
+    >
+      Rozwiń, żeby zobaczyć więcej
+    </span>
+  ) : null}
+</div>
+
 
         <button
           onClick={(e) => {
@@ -2594,11 +2610,15 @@ export default function App() {
         </div>
 
         <MapContainer
-          bounds={POLAND_BOUNDS}
-          boundsOptions={{ padding: [20, 20] }}
-          style={{ width: "100%", height: "100%" }}
-          zoomControl={false}
-        >
+  bounds={POLAND_BOUNDS}
+  boundsOptions={{ padding: [20, 20] }}
+  style={{ width: "100%", height: "100%" }}
+  zoomControl={false}
+  minZoom={4}
+  maxBounds={POLAND_BOUNDS}
+  maxBoundsViscosity={0.7}
+>
+
           <MapRefSetter
             onReady={(map) => {
               mapRef.current = map;
