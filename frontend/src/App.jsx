@@ -941,11 +941,11 @@ export default function App() {
   function byPriorityThenIdDesc(a, b) {
   const ap = a?.priority ? 1 : 0;
   const bp = b?.priority ? 1 : 0;
-  if (bp !== ap) return bp - ap; // priority=true na górze
-  return Number(b.id) - Number(a.id); // potem po id malejąco
+  if (bp !== ap) return bp - ap;
+  return Number(b.id) - Number(a.id);
 }
 
-  const filteredPoints = useMemo(() => {
+  const filtredPoints = useMemo(() => {
   return points
     .filter((p) => visibleStatus[p.status || "planowany"] !== false)
     .slice()
@@ -2251,8 +2251,8 @@ async function toggleTunnelPriority(t) {
                 <Popup>
                   <div style={{ minWidth: 220 }}>
                     <div style={{ fontWeight: 900, marginBottom: 4 }}>
-                      {t.name || `Tunel #${t.id}`}
-                    </div>
+  {t.priority ? "⭐ " : ""}{t.name || `Tunel #${t.id}`}
+</div>
 
                     <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
                       Status: <b>{statusLabel(t.status)}</b>
