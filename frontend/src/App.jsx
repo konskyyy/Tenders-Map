@@ -722,6 +722,7 @@ function RecentUpdatesPanel({
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [items, setItems] = useState([]);
+  const [expanded, setExpanded] = useState({}); // ✅ show more per item
 
   async function load() {
     setLoading(true);
@@ -740,12 +741,15 @@ function RecentUpdatesPanel({
   }
 
   async function markRead(u) {
+    const itemKey = `${u.kind}:${u.entity_id}:${u.id}`;
+
     // optymistycznie usuń z UI od razu
-    setItems((prev) =>
-      prev.filter(
-        (x) => !(x.id === u.id && x.kind === u.kind && x.entity_id === u.entity_id)
-      )
-    );
+    setItems((prev) => prev.filter((x) => `${x.kind}:${x.entity_id}:${x.id}` !== itemKey));
+    setExpanded((prev) => {
+      const next = { ...(prev || {}) };
+      delete next[itemKey];
+      return next;
+    });
 
     try {
       const res = await authFetch(`${API}/updates/read`, {
@@ -771,14 +775,17 @@ function RecentUpdatesPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, updatesTick]);
 
-   return (
+  return (
     <div
       style={{
         position: "absolute",
         left: 12,
         bottom: 12,
-        width: "min(720px, calc(100% - 420px))",
+
+        // ✅ węższy panel żeby nie zasłaniał dziennika
+        width: "min(760px, calc(100% - 420px))",
         maxWidth: "52vw",
+
         zIndex: 1700,
         borderRadius: 16,
         border: `1px solid ${BORDER}`,
@@ -835,8 +842,7 @@ function RecentUpdatesPanel({
                 background: "rgba(239,68,68,0.22)",
                 border: "1px solid rgba(239,68,68,0.55)",
                 boxShadow: "0 0 18px rgba(239,68,68,0.15)",
-                animation:
-                  items.length > 0 ? "pulseBadge 1.25s ease-in-out infinite" : "none",
+                animation: items.length > 0 ? "pulseBadge 1.25s ease-in-out infinite" : "none",
                 flexShrink: 0,
               }}
               title="Liczba nieprzeczytanych aktualizacji"
@@ -907,30 +913,36 @@ function RecentUpdatesPanel({
           {items.length === 0 ? (
             <div style={{ fontSize: 12, color: MUTED }}>Brak nowych aktualizacji 🎉</div>
           ) : (
-           <div
-  style={{
-    maxHeight: 260,
-    overflow: "auto",
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-    gap: 10,
-    paddingRight: 4,
-  }}
->
-              {items.map((u) => (
-                <div
-                  key={`${u.kind}:${u.entity_id}:${u.id}`}
-                  style={{
-                    borderRadius: 14,
-                    border: `1px solid ${BORDER}`,
-                    background: "rgba(255,255,255,0.05)",
-                    padding: 10,
-                    position: "relative",
-                    display: "grid",
-                    gap: 6,
-                  }}
-                >
-                  <button
+            <div
+              style={{
+                maxHeight: 280,
+                overflow: "auto",
+                display: "grid",
+                // ✅ 2 kolumny gdy się zmieści, inaczej 1
+                gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                gap: 10,
+                paddingRight: 4,
+              }}
+            >
+              {items.map((u) => {
+                const itemKey = `${u.kind}:${u.entity_id}:${u.id}`;
+                const isExpanded = !!expanded[itemKey];
+
+                return (
+                  <div
+                    key={itemKey}
+                    style={{
+                      borderRadius: 14,
+                      border: `1px solid ${BORDER}`,
+                      background: "rgba(255,255,255,0.05)",
+                      padding: 10,
+                      position: "relative",
+                      display: "grid",
+                      gap: 8,
+                    }}
+                  >
+                    {/* ✅ TICK (idealnie wyśrodkowany SVG) */}
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
                         markRead(u);
@@ -948,66 +960,110 @@ function RecentUpdatesPanel({
                         background: "rgba(255,255,255,0.08)",
                         color: "rgba(255,255,255,0.85)",
                         cursor: "pointer",
-                        fontSize: 18,
-                        fontWeight: 900,
-                        display: "grid",
-                        placeItems: "center",
-                        lineHeight: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 0,
+                        lineHeight: 0,
                       }}
                     >
-                      ✓
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        style={{ display: "block" }}
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M20 6L9 17l-5-5"
+                          stroke="currentColor"
+                          strokeWidth="2.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     </button>
 
+                    <div style={{ fontSize: 12, color: MUTED, paddingRight: 44 }}>
+                      <b style={{ color: "rgba(255,255,255,0.92)" }}>
+                        {u.entity_title || `${u.kind} #${u.entity_id}`}
+                      </b>{" "}
+                      • {u.user_email || "użytkownik"} • {formatDateTimePL(u.created_at)}
+                      {u.edited ? (
+                        <span style={{ marginLeft: 6, opacity: 0.8 }}>(edytowano)</span>
+                      ) : null}
+                    </div>
 
-                  <div style={{ fontSize: 12, color: MUTED, paddingRight: 40 }}>
-                    <b style={{ color: "rgba(255,255,255,0.92)" }}>
-                      {u.entity_title || `${u.kind} #${u.entity_id}`}
-                    </b>{" "}
-                    • {u.user_email || "użytkownik"} • {formatDateTimePL(u.created_at)}
-                    {u.edited ? (
-                      <span style={{ marginLeft: 6, opacity: 0.8 }}>(edytowano)</span>
-                    ) : null}
+                    {/* ✅ BODY: skrót 3 linie + rozwijanie */}
+                    <div
+                      style={{
+                        whiteSpace: "pre-wrap",
+                        paddingRight: 44,
+                        fontSize: 13,
+                        lineHeight: 1.35,
+                        ...(isExpanded
+                          ? {}
+                          : {
+                              display: "-webkit-box",
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                            }),
+                      }}
+                    >
+                      {u.body}
+                    </div>
+
+                    {/* ✅ buttons row */}
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onJumpToProject?.(u.kind, u.entity_id);
+                        }}
+                        style={{
+                          padding: "8px 10px",
+                          borderRadius: 12,
+                          border: `1px solid ${BORDER}`,
+                          background: "rgba(255,255,255,0.06)",
+                          color: TEXT_LIGHT,
+                          cursor: "pointer",
+                          fontWeight: 900,
+                          fontSize: 12,
+                        }}
+                      >
+                        Pokaż na mapie
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpanded((prev) => ({ ...(prev || {}), [itemKey]: !prev?.[itemKey] }));
+                        }}
+                        style={{
+                          padding: "8px 10px",
+                          borderRadius: 12,
+                          border: `1px solid ${BORDER}`,
+                          background: "rgba(255,255,255,0.05)",
+                          color: TEXT_LIGHT,
+                          cursor: "pointer",
+                          fontWeight: 900,
+                          fontSize: 12,
+                        }}
+                      >
+                        {isExpanded ? "Zwiń" : "Pokaż więcej"}
+                      </button>
+                    </div>
                   </div>
-
-                  <div
-                    style={{
-                      whiteSpace: "pre-wrap",
-                      paddingRight: 40,
-                      fontSize: 13,
-                      lineHeight: 1.35,
-                    }}
-                  >
-                    {u.body}
-                  </div>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onJumpToProject?.(u.kind, u.entity_id);
-                    }}
-                    style={{
-                      justifySelf: "start",
-                      padding: "8px 10px",
-                      borderRadius: 12,
-                      border: `1px solid ${BORDER}`,
-                      background: "rgba(255,255,255,0.06)",
-                      color: TEXT_LIGHT,
-                      cursor: "pointer",
-                      fontWeight: 900,
-                      fontSize: 12,
-                    }}
-                  >
-                    Pokaż na mapie
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       ) : null}
     </div>
   );
-
 }
 
 /** ===== EDIT MODAL ===== */
