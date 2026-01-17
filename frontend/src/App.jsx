@@ -1552,11 +1552,11 @@ export default function App() {
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [addMode, setAddMode] = useState("none"); // none | point | tunnel
   const [visibleStatus, setVisibleStatus] = useState({
-    planowany: true,
-    przetarg: true,
-    realizacja: true,
-    nieaktualny: true,
-  });
+  planowany: true,
+  przetarg: false,     // ✅ domyślnie OFF
+  realizacja: true,
+  nieaktualny: false,  // ✅ domyślnie OFF
+});
 
   /** ===== EDIT ===== */
   const [editOpen, setEditOpen] = useState(false);
@@ -2646,50 +2646,95 @@ export default function App() {
             </div>
 
             {filtersOpen ? (
-              <div style={{ padding: "8px 12px 12px", display: "grid", gap: 10 }}>
-                {STATUSES.map((s) => (
-                  <label
-                    key={s.key}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      cursor: "pointer",
-                      opacity: visibleStatus[s.key] ? 1 : 0.5,
-                      userSelect: "none",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={visibleStatus[s.key]}
-                      onChange={() => toggleStatus(s.key)}
-                    />
-                    <span style={{ width: 10, height: 10, borderRadius: 999, background: s.color }} />
-                    <span style={{ flex: 1, fontWeight: 800 }}>{s.label}</span>
-                    <span style={{ fontSize: 12, color: MUTED }}>{counts[s.key] ?? 0}</span>
-                  </label>
-                ))}
+  <div style={{ padding: "8px 12px 12px", display: "grid", gap: 10 }}>
+    {/* ✅ 2 kolumny */}
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 8,
+      }}
+    >
+      {STATUSES.map((s) => (
+        <label
+          key={s.key}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            cursor: "pointer",
+            opacity: visibleStatus[s.key] ? 1 : 0.55,
+            userSelect: "none",
+            padding: "8px 10px",
+            borderRadius: 12,
+            border: `1px solid ${BORDER}`,
+            background: "rgba(255,255,255,0.04)",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={visibleStatus[s.key]}
+            onChange={() => toggleStatus(s.key)}
+            style={{ transform: "scale(0.95)" }}
+          />
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 999,
+              background: s.color,
+              flexShrink: 0,
+            }}
+          />
+          <span style={{ fontWeight: 800, fontSize: 12, lineHeight: 1.1 }}>
+            {s.label}
+          </span>
+          <span style={{ marginLeft: "auto", fontSize: 12, color: MUTED }}>
+            {counts[s.key] ?? 0}
+          </span>
+        </label>
+      ))}
+    </div>
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 8,
-                    marginTop: 2,
-                  }}
-                >
-                  <button onClick={showAllStatuses} style={miniBtnStyle}>
-                    Pokaż
-                  </button>
-                  <button
-                    onClick={hideAllStatuses}
-                    style={{ ...miniBtnStyle, background: "rgba(255,255,255,0.05)" }}
-                  >
-                    Ukryj
-                  </button>
-                </div>
-              </div>
-            ) : null}
+    {/* ✅ mniejsze Pokaż/Ukryj */}
+    <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+      <button
+        onClick={showAllStatuses}
+        style={{
+          padding: "8px 10px",
+          borderRadius: 10,
+          border: `1px solid ${BORDER}`,
+          background: "rgba(255,255,255,0.08)",
+          color: TEXT_LIGHT,
+          cursor: "pointer",
+          fontWeight: 800,
+          fontSize: 12,
+          lineHeight: 1,
+        }}
+      >
+        Pokaż
+      </button>
+
+      <button
+        onClick={hideAllStatuses}
+        style={{
+          padding: "8px 10px",
+          borderRadius: 10,
+          border: `1px solid ${BORDER}`,
+          background: "rgba(255,255,255,0.05)",
+          color: TEXT_LIGHT,
+          cursor: "pointer",
+          fontWeight: 800,
+          fontSize: 12,
+          lineHeight: 1,
+        }}
+      >
+        Ukryj
+      </button>
+    </div>
+  </div>
+) : null}
+
           </div>
 
           {/* DZIENNIK */}
