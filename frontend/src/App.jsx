@@ -176,9 +176,9 @@ function formatDateTimePL(iso) {
 /** ===== CHANCE RING ===== */
 function ringColor(pct) {
   const v = Math.max(0, Math.min(100, Number(pct) || 0));
-  if (v >= 80) return "rgba(34,197,94,0.95)";   // zielony
-  if (v >= 60) return "rgba(245,158,11,0.95)";  // żółty
-  return "rgba(239,68,68,0.95)";                // czerwony
+  if (v >= 80) return "rgba(34,197,94,0.95)"; // zielony
+  if (v >= 60) return "rgba(245,158,11,0.95)"; // żółty
+  return "rgba(239,68,68,0.95)"; // czerwony
 }
 
 function ChanceRing({ value = 50, size = 44, tooltip = "" }) {
@@ -291,6 +291,7 @@ function JournalPanel({
   GLASS_BG,
   GLASS_SHADOW,
   onCountsChange,
+  onUnauthorized,
 }) {
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -315,6 +316,7 @@ function JournalPanel({
       setItems(next);
       onCountsChange?.(kind, entityId, next.length);
     } catch (e) {
+      if (e?.status === 401) return onUnauthorized?.();
       setErr(String(e?.message || e));
     } finally {
       setLoading(false);
@@ -349,6 +351,7 @@ function JournalPanel({
         return next;
       });
     } catch (e) {
+      if (e?.status === 401) return onUnauthorized?.();
       setErr(String(e?.message || e));
     } finally {
       setBusyActionId(null);
@@ -376,6 +379,7 @@ function JournalPanel({
       setEditingId(null);
       setEditingBody("");
     } catch (e) {
+      if (e?.status === 401) return onUnauthorized?.();
       setErr(String(e?.message || e));
     } finally {
       setBusyActionId(null);
@@ -406,6 +410,7 @@ function JournalPanel({
         setEditingBody("");
       }
     } catch (e) {
+      if (e?.status === 401) return onUnauthorized?.();
       setErr(String(e?.message || e));
     } finally {
       setBusyActionId(null);
@@ -2167,7 +2172,14 @@ export default function App() {
                   </label>
                 ))}
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 2 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 8,
+                    marginTop: 2,
+                  }}
+                >
                   <button onClick={showAllStatuses} style={miniBtnStyle}>
                     Pokaż
                   </button>
@@ -2196,6 +2208,7 @@ export default function App() {
             GLASS_BG={GLASS_BG}
             GLASS_SHADOW={GLASS_SHADOW}
             onCountsChange={handleCountsChange}
+            onUnauthorized={() => logout("expired")}
           />
         </div>
 
@@ -2211,7 +2224,10 @@ export default function App() {
             }}
           />
           <ZoomControl position="bottomright" />
-          <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <TileLayer
+            attribution="&copy; OpenStreetMap contributors"
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
 
           {worldMask ? (
             <GeoJSON
@@ -2308,16 +2324,15 @@ export default function App() {
                       </div>
 
                       <ChanceRing
-  value={projectChance({
-    acquired: isAcquired("tunnels", t.id),
-    journalCount: journalCounts.tunnels?.[t.id] || 0,
-  })}
-  tooltip={chanceTooltip({
-    acquired: isAcquired("tunnels", t.id),
-    journalCount: journalCounts.tunnels?.[t.id] || 0,
-  })}
-/>
-
+                        value={projectChance({
+                          acquired: isAcquired("tunnels", t.id),
+                          journalCount: journalCounts.tunnels?.[t.id] || 0,
+                        })}
+                        tooltip={chanceTooltip({
+                          acquired: isAcquired("tunnels", t.id),
+                          journalCount: journalCounts.tunnels?.[t.id] || 0,
+                        })}
+                      />
                     </div>
 
                     <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
@@ -2392,20 +2407,23 @@ export default function App() {
 
                         <div style={{ fontSize: 12, color: MUTED }}>
                           Status:{" "}
-                          <b style={{ color: "rgba(255,255,255,0.92)" }}>{statusLabel(pt.status)}</b>
+                          <b style={{ color: "rgba(255,255,255,0.92)" }}>
+                            {statusLabel(pt.status)}
+                          </b>
                         </div>
                       </div>
 
+                      {/* ✅ FIX: punkty liczą szansę z points + pt.id */}
                       <ChanceRing
-  value={projectChance({
-    acquired: isAcquired("tunnels", t.id),
-    journalCount: journalCounts.tunnels?.[t.id] || 0,
-  })}
-  tooltip={chanceTooltip({
-    acquired: isAcquired("tunnels", t.id),
-    journalCount: journalCounts.tunnels?.[t.id] || 0,
-  })}
-/>
+                        value={projectChance({
+                          acquired: isAcquired("points", pt.id),
+                          journalCount: journalCounts.points?.[pt.id] || 0,
+                        })}
+                        tooltip={chanceTooltip({
+                          acquired: isAcquired("points", pt.id),
+                          journalCount: journalCounts.points?.[pt.id] || 0,
+                        })}
+                      />
                     </div>
 
                     <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
