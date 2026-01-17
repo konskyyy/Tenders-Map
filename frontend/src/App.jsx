@@ -174,12 +174,21 @@ function formatDateTimePL(iso) {
 }
 
 /** ===== CHANCE RING ===== */
+function ringColor(pct) {
+  const v = Math.max(0, Math.min(100, Number(pct) || 0));
+  if (v >= 80) return "rgba(34,197,94,0.95)";   // zielony
+  if (v >= 60) return "rgba(245,158,11,0.95)";  // żółty
+  return "rgba(239,68,68,0.95)";                // czerwony
+}
+
 function ChanceRing({ value = 50, size = 44 }) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
   const stroke = 5;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const dash = (v / 100) * c;
+
+  const col = ringColor(v);
 
   return (
     <div style={{ width: size, height: size, position: "relative", flexShrink: 0 }}>
@@ -196,7 +205,7 @@ function ChanceRing({ value = 50, size = 44 }) {
           cx={size / 2}
           cy={size / 2}
           r={r}
-          stroke="rgba(255,255,255,0.85)"
+          stroke={col}
           strokeWidth={stroke}
           fill="transparent"
           strokeLinecap="round"
@@ -221,6 +230,7 @@ function ChanceRing({ value = 50, size = 44 }) {
     </div>
   );
 }
+
 
 function chanceFromJournalCount(count) {
   const n = Math.max(0, Number(count) || 0);
