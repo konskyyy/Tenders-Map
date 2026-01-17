@@ -696,6 +696,11 @@ app.delete("/api/tunnels/:id/comments/:commentId", authRequired, async (req, res
  * GET /api/updates/recent?limit=30
  * Najnowsze wpisy z point_comments + tunnel_comments
  */
+/**
+ * ===== UPDATES FEED =====
+ * GET /api/updates/recent?limit=30
+ * Zwraca tylko NIEPRZECZYTANE wpisy dla zalogowanego usera
+ */
 app.get("/api/updates/recent", authRequired, async (req, res) => {
   try {
     const rawLimit = Number(req.query.limit);
@@ -703,43 +708,93 @@ app.get("/api/updates/recent", authRequired, async (req, res) => {
       ? Math.max(1, Math.min(100, rawLimit))
       : 30;
 
+    const userId = Number(req.user.id);
+
     const sql = `
-      select
-        pc.id as id,
-        'points'::text as kind,
-        pc.point_id as entity_id,
-        p.title as entity_title,
-        pc.user_id,
-        pc.user_email,
-        pc.body,
-        pc.created_at,
-        pc.edited
-      from point_comments pc
-      join points p on p.id = pc.point_id
+      with u as (
+        select
+          pc.id as id,
+          'points'::text as kind,
+          pc.point_id as entity_id,
+          p.title as entity_title,
+          pc.user_id,
+          pc.user_email,
+          pc.body,
+          pc.created_at,
+          pc.edited
+        from point_comments pc
+        join points p on p.id = pc.point_id
 
-      union all
+        union all
 
-      select
-        tc.id as id,
-        'tunnels'::text as kind,
-        tc.tunnel_id as entity_id,
-        t.name as entity_title,
-        tc.user_id,
-        tc.user_email,
-        tc.body,
-        tc.created_at,
-        tc.edited
-      from tunnel_comments tc
-      join tunnels t on t.id = tc.tunnel_id
-
-      order by created_at desc
+        select
+          tc.id as id,
+          'tunnels'::text as kind,
+          tc.tunnel_id as entity_id,
+          t.name as entity_title,
+          tc.user_id,
+          tc.user_email,
+          tc.body,
+          tc.created_at,
+          tc.edited
+        from tunnel_comments tc
+        join tunnels t on t.id = tc.tunnel_id
+      )
+      select u.*
+      from u
+      left join read_updates ru
+        on ru.user_id = $2
+       and ru.kind = u.kind
+       and ru.entity_id = u.entity_id
+       and ru.comment_id = u.id
+      where ru.id is null
+      order by u.created_at desc
       limit $1;
     `;
 
-    const q = await pool.query(sql, [limit]);
+    const q = await pool.query(sql, [limit, userId]);
     res.json(q.rows);
   } catch (e) {
     console.error("GET UPDATES RECENT ERROR:", e);
+    res.status(500).json({ error: "DB error", details: String(e) });
+  }
+});
+/**
+ * POST /api/updates/read
+ * body: { kind: "points"|"tunnels", entity_id: number, comment_id: number }
+ * Zapisuje "przeczytane" w DB (idempotentne: ON CONFLICT)
+ */
+app.post("/api/updates/read", authRequired, async (req, res) => {
+  try {
+    const kind = String(req.body?.kind || "").trim();
+    const entityId = Number(req.body?.entity_id);
+    const commentId = Number(req.body?.comment_id);
+    const userId = Number(req.user.id);
+
+    if (kind !== "points" && kind !== "tunnels") {
+      return res.status(400).json({ error: "kind musi być 'points' albo 'tunnels'" });
+    }
+    if (!Number.isFinite(entityId) || entityId <= 0) {
+      return res.status(400).json({ error: "entity_id musi być liczbą" });
+    }
+    if (!Number.isFinite(commentId) || commentId <= 0) {
+      return res.status(400).json({ error: "comment_id musi być liczbą" });
+    }
+
+    const q = await pool.query(
+      `
+      insert into read_updates (user_id, kind, entity_id, comment_id, read_at)
+      values ($1, $2, $3, $4, now())
+      on conflict (user_id, kind, entity_id, comment_id)
+      do update set read_at = now()
+      returning id, read_at;
+      `,
+      [userId, kind, entityId, commentId]
+    );
+
+    res.json({ ok: true, ...q.rows[0] });
+  } catch (e) {
+    console.error("POST UPDATES READ ERROR:", e);
     res.status(500).json({ error: "DB error", details: String(e) });
   }
 });
