@@ -801,6 +801,64 @@ function EditProjectModal({
     </div>
   );
 }
+function ChanceRing({ value = 50, size = 44 }) {
+  const v = Math.max(0, Math.min(100, Number(value) || 0));
+  const stroke = 5;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const dash = (v / 100) * c;
+
+  return (
+    <div style={{ width: size, height: size, position: "relative", flexShrink: 0 }}>
+      <svg width={size} height={size}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="rgba(255,255,255,0.18)"
+          strokeWidth={stroke}
+          fill="transparent"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="rgba(255,255,255,0.85)"
+          strokeWidth={stroke}
+          fill="transparent"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${c - dash}`}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </svg>
+
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "grid",
+          placeItems: "center",
+          fontWeight: 900,
+          fontSize: 12,
+          color: "rgba(255,255,255,0.92)",
+        }}
+      >
+        {v}%
+      </div>
+    </div>
+  );
+}
+
+function chanceFromJournalCount(count) {
+  const n = Math.max(0, Number(count) || 0);
+  // 0 wpisów = 50%, 1=60, 2=70, 3=80, 4+=90
+  return Math.min(90, 50 + Math.min(4, n) * 10);
+}
+
+function projectChance({ acquired, journalCount }) {
+  if (acquired) return 100;
+  return chanceFromJournalCount(journalCount);
+}
 
 export default function App() {
   /** ===== Leaflet Draw FIX (L is not defined) ===== */
