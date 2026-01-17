@@ -694,6 +694,232 @@ function JournalPanel({
     </div>
   );
 }
+function RecentUpdatesPanel({
+  user,
+  authFetch,
+  API,
+  BORDER,
+  MUTED,
+  TEXT_LIGHT,
+  GLASS_BG,
+  GLASS_SHADOW,
+  onUnauthorized,
+  onJumpToProject,
+}) {
+  const [open, setOpen] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [items, setItems] = useState([]);
+
+  const readKey = user?.id ? `readUpdates:${user.id}` : "readUpdates:anon";
+  const [readMap, setReadMap] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(readKey) || "{}") || {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(readKey, JSON.stringify(readMap || {}));
+    } catch {}
+  }, [readKey, readMap]);
+
+  function markRead(u) {
+    const key = `${u.kind}:${u.entity_id}:comment:${u.id}`;
+    setReadMap((prev) => ({ ...(prev || {}), [key]: true }));
+    setItems((prev) =>
+      prev.filter(
+        (x) => !(x.id === u.id && x.kind === u.kind && x.entity_id === u.entity_id)
+      )
+    );
+  }
+
+  function isRead(u) {
+    const key = `${u.kind}:${u.entity_id}:comment:${u.id}`;
+    return readMap?.[key] === true;
+  }
+
+  async function load() {
+    setLoading(true);
+    setErr("");
+    try {
+      const res = await authFetch(`${API}/updates/recent?limit=30`);
+      const data = await readJsonOrThrow(res);
+      const list = Array.isArray(data) ? data : [];
+      setItems(list.filter((x) => !isRead(x)));
+    } catch (e) {
+      if (e?.status === 401) return onUnauthorized?.();
+      setErr(String(e?.message || e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: 12,
+        right: 12,
+        bottom: 12,
+        zIndex: 1700,
+        borderRadius: 16,
+        border: `1px solid ${BORDER}`,
+        background: GLASS_BG,
+        backgroundImage:
+          "radial-gradient(700px 420px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
+        color: TEXT_LIGHT,
+        boxShadow: GLASS_SHADOW,
+        overflow: "hidden",
+        backdropFilter: "blur(8px)",
+      }}
+    >
+      <div
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          padding: "12px 14px",
+          cursor: "pointer",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontWeight: 900,
+          background: "rgba(0,0,0,0.10)",
+        }}
+      >
+        <span>Najnowsze aktualizacje</span>
+        <span style={{ fontSize: 12, color: MUTED }}>
+          {loading ? "Ładuję..." : `${items.length} nowości`} {open ? "▾" : "▸"}
+        </span>
+      </div>
+
+      {open ? (
+        <div style={{ padding: 12, display: "grid", gap: 10 }}>
+          {err ? (
+            <div
+              style={{
+                padding: 10,
+                borderRadius: 14,
+                border: "1px solid rgba(255,120,120,0.45)",
+                background: "rgba(255,120,120,0.12)",
+                color: "rgba(255,255,255,0.95)",
+                fontSize: 12,
+              }}
+            >
+              {err}
+            </div>
+          ) : null}
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={load}
+              disabled={loading}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                background: "rgba(255,255,255,0.06)",
+                color: TEXT_LIGHT,
+                cursor: loading ? "default" : "pointer",
+                fontWeight: 900,
+                fontSize: 12,
+              }}
+            >
+              {loading ? "Odświeżam..." : "Odśwież"}
+            </button>
+            <div style={{ flex: 1 }} />
+          </div>
+
+          {items.length === 0 ? (
+            <div style={{ fontSize: 12, color: MUTED }}>Brak nowych aktualizacji 🎉</div>
+          ) : (
+            <div
+              style={{
+                maxHeight: 220,
+                overflow: "auto",
+                display: "grid",
+                gap: 10,
+                paddingRight: 4,
+              }}
+            >
+              {items.map((u) => (
+                <div
+                  key={`${u.kind}:${u.entity_id}:${u.id}`}
+                  style={{
+                    borderRadius: 14,
+                    border: `1px solid ${BORDER}`,
+                    background: "rgba(255,255,255,0.05)",
+                    padding: 10,
+                    position: "relative",
+                    display: "grid",
+                    gap: 6,
+                  }}
+                >
+                  <button
+                    onClick={() => markRead(u)}
+                    title="Oznacz jako przeczytane"
+                    style={{
+                      position: "absolute",
+                      top: 8,
+                      right: 8,
+                      width: 34,
+                      height: 34,
+                      borderRadius: 12,
+                      border: `1px solid ${BORDER}`,
+                      background: "rgba(255,255,255,0.08)",
+                      color: TEXT_LIGHT,
+                      cursor: "pointer",
+                      fontSize: 16,
+                      display: "grid",
+                      placeItems: "center",
+                    }}
+                  >
+                    👍
+                  </button>
+
+                  <div style={{ fontSize: 12, color: MUTED, paddingRight: 40 }}>
+                    <b style={{ color: "rgba(255,255,255,0.92)" }}>
+                      {u.entity_title || `${u.kind} #${u.entity_id}`}
+                    </b>{" "}
+                    • {u.user_email || "użytkownik"} • {formatDateTimePL(u.created_at)}
+                    {u.edited ? <span style={{ marginLeft: 6, opacity: 0.8 }}>(edytowano)</span> : null}
+                  </div>
+
+                  <div style={{ whiteSpace: "pre-wrap", paddingRight: 40, fontSize: 13, lineHeight: 1.35 }}>
+                    {u.body}
+                  </div>
+
+                  <button
+                    onClick={() => onJumpToProject?.(u.kind, u.entity_id)}
+                    style={{
+                      justifySelf: "start",
+                      padding: "8px 10px",
+                      borderRadius: 12,
+                      border: `1px solid ${BORDER}`,
+                      background: "rgba(255,255,255,0.06)",
+                      color: TEXT_LIGHT,
+                      cursor: "pointer",
+                      fontWeight: 900,
+                      fontSize: 12,
+                    }}
+                  >
+                    Pokaż na mapie
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 /** ===== EDIT MODAL ===== */
 function EditProjectModal({
@@ -1247,6 +1473,24 @@ export default function App() {
       } catch {}
     }, 250);
   }
+  function jumpToProject(kind, entityId) {
+  if (kind === "points") {
+    const pt = points.find((x) => String(x.id) === String(entityId));
+    if (!pt) return;
+    setSelectedPointId(pt.id);
+    setSelectedTunnelId(null);
+    focusPoint(pt);
+    return;
+  }
+
+  if (kind === "tunnels") {
+    const t = tunnels.find((x) => String(x.id) === String(entityId));
+    if (!t) return;
+    setSelectedTunnelId(t.id);
+    setSelectedPointId(null);
+    focusTunnel(t);
+  }
+}
 
   /** ===== World mask ===== */
   const [worldMask, setWorldMask] = useState(null);
@@ -2149,6 +2393,18 @@ export default function App() {
             <span style={{ fontSize: 13 }}>Panel główny</span>
           </button>
         ) : null}
+<RecentUpdatesPanel
+  user={user}
+  authFetch={authFetch}
+  API={API}
+  BORDER={BORDER}
+  MUTED={MUTED}
+  TEXT_LIGHT={TEXT_LIGHT}
+  GLASS_BG={GLASS_BG}
+  GLASS_SHADOW={GLASS_SHADOW}
+  onUnauthorized={() => logout("expired")}
+  onJumpToProject={jumpToProject}
+/>
 
         {/* PRAWA STRONA: Statusy + Dziennik */}
         <div
