@@ -716,13 +716,13 @@ function RecentUpdatesPanel({
   GLASS_SHADOW,
   onUnauthorized,
   onJumpToProject,
-  updatesTick, // refresh trigger
+  updatesTick,
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [items, setItems] = useState([]);
-  const [expanded, setExpanded] = useState({}); // ✅ show more per item
+  const [expanded, setExpanded] = useState({});
 
   async function load() {
     setLoading(true);
@@ -740,9 +740,8 @@ function RecentUpdatesPanel({
     }
   }
 
-  async function markRead(u) {
-    const itemKey = `${u.kind}:${u.entity_id}:${u.id}`;
-      async function markAllRead() {
+  // ✅ MUSI BYĆ TU, a nie w środku markRead
+  async function markAllRead() {
     if (items.length === 0) return;
 
     // optymistycznie czyścimy UI
@@ -754,12 +753,18 @@ function RecentUpdatesPanel({
         method: "POST",
       });
       await readJsonOrThrow(res);
+
+      // dociągnij prawdę z backendu (powinno być pusto)
+      await load();
     } catch (e) {
       if (e?.status === 401) return onUnauthorized?.();
       setErr(String(e?.message || e));
-      load(); // wróć do realnego stanu
+      load();
     }
   }
+
+  async function markRead(u) {
+    const itemKey = `${u.kind}:${u.entity_id}:${u.id}`;
 
     // optymistycznie usuń z UI od razu
     setItems((prev) => prev.filter((x) => `${x.kind}:${x.entity_id}:${x.id}` !== itemKey));
@@ -799,11 +804,8 @@ function RecentUpdatesPanel({
         position: "absolute",
         left: 12,
         bottom: 12,
-
-        // ✅ węższy panel żeby nie zasłaniał dziennika
         width: "min(760px, calc(100% - 420px))",
         maxWidth: "52vw",
-
         zIndex: 1700,
         borderRadius: 16,
         border: `1px solid ${BORDER}`,
@@ -828,7 +830,6 @@ function RecentUpdatesPanel({
           background: "rgba(0,0,0,0.10)",
         }}
       >
-        {/* TOGGLE */}
         <button
           onClick={() => setOpen((o) => !o)}
           style={{
@@ -860,7 +861,6 @@ function RecentUpdatesPanel({
                 background: "rgba(239,68,68,0.22)",
                 border: "1px solid rgba(239,68,68,0.55)",
                 boxShadow: "0 0 18px rgba(239,68,68,0.15)",
-                animation: items.length > 0 ? "pulseBadge 1.25s ease-in-out infinite" : "none",
                 flexShrink: 0,
               }}
               title="Liczba nieprzeczytanych aktualizacji"
@@ -887,50 +887,49 @@ function RecentUpdatesPanel({
           </span>
         </button>
 
-        {/* REFRESH */}
         <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-  <button
-    onClick={(e) => {
-      e.stopPropagation();
-      load();
-    }}
-    disabled={loading}
-    style={{
-      padding: "10px 12px",
-      borderRadius: 12,
-      border: `1px solid ${BORDER}`,
-      background: "rgba(255,255,255,0.06)",
-      color: TEXT_LIGHT,
-      cursor: loading ? "default" : "pointer",
-      fontWeight: 900,
-      fontSize: 12,
-    }}
-  >
-    {loading ? "Odświeżam..." : "Odśwież"}
-  </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              load();
+            }}
+            disabled={loading}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: `1px solid ${BORDER}`,
+              background: "rgba(255,255,255,0.06)",
+              color: TEXT_LIGHT,
+              cursor: loading ? "default" : "pointer",
+              fontWeight: 900,
+              fontSize: 12,
+            }}
+          >
+            {loading ? "Odświeżam..." : "Odśwież"}
+          </button>
 
-  <button
-    onClick={(e) => {
-      e.stopPropagation();
-      markAllRead();
-    }}
-    disabled={items.length === 0}
-    title="Oznacz wszystkie widoczne aktualizacje jako przeczytane"
-    style={{
-      padding: "10px 12px",
-      borderRadius: 12,
-      border: `1px solid ${BORDER}`,
-      background: items.length === 0 ? "rgba(255,255,255,0.04)" : "rgba(34,197,94,0.12)",
-      color: TEXT_LIGHT,
-      cursor: items.length === 0 ? "default" : "pointer",
-      fontWeight: 900,
-      fontSize: 12,
-    }}
-  >
-    Oznacz wszystko
-  </button>
-</div>
-
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              markAllRead();
+            }}
+            disabled={items.length === 0}
+            title="Oznacz wszystkie widoczne aktualizacje jako przeczytane"
+            style={{
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: `1px solid ${BORDER}`,
+              background:
+                items.length === 0 ? "rgba(255,255,255,0.04)" : "rgba(34,197,94,0.12)",
+              color: TEXT_LIGHT,
+              cursor: items.length === 0 ? "default" : "pointer",
+              fontWeight: 900,
+              fontSize: 12,
+            }}
+          >
+            Oznacz wszystko
+          </button>
+        </div>
       </div>
 
       {/* BODY */}
@@ -959,7 +958,6 @@ function RecentUpdatesPanel({
                 maxHeight: 280,
                 overflow: "auto",
                 display: "grid",
-                // ✅ 2 kolumny gdy się zmieści, inaczej 1
                 gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
                 gap: 10,
                 paddingRight: 4,
@@ -982,14 +980,12 @@ function RecentUpdatesPanel({
                       gap: 8,
                     }}
                   >
-                    {/* ✅ TICK (idealnie wyśrodkowany SVG) */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         markRead(u);
                       }}
                       title="Odczytane"
-                      className="tickBtn"
                       style={{
                         position: "absolute",
                         top: 8,
@@ -1008,7 +1004,6 @@ function RecentUpdatesPanel({
                         lineHeight: 0,
                       }}
                     >
-                  
                       <svg
                         width="18"
                         height="18"
@@ -1037,7 +1032,6 @@ function RecentUpdatesPanel({
                       ) : null}
                     </div>
 
-                    {/* ✅ BODY: skrót 3 linie + rozwijanie */}
                     <div
                       style={{
                         whiteSpace: "pre-wrap",
@@ -1057,7 +1051,6 @@ function RecentUpdatesPanel({
                       {u.body}
                     </div>
 
-                    {/* ✅ buttons row */}
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <button
                         onClick={(e) => {
@@ -1081,7 +1074,10 @@ function RecentUpdatesPanel({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setExpanded((prev) => ({ ...(prev || {}), [itemKey]: !prev?.[itemKey] }));
+                          setExpanded((prev) => ({
+                            ...(prev || {}),
+                            [itemKey]: !prev?.[itemKey],
+                          }));
                         }}
                         style={{
                           padding: "8px 10px",
@@ -1107,7 +1103,6 @@ function RecentUpdatesPanel({
     </div>
   );
 }
-
 /** ===== EDIT MODAL ===== */
 function EditProjectModal({
   open,
