@@ -293,38 +293,66 @@ function JournalPanel({
   onCountsChange,
   onUnauthorized,
 }) {
+  const entityId = entity?.id ?? null;
+
   const [open, setOpen] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [items, setItems] = useState([]);
+  const [draft, setDraft] = useState("");
 
-// key per entity
-const openKey = entityId ? `journalOpen:${kind}:${entityId}` : null;
+  const [editingId, setEditingId] = useState(null);
+  const [editingBody, setEditingBody] = useState("");
+  const [busyActionId, setBusyActionId] = useState(null);
 
-function readOpenFromStorage() {
-  if (!openKey) return true;
-  try {
-    const raw = localStorage.getItem(openKey);
-    if (raw === null) return true; // domyślnie otwarte
-    return JSON.parse(raw) === true;
-  } catch {
-    return true;
+  // ===== open state per entity (localStorage) =====
+  const openKey = entityId ? `journalOpen:${kind}:${entityId}` : null;
+
+  function readOpenFromStorage() {
+    if (!openKey) return true;
+    try {
+      const raw = localStorage.getItem(openKey);
+      if (raw === null) return true; // domyślnie otwarte
+      return JSON.parse(raw) === true;
+    } catch {
+      return true;
+    }
   }
-}
 
-function saveOpenToStorage(nextOpen) {
-  if (!openKey) return;
-  try {
-    localStorage.setItem(openKey, JSON.stringify(!!nextOpen));
-  } catch {}
-}
+  function saveOpenToStorage(nextOpen) {
+    if (!openKey) return;
+    try {
+      localStorage.setItem(openKey, JSON.stringify(!!nextOpen));
+    } catch {}
+  }
+
+  async function load() {
+    if (!entityId) return;
+    setLoading(true);
+    setErr("");
+    try {
+      const res = await authFetch(`${API}/${kind}/${entityId}/comments`);
+      const data = await readJsonOrThrow(res);
+      const next = Array.isArray(data) ? data : [];
+      setItems(next);
+      onCountsChange?.(kind, entityId, next.length);
+    } catch (e) {
+      if (e?.status === 401) return onUnauthorized?.();
+      setErr(String(e?.message || e));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-  if (!visible) return;
+    if (!visible) return;
 
-  // ustaw open z localStorage per projekt
-  setOpen(readOpenFromStorage());
+    // ustaw open z localStorage per projekt
+    setOpen(readOpenFromStorage());
 
-  load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [visible, kind, entityId]);
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, kind, entityId]);
 
   async function addComment() {
     if (!entityId) return;
@@ -434,12 +462,12 @@ function saveOpenToStorage(nextOpen) {
     >
       <div
         onClick={() => {
-  setOpen((o) => {
-    const next = !o;
-    saveOpenToStorage(next);
-    return next;
-  });
-}}
+          setOpen((o) => {
+            const next = !o;
+            saveOpenToStorage(next);
+            return next;
+          });
+        }}
         style={{
           padding: "12px 14px",
           cursor: "pointer",
