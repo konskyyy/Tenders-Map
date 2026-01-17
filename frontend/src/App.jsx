@@ -907,15 +907,16 @@ function RecentUpdatesPanel({
           {items.length === 0 ? (
             <div style={{ fontSize: 12, color: MUTED }}>Brak nowych aktualizacji 🎉</div>
           ) : (
-            <div
-              style={{
-                maxHeight: 220,
-                overflow: "auto",
-                display: "grid",
-                gap: 10,
-                paddingRight: 4,
-              }}
-            >
+           <div
+  style={{
+    maxHeight: 260,
+    overflow: "auto",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+    gap: 10,
+    paddingRight: 4,
+  }}
+>
               {items.map((u) => (
                 <div
                   key={`${u.kind}:${u.entity_id}:${u.id}`}
@@ -930,29 +931,33 @@ function RecentUpdatesPanel({
                   }}
                 >
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      markRead(u);
-                    }}
-                    title="Oznacz jako przeczytane"
-                    style={{
-                      position: "absolute",
-                      top: 8,
-                      right: 8,
-                      width: 34,
-                      height: 34,
-                      borderRadius: 12,
-                      border: `1px solid ${BORDER}`,
-                      background: "rgba(255,255,255,0.08)",
-                      color: TEXT_LIGHT,
-                      cursor: "pointer",
-                      fontSize: 16,
-                      display: "grid",
-                      placeItems: "center",
-                    }}
-                  >
-                    👍
-                  </button>
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markRead(u);
+                      }}
+                      title="Odczytane"
+                      className="tickBtn"
+                      style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        width: 34,
+                        height: 34,
+                        borderRadius: 12,
+                        border: `1px solid ${BORDER}`,
+                        background: "rgba(255,255,255,0.08)",
+                        color: "rgba(255,255,255,0.85)",
+                        cursor: "pointer",
+                        fontSize: 18,
+                        fontWeight: 900,
+                        display: "grid",
+                        placeItems: "center",
+                        lineHeight: 1,
+                      }}
+                    >
+                      ✓
+                    </button>
+
 
                   <div style={{ fontSize: 12, color: MUTED, paddingRight: 40 }}>
                     <b style={{ color: "rgba(255,255,255,0.92)" }}>
