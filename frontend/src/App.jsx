@@ -173,7 +173,67 @@ function formatDateTimePL(iso) {
   }
 }
 
-/** ===== JOURNAL (bez zmian logiki) ===== */
+/** ===== CHANCE RING ===== */
+function ChanceRing({ value = 50, size = 44 }) {
+  const v = Math.max(0, Math.min(100, Number(value) || 0));
+  const stroke = 5;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const dash = (v / 100) * c;
+
+  return (
+    <div style={{ width: size, height: size, position: "relative", flexShrink: 0 }}>
+      <svg width={size} height={size}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="rgba(255,255,255,0.18)"
+          strokeWidth={stroke}
+          fill="transparent"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="rgba(255,255,255,0.85)"
+          strokeWidth={stroke}
+          fill="transparent"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${c - dash}`}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </svg>
+
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "grid",
+          placeItems: "center",
+          fontWeight: 900,
+          fontSize: 12,
+          color: "rgba(255,255,255,0.92)",
+        }}
+      >
+        {v}%
+      </div>
+    </div>
+  );
+}
+
+function chanceFromJournalCount(count) {
+  const n = Math.max(0, Number(count) || 0);
+  // 0 wpisów = 50%, 1=60, 2=70, 3=80, 4+=90
+  return Math.min(90, 50 + Math.min(4, n) * 10);
+}
+
+function projectChance({ acquired, journalCount }) {
+  if (acquired) return 100;
+  return chanceFromJournalCount(journalCount);
+}
+
+/** ===== JOURNAL ===== */
 function JournalPanel({
   visible,
   kind, // "points" | "tunnels"
@@ -186,6 +246,7 @@ function JournalPanel({
   TEXT_LIGHT,
   GLASS_BG,
   GLASS_SHADOW,
+  onCountsChange,
 }) {
   const [open, setOpen] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -206,7 +267,9 @@ function JournalPanel({
     try {
       const res = await authFetch(`${API}/${kind}/${entityId}/comments`);
       const data = await readJsonOrThrow(res);
-      setItems(Array.isArray(data) ? data : []);
+      const next = Array.isArray(data) ? data : [];
+      setItems(next);
+      onCountsChange?.(kind, entityId, next.length);
     } catch (e) {
       setErr(String(e?.message || e));
     } finally {
@@ -235,7 +298,12 @@ function JournalPanel({
       });
       const created = await readJsonOrThrow(res);
       setDraft("");
-      setItems((prev) => [created, ...prev]);
+
+      setItems((prev) => {
+        const next = [created, ...prev];
+        onCountsChange?.(kind, entityId, next.length);
+        return next;
+      });
     } catch (e) {
       setErr(String(e?.message || e));
     } finally {
@@ -251,14 +319,11 @@ function JournalPanel({
     setBusyActionId(commentId);
     setErr("");
     try {
-      const res = await authFetch(
-        `${API}/${kind}/${entityId}/comments/${commentId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body }),
-        }
-      );
+      const res = await authFetch(`${API}/${kind}/${entityId}/comments/${commentId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
       const updated = await readJsonOrThrow(res);
 
       setItems((prev) =>
@@ -281,15 +346,17 @@ function JournalPanel({
     setBusyActionId(commentId);
     setErr("");
     try {
-      const res = await authFetch(
-        `${API}/${kind}/${entityId}/comments/${commentId}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const res = await authFetch(`${API}/${kind}/${entityId}/comments/${commentId}`, {
+        method: "DELETE",
+      });
       await readJsonOrThrow(res);
 
-      setItems((prev) => prev.filter((x) => String(x.id) !== String(commentId)));
+      setItems((prev) => {
+        const next = prev.filter((x) => String(x.id) !== String(commentId));
+        onCountsChange?.(kind, entityId, next.length);
+        return next;
+      });
+
       if (String(editingId) === String(commentId)) {
         setEditingId(null);
         setEditingBody("");
@@ -389,9 +456,7 @@ function JournalPanel({
           <div style={{ height: 1, background: BORDER, opacity: 0.9 }} />
 
           {items.length === 0 ? (
-            <div style={{ fontSize: 12, color: MUTED }}>
-              Brak wpisów dla tego projektu.
-            </div>
+            <div style={{ fontSize: 12, color: MUTED }}>Brak wpisów dla tego projektu.</div>
           ) : (
             <div style={{ display: "grid", gap: 10 }}>
               {items.map((c) => {
@@ -410,22 +475,14 @@ function JournalPanel({
                       gap: 8,
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 10,
-                      }}
-                    >
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
                       <div style={{ fontSize: 12, color: MUTED }}>
                         <b style={{ color: "rgba(255,255,255,0.92)" }}>
                           {c.user_email || "użytkownik"}
                         </b>{" "}
                         • {formatDateTimePL(c.created_at)}
                         {c.edited ? (
-                          <span style={{ marginLeft: 6, opacity: 0.8 }}>
-                            (edytowano)
-                          </span>
+                          <span style={{ marginLeft: 6, opacity: 0.8 }}>(edytowano)</span>
                         ) : null}
                       </div>
 
@@ -461,8 +518,7 @@ function JournalPanel({
                               border: "1px solid rgba(255,80,80,0.55)",
                               background: "rgba(255,80,80,0.12)",
                               color: TEXT_LIGHT,
-                              cursor:
-                                busyActionId === c.id ? "default" : "pointer",
+                              cursor: busyActionId === c.id ? "default" : "pointer",
                               fontWeight: 900,
                               fontSize: 12,
                             }}
@@ -495,9 +551,7 @@ function JournalPanel({
                         <div style={{ display: "flex", gap: 8 }}>
                           <button
                             onClick={() => saveEdit(c.id)}
-                            disabled={
-                              busyActionId === c.id || !editingBody.trim()
-                            }
+                            disabled={busyActionId === c.id || !editingBody.trim()}
                             style={{
                               flex: 1,
                               padding: 10,
@@ -505,8 +559,7 @@ function JournalPanel({
                               border: `1px solid ${BORDER}`,
                               background: "rgba(255,255,255,0.10)",
                               color: TEXT_LIGHT,
-                              cursor:
-                                busyActionId === c.id ? "default" : "pointer",
+                              cursor: busyActionId === c.id ? "default" : "pointer",
                               fontWeight: 900,
                             }}
                           >
@@ -562,7 +615,7 @@ function JournalPanel({
   );
 }
 
-/** ===== EDIT MODAL (wariant 1) ===== */
+/** ===== EDIT MODAL ===== */
 function EditProjectModal({
   open,
   kind, // "points" | "tunnels"
@@ -580,6 +633,7 @@ function EditProjectModal({
     director: "",
     winner: "",
     note: "",
+    acquired: false,
   });
 
   const [saving, setSaving] = useState(false);
@@ -597,6 +651,7 @@ function EditProjectModal({
       director: entity.director ?? "",
       winner: entity.winner ?? "",
       note: entity.note ?? "",
+      acquired: !!entity.acquired,
     });
   }, [open, kind, entity]);
 
@@ -615,6 +670,7 @@ function EditProjectModal({
       director: String(form.director || ""),
       winner: String(form.winner || ""),
       note: String(form.note || ""),
+      acquired: !!form.acquired,
     };
 
     if (kind === "points") payload.title = String(form.titleOrName || "");
@@ -622,9 +678,7 @@ function EditProjectModal({
 
     const key = kind === "points" ? "title" : "name";
     if (!String(payload[key] || "").trim()) {
-      setErr(
-        kind === "points" ? "Tytuł nie może być pusty." : "Nazwa nie może być pusta."
-      );
+      setErr(kind === "points" ? "Tytuł nie może być pusty." : "Nazwa nie może być pusta.");
       return;
     }
 
@@ -739,9 +793,7 @@ function EditProjectModal({
           </label>
           <input
             value={form.titleOrName}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, titleOrName: e.target.value }))
-            }
+            onChange={(e) => setForm((f) => ({ ...f, titleOrName: e.target.value }))}
             style={inputStyleLocal}
           />
 
@@ -756,6 +808,27 @@ function EditProjectModal({
             <option value="realizacja">realizacja</option>
             <option value="nieaktualny">nieaktualny</option>
           </select>
+
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              marginTop: 6,
+              cursor: "pointer",
+              userSelect: "none",
+              fontWeight: 800,
+              color: MUTED,
+              fontSize: 12,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={!!form.acquired}
+              onChange={(e) => setForm((f) => ({ ...f, acquired: e.target.checked }))}
+            />
+            Projekt pozyskany (100%)
+          </label>
 
           <label style={{ fontSize: 12, color: MUTED, fontWeight: 800 }}>Dyrektor</label>
           <input
@@ -778,18 +851,8 @@ function EditProjectModal({
             style={textareaStyleLocal}
           />
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 8,
-              marginTop: 4,
-            }}
-          >
-            <button
-              onClick={onClose}
-              style={{ ...btnStyle, background: "rgba(255,255,255,0.05)" }}
-            >
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
+            <button onClick={onClose} style={{ ...btnStyle, background: "rgba(255,255,255,0.05)" }}>
               Anuluj
             </button>
             <button onClick={handleSave} disabled={saving} style={btnStyle}>
@@ -800,64 +863,6 @@ function EditProjectModal({
       </div>
     </div>
   );
-}
-function ChanceRing({ value = 50, size = 44 }) {
-  const v = Math.max(0, Math.min(100, Number(value) || 0));
-  const stroke = 5;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const dash = (v / 100) * c;
-
-  return (
-    <div style={{ width: size, height: size, position: "relative", flexShrink: 0 }}>
-      <svg width={size} height={size}>
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke="rgba(255,255,255,0.18)"
-          strokeWidth={stroke}
-          fill="transparent"
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke="rgba(255,255,255,0.85)"
-          strokeWidth={stroke}
-          fill="transparent"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${c - dash}`}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </svg>
-
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "grid",
-          placeItems: "center",
-          fontWeight: 900,
-          fontSize: 12,
-          color: "rgba(255,255,255,0.92)",
-        }}
-      >
-        {v}%
-      </div>
-    </div>
-  );
-}
-
-function chanceFromJournalCount(count) {
-  const n = Math.max(0, Number(count) || 0);
-  // 0 wpisów = 50%, 1=60, 2=70, 3=80, 4+=90
-  return Math.min(90, 50 + Math.min(4, n) * 10);
-}
-
-function projectChance({ acquired, journalCount }) {
-  if (acquired) return 100;
-  return chanceFromJournalCount(journalCount);
 }
 
 export default function App() {
@@ -883,6 +888,39 @@ export default function App() {
       alive = false;
     };
   }, []);
+
+  /** ===== JOURNAL COUNTS + ACQUIRED (localStorage) ===== */
+  const [journalCounts, setJournalCounts] = useState({ points: {}, tunnels: {} });
+
+  function handleCountsChange(kind, id, count) {
+    setJournalCounts((prev) => ({
+      ...prev,
+      [kind]: { ...(prev[kind] || {}), [id]: Number(count) || 0 },
+    }));
+  }
+
+  const [acquiredMap, setAcquiredMap] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("acquiredMap") || "{}") || {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("acquiredMap", JSON.stringify(acquiredMap || {}));
+  }, [acquiredMap]);
+
+  function isAcquired(kind, id) {
+    return acquiredMap?.[`${kind}:${id}`] === true;
+  }
+
+  function setAcquired(kind, id, value) {
+    setAcquiredMap((prev) => ({
+      ...(prev || {}),
+      [`${kind}:${id}`]: !!value,
+    }));
+  }
 
   /** ===== AUTH ===== */
   const [mode, setMode] = useState("checking"); // checking | login | app
@@ -1005,14 +1043,14 @@ export default function App() {
     nieaktualny: true,
   });
 
-  /** ===== EDIT (wariant 1) ===== */
+  /** ===== EDIT ===== */
   const [editOpen, setEditOpen] = useState(false);
 
   function byPriorityThenIdDesc(a, b) {
     const ap = a?.priority === true ? 1 : 0;
     const bp = b?.priority === true ? 1 : 0;
-    if (bp !== ap) return bp - ap; // priority=true na górze
-    return Number(b.id) - Number(a.id); // potem po id malejąco
+    if (bp !== ap) return bp - ap;
+    return Number(b.id) - Number(a.id);
   }
 
   const filteredPoints = useMemo(() => {
@@ -1029,7 +1067,6 @@ export default function App() {
       .sort(byPriorityThenIdDesc);
   }, [tunnels, visibleStatus]);
 
-  // jedna lista do sidebaru
   const filteredProjects = useMemo(() => {
     const pts = points
       .filter((p) => visibleStatus[p.status || "planowany"] !== false)
@@ -1174,9 +1211,7 @@ export default function App() {
       const res = await authFetch(`${API}/points`);
       const data = await readJsonOrThrow(res);
       setPoints(
-        Array.isArray(data)
-          ? data.map((p) => ({ ...p, priority: p.priority === true }))
-          : []
+        Array.isArray(data) ? data.map((p) => ({ ...p, priority: p.priority === true })) : []
       );
     } catch (e) {
       if (e?.status === 401) return logout("expired");
@@ -1193,9 +1228,7 @@ export default function App() {
       const res = await authFetch(`${API}/tunnels`);
       const data = await readJsonOrThrow(res);
       setTunnels(
-        Array.isArray(data)
-          ? data.map((t) => ({ ...t, priority: t.priority === true }))
-          : []
+        Array.isArray(data) ? data.map((t) => ({ ...t, priority: t.priority === true })) : []
       );
     } catch (e) {
       if (e?.status === 401) return logout("expired");
@@ -1281,9 +1314,12 @@ export default function App() {
 
         const updated = await readJsonOrThrow(res);
         setPoints((prev) =>
-          prev.map((p) => (p.id === updated.id ? { ...updated, priority: updated.priority === true } : p))
+          prev.map((p) =>
+            p.id === updated.id ? { ...updated, priority: updated.priority === true } : p
+          )
         );
         setSelectedPointId(updated.id);
+        setAcquired("points", updated.id, !!payload.acquired);
       } else {
         const res = await authFetch(`${API}/tunnels/${tl.id}`, {
           method: "PUT",
@@ -1300,9 +1336,12 @@ export default function App() {
 
         const updated = await readJsonOrThrow(res);
         setTunnels((prev) =>
-          prev.map((t) => (t.id === updated.id ? { ...updated, priority: updated.priority === true } : t))
+          prev.map((t) =>
+            t.id === updated.id ? { ...updated, priority: updated.priority === true } : t
+          )
         );
         setSelectedTunnelId(updated.id);
+        setAcquired("tunnels", updated.id, !!payload.acquired);
       }
     } catch (e) {
       if (e?.status === 401) return logout("expired");
@@ -1559,11 +1598,7 @@ export default function App() {
               style={inputStyle}
             />
 
-            <button
-              type="submit"
-              disabled={loadingAuth}
-              style={primaryButtonStyle(loadingAuth)}
-            >
+            <button type="submit" disabled={loadingAuth} style={primaryButtonStyle(loadingAuth)}>
               {loadingAuth ? "Loguję..." : "Zaloguj"}
             </button>
           </form>
@@ -1747,7 +1782,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* NARZĘDZIA (w ramce jak Dodawanie) */}
+              {/* NARZĘDZIA */}
               <div
                 style={{
                   padding: 10,
@@ -1815,53 +1850,44 @@ export default function App() {
 
                 {selectedPoint || selectedTunnel ? (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-<button
-  onClick={() => {
-    if (selectedPoint) togglePointPriority(selectedPoint);
-    else toggleTunnelPriority(selectedTunnel);
-  }}
-  style={{
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: `1px solid ${BORDER}`,
-    background: "rgba(255,255,255,0.08)",
-    cursor: "pointer",
-    fontWeight: 900,
-
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    justifyContent: "center",
-  }}
-  title="Oznacz jako ważne"
->
-  <span
-    style={{
-      fontSize: 18,
-      lineHeight: 1,
-
-      // ODWROTNA LOGIKA KOLORU
-      color:
-        selectedPoint?.priority || selectedTunnel?.priority
-          ? "rgba(255,255,255,0.65)"   // już ważne → neutralny
-          : "rgba(245,158,11,0.95)",   // nieważne → kolorowy
-
-      textShadow:
-        selectedPoint?.priority || selectedTunnel?.priority
-          ? "none"
-          : "0 0 12px rgba(245,158,11,0.25)",
-    }}
-  >
-    ❗
-  </span>
-
-  <span style={{ fontSize: 13, whiteSpace: "nowrap" }}>
-    Ważne
-  </span>
-</button>
-
-
-
+                    <button
+                      onClick={() => {
+                        if (selectedPoint) togglePointPriority(selectedPoint);
+                        else toggleTunnelPriority(selectedTunnel);
+                      }}
+                      style={{
+                        padding: "10px 12px",
+                        borderRadius: 12,
+                        border: `1px solid ${BORDER}`,
+                        background: "rgba(255,255,255,0.08)",
+                        cursor: "pointer",
+                        fontWeight: 900,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        justifyContent: "center",
+                        color: TEXT_LIGHT,
+                      }}
+                      title="Oznacz jako ważne"
+                    >
+                      <span
+                        style={{
+                          fontSize: 18,
+                          lineHeight: 1,
+                          color:
+                            selectedPoint?.priority || selectedTunnel?.priority
+                              ? "rgba(255,255,255,0.65)" // już ważne → neutralny
+                              : "rgba(245,158,11,0.95)", // nieważne → kolorowy
+                          textShadow:
+                            selectedPoint?.priority || selectedTunnel?.priority
+                              ? "none"
+                              : "0 0 12px rgba(245,158,11,0.25)",
+                        }}
+                      >
+                        ❗
+                      </span>
+                      <span style={{ fontSize: 13, whiteSpace: "nowrap" }}>Ważne</span>
+                    </button>
 
                     <button
                       onClick={() => setEditOpen(true)}
@@ -1923,21 +1949,18 @@ export default function App() {
                             }
                           }}
                           style={{
-  padding: 10,
-  borderRadius: 14,
-
-  border: x.priority
-    ? "2px solid rgba(239,68,68,0.9)"          // 🔴 WAŻNE
-    : selected
-    ? "2px solid rgba(255,255,255,0.35)"       // zaznaczone
-    : `1px solid ${BORDER}`,
-
-  background: x.priority
-    ? "rgba(239,68,68,0.08)"                    // delikatne tło (opcjonalne)
-    : "rgba(255,255,255,0.05)",
-
-  cursor: "pointer",
-}}
+                            padding: 10,
+                            borderRadius: 14,
+                            border: x.priority
+                              ? "2px solid rgba(239,68,68,0.9)" // 🔴 WAŻNE
+                              : selected
+                              ? "2px solid rgba(255,255,255,0.35)"
+                              : `1px solid ${BORDER}`,
+                            background: x.priority
+                              ? "rgba(239,68,68,0.08)"
+                              : "rgba(255,255,255,0.05)",
+                            cursor: "pointer",
+                          }}
                         >
                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                             <span
@@ -1964,7 +1987,6 @@ export default function App() {
                                 lineHeight: 1.2,
                               }}
                             >
-
                               {isTunnel ? x.name || `Tunel #${x.id}` : x.title}
                             </span>
 
@@ -2101,14 +2123,7 @@ export default function App() {
                   </label>
                 ))}
 
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 8,
-                    marginTop: 2,
-                  }}
-                >
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 2 }}>
                   <button onClick={showAllStatuses} style={miniBtnStyle}>
                     Pokaż
                   </button>
@@ -2136,6 +2151,7 @@ export default function App() {
             TEXT_LIGHT={TEXT_LIGHT}
             GLASS_BG={GLASS_BG}
             GLASS_SHADOW={GLASS_SHADOW}
+            onCountsChange={handleCountsChange}
           />
         </div>
 
@@ -2151,10 +2167,7 @@ export default function App() {
             }}
           />
           <ZoomControl position="bottomright" />
-          <TileLayer
-            attribution="&copy; OpenStreetMap contributors"
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
           {worldMask ? (
             <GeoJSON
@@ -2224,30 +2237,60 @@ export default function App() {
                 }}
               >
                 <Popup>
-                  <div style={{ minWidth: 220 }}>
-                    <div style={{ fontWeight: 900, marginBottom: 4 }}>
-                      {t.priority === true ? "⭐ " : ""}
-                      {t.name || `Tunel #${t.id}`}
+                  <div
+                    style={{
+                      minWidth: 260,
+                      borderRadius: 16,
+                      border: `1px solid ${BORDER}`,
+                      background: GLASS_BG,
+                      backgroundImage:
+                        "radial-gradient(500px 300px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
+                      color: TEXT_LIGHT,
+                      overflow: "hidden",
+                      boxShadow: GLASS_SHADOW,
+                      padding: 12,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
+                          {t.name || `Tunel #${t.id}`}
+                        </div>
+
+                        <div style={{ fontSize: 12, color: MUTED }}>
+                          Status:{" "}
+                          <b style={{ color: "rgba(255,255,255,0.92)" }}>{statusLabel(t.status)}</b>
+                        </div>
+                      </div>
+
+                      <ChanceRing
+                        value={projectChance({
+                          acquired: isAcquired("tunnels", t.id),
+                          journalCount: journalCounts.tunnels?.[t.id] || 0,
+                        })}
+                      />
                     </div>
 
-                    <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
-                      Status: <b>{statusLabel(t.status)}</b>
-                    </div>
+                    <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
                     {t.director ? (
-                      <div style={{ marginTop: 6 }}>
+                      <div style={{ fontSize: 12, marginTop: 6 }}>
                         <b>Dyrektor:</b> {t.director}
                       </div>
                     ) : null}
 
                     {t.winner ? (
-                      <div style={{ marginTop: 6 }}>
+                      <div style={{ fontSize: 12, marginTop: 6 }}>
                         <b>Firma:</b> {t.winner}
                       </div>
                     ) : null}
 
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ fontSize: 12, marginTop: 8, opacity: 0.95 }}>
                       {t.note ? t.note : <span style={{ opacity: 0.75 }}>Brak notatki</span>}
+                    </div>
+
+                    <div style={{ fontSize: 11, marginTop: 10, color: MUTED }}>
+                      Wpisy w dzienniku: {journalCounts.tunnels?.[t.id] || 0}
                     </div>
                   </div>
                 </Popup>
@@ -2278,33 +2321,79 @@ export default function App() {
                 }}
               >
                 <Popup>
-                  <b>{pt.title}</b>
-                  <div style={{ fontSize: 12, opacity: 0.8 }}>{statusLabel(pt.status)}</div>
+                  <div
+                    style={{
+                      minWidth: 260,
+                      borderRadius: 16,
+                      border: `1px solid ${BORDER}`,
+                      background: GLASS_BG,
+                      backgroundImage:
+                        "radial-gradient(500px 300px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
+                      color: TEXT_LIGHT,
+                      overflow: "hidden",
+                      boxShadow: GLASS_SHADOW,
+                      padding: 12,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
+                          {pt.title}
+                        </div>
 
-                  {pt.director ? (
-                    <div style={{ marginTop: 6 }}>
-                      <b>Dyrektor:</b> {pt.director}
+                        <div style={{ fontSize: 12, color: MUTED }}>
+                          Status:{" "}
+                          <b style={{ color: "rgba(255,255,255,0.92)" }}>{statusLabel(pt.status)}</b>
+                        </div>
+                      </div>
+
+                      <ChanceRing
+                        value={projectChance({
+                          acquired: isAcquired("points", pt.id),
+                          journalCount: journalCounts.points?.[pt.id] || 0,
+                        })}
+                      />
                     </div>
-                  ) : null}
 
-                  {pt.winner ? (
-                    <div style={{ marginTop: 6 }}>
-                      <b>Firma:</b> {pt.winner}
+                    <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
+
+                    {pt.director ? (
+                      <div style={{ fontSize: 12, marginTop: 6 }}>
+                        <b>Dyrektor:</b> {pt.director}
+                      </div>
+                    ) : null}
+
+                    {pt.winner ? (
+                      <div style={{ fontSize: 12, marginTop: 6 }}>
+                        <b>Firma:</b> {pt.winner}
+                      </div>
+                    ) : null}
+
+                    <div style={{ fontSize: 12, marginTop: 8, opacity: 0.95 }}>
+                      {pt.note ? pt.note : <span style={{ opacity: 0.75 }}>Brak notatki</span>}
                     </div>
-                  ) : null}
 
-                  <div style={{ marginTop: 6 }}>{pt.note || "Brak notatki"}</div>
+                    <div style={{ fontSize: 11, marginTop: 10, color: MUTED }}>
+                      Wpisy w dzienniku: {journalCounts.points?.[pt.id] || 0}
+                    </div>
+                  </div>
                 </Popup>
               </Marker>
             );
           })}
         </MapContainer>
 
-        {/* MODAL EDYCJI (wariant 1) */}
+        {/* MODAL EDYCJI */}
         <EditProjectModal
           open={editOpen}
           kind={selectedPoint ? "points" : "tunnels"}
-          entity={selectedPoint || selectedTunnel}
+          entity={
+            selectedPoint
+              ? { ...selectedPoint, acquired: isAcquired("points", selectedPoint.id) }
+              : selectedTunnel
+              ? { ...selectedTunnel, acquired: isAcquired("tunnels", selectedTunnel.id) }
+              : null
+          }
           onClose={() => setEditOpen(false)}
           onSave={saveEditedProject}
           BORDER={BORDER}
@@ -2318,7 +2407,6 @@ export default function App() {
 }
 
 /** ===== small styles ===== */
-
 const emptyBoxStyle = {
   padding: 12,
   borderRadius: 14,
@@ -2347,7 +2435,6 @@ const miniBtnStyle = {
 };
 
 /** ===== Login styles ===== */
-
 const pageStyle = {
   position: "fixed",
   inset: 0,
