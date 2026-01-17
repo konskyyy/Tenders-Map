@@ -2619,8 +2619,6 @@ export default function App() {
   style={{ width: "100%", height: "100%" }}
   zoomControl={false}
   minZoom={3}
-  maxBounds={POLAND_BOUNDS}
-  maxBoundsViscosity={0.7}
 >
 
           <MapRefSetter
