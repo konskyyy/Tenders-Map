@@ -2630,7 +2630,7 @@ export default function App() {
             <div
               onClick={() => setFiltersOpen((o) => !o)}
               style={{
-                padding: "12px 14px",
+                padding: "10px 12px",
                 cursor: "pointer",
                 display: "flex",
                 justifyContent: "space-between",
@@ -2712,7 +2712,7 @@ export default function App() {
           lineHeight: 1,
         }}
       >
-        Pokaż
+        Pokaż wszystko
       </button>
 
       <button
@@ -2729,7 +2729,7 @@ export default function App() {
           lineHeight: 1,
         }}
       >
-        Ukryj
+        Ukryj wszystko
       </button>
     </div>
   </div>
