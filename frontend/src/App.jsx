@@ -495,7 +495,9 @@ function JournalPanel({
                         <div style={{ display: "flex", gap: 8 }}>
                           <button
                             onClick={() => saveEdit(c.id)}
-                            disabled={busyActionId === c.id || !editingBody.trim()}
+                            disabled={
+                              busyActionId === c.id || !editingBody.trim()
+                            }
                             style={{
                               flex: 1,
                               padding: 10,
@@ -620,7 +622,9 @@ function EditProjectModal({
 
     const key = kind === "points" ? "title" : "name";
     if (!String(payload[key] || "").trim()) {
-      setErr(kind === "points" ? "Tytuł nie może być pusty." : "Nazwa nie może być pusta.");
+      setErr(
+        kind === "points" ? "Tytuł nie może być pusty." : "Nazwa nie może być pusta."
+      );
       return;
     }
 
@@ -774,7 +778,14 @@ function EditProjectModal({
             style={textareaStyleLocal}
           />
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 8,
+              marginTop: 4,
+            }}
+          >
             <button
               onClick={onClose}
               style={{ ...btnStyle, background: "rgba(255,255,255,0.05)" }}
@@ -938,37 +949,40 @@ export default function App() {
 
   /** ===== EDIT (wariant 1) ===== */
   const [editOpen, setEditOpen] = useState(false);
+
   function byPriorityThenIdDesc(a, b) {
-  const ap = a?.priority ? 1 : 0;
-  const bp = b?.priority ? 1 : 0;
-  if (bp !== ap) return bp - ap;
-  return Number(b.id) - Number(a.id);
-}
+    const ap = a?.priority === true ? 1 : 0;
+    const bp = b?.priority === true ? 1 : 0;
+    if (bp !== ap) return bp - ap; // priority=true na górze
+    return Number(b.id) - Number(a.id); // potem po id malejąco
+  }
 
-  const filtredPoints = useMemo(() => {
-  return points
-    .filter((p) => visibleStatus[p.status || "planowany"] !== false)
-    .slice()
-    .sort(byPriorityThenIdDesc);
-}, [points, visibleStatus]);
+  const filteredPoints = useMemo(() => {
+    return points
+      .filter((p) => visibleStatus[p.status || "planowany"] !== false)
+      .slice()
+      .sort(byPriorityThenIdDesc);
+  }, [points, visibleStatus]);
 
-const filteredTunnels = useMemo(() => {
-  return tunnels
-    .filter((t) => visibleStatus[t.status || "planowany"] !== false)
-    .slice()
-    .sort(byPriorityThenIdDesc);
-}, [tunnels, visibleStatus]);
-const filteredProjects = useMemo(() => {
-  const pts = points
-    .filter((p) => visibleStatus[p.status || "planowany"] !== false)
-    .map((p) => ({ kind: "point", ...p }));
+  const filteredTunnels = useMemo(() => {
+    return tunnels
+      .filter((t) => visibleStatus[t.status || "planowany"] !== false)
+      .slice()
+      .sort(byPriorityThenIdDesc);
+  }, [tunnels, visibleStatus]);
 
-  const tls = tunnels
-    .filter((t) => visibleStatus[t.status || "planowany"] !== false)
-    .map((t) => ({ kind: "tunnel", ...t }));
+  // jedna lista do sidebaru
+  const filteredProjects = useMemo(() => {
+    const pts = points
+      .filter((p) => visibleStatus[p.status || "planowany"] !== false)
+      .map((p) => ({ kind: "point", ...p }));
 
-  return [...tls, ...pts].sort(byPriorityThenIdDesc);
-}, [points, tunnels, visibleStatus]);
+    const tls = tunnels
+      .filter((t) => visibleStatus[t.status || "planowany"] !== false)
+      .map((t) => ({ kind: "tunnel", ...t }));
+
+    return [...tls, ...pts].slice().sort(byPriorityThenIdDesc);
+  }, [points, tunnels, visibleStatus]);
 
   const counts = useMemo(() => {
     const c = { planowany: 0, przetarg: 0, realizacja: 0, nieaktualny: 0 };
@@ -1101,7 +1115,11 @@ const filteredProjects = useMemo(() => {
     try {
       const res = await authFetch(`${API}/points`);
       const data = await readJsonOrThrow(res);
-      setPoints(Array.isArray(data) ? data : []);
+      setPoints(
+        Array.isArray(data)
+          ? data.map((p) => ({ ...p, priority: p.priority === true }))
+          : []
+      );
     } catch (e) {
       if (e?.status === 401) return logout("expired");
       setApiError(`Nie mogę pobrać punktów: ${String(e)}`);
@@ -1116,7 +1134,11 @@ const filteredProjects = useMemo(() => {
     try {
       const res = await authFetch(`${API}/tunnels`);
       const data = await readJsonOrThrow(res);
-      setTunnels(Array.isArray(data) ? data : []);
+      setTunnels(
+        Array.isArray(data)
+          ? data.map((t) => ({ ...t, priority: t.priority === true }))
+          : []
+      );
     } catch (e) {
       if (e?.status === 401) return logout("expired");
       setApiError(`Nie mogę pobrać tuneli: ${String(e)}`);
@@ -1200,7 +1222,9 @@ const filteredProjects = useMemo(() => {
         });
 
         const updated = await readJsonOrThrow(res);
-        setPoints((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+        setPoints((prev) =>
+          prev.map((p) => (p.id === updated.id ? { ...updated, priority: updated.priority === true } : p))
+        );
         setSelectedPointId(updated.id);
       } else {
         const res = await authFetch(`${API}/tunnels/${tl.id}`, {
@@ -1217,7 +1241,9 @@ const filteredProjects = useMemo(() => {
         });
 
         const updated = await readJsonOrThrow(res);
-        setTunnels((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+        setTunnels((prev) =>
+          prev.map((t) => (t.id === updated.id ? { ...updated, priority: updated.priority === true } : t))
+        );
         setSelectedTunnelId(updated.id);
       }
     } catch (e) {
@@ -1225,40 +1251,48 @@ const filteredProjects = useMemo(() => {
       throw e;
     }
   }
+
   async function togglePointPriority(pt) {
-  if (!pt) return;
-  setApiError("");
-  try {
-    const res = await authFetch(`${API}/points/${pt.id}/priority`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ priority: !pt.priority }),
-    });
-    const updated = await readJsonOrThrow(res);
-    setPoints((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-  } catch (e) {
-    if (e?.status === 401) return logout("expired");
-    setApiError(`Nie mogę ustawić priorytetu punktu: ${String(e?.message || e)}`);
+    if (!pt) return;
+    setApiError("");
+    try {
+      const res = await authFetch(`${API}/points/${pt.id}/priority`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priority: !(pt.priority === true) }),
+      });
+      const updated = await readJsonOrThrow(res);
+      setPoints((prev) =>
+        prev.map((p) =>
+          p.id === updated.id ? { ...updated, priority: updated.priority === true } : p
+        )
+      );
+    } catch (e) {
+      if (e?.status === 401) return logout("expired");
+      setApiError(`Nie mogę ustawić priorytetu punktu: ${String(e?.message || e)}`);
+    }
   }
-}
 
-async function toggleTunnelPriority(t) {
-  if (!t) return;
-  setApiError("");
-  try {
-    const res = await authFetch(`${API}/tunnels/${t.id}/priority`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ priority: !t.priority }),
-    });
-    const updated = await readJsonOrThrow(res);
-    setTunnels((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
-  } catch (e) {
-    if (e?.status === 401) return logout("expired");
-    setApiError(`Nie mogę ustawić priorytetu tunelu: ${String(e?.message || e)}`);
+  async function toggleTunnelPriority(t) {
+    if (!t) return;
+    setApiError("");
+    try {
+      const res = await authFetch(`${API}/tunnels/${t.id}/priority`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priority: !(t.priority === true) }),
+      });
+      const updated = await readJsonOrThrow(res);
+      setTunnels((prev) =>
+        prev.map((x) =>
+          x.id === updated.id ? { ...updated, priority: updated.priority === true } : x
+        )
+      );
+    } catch (e) {
+      if (e?.status === 401) return logout("expired");
+      setApiError(`Nie mogę ustawić priorytetu tunelu: ${String(e?.message || e)}`);
+    }
   }
-}
-
 
   /** ===== Points CRUD (dodawanie tylko) ===== */
   async function addPoint(latlng) {
@@ -1280,11 +1314,13 @@ async function toggleTunnelPriority(t) {
         body: JSON.stringify(body),
       });
       const data = await readJsonOrThrow(res);
-      setPoints((p) => [data, ...p]);
-      setSelectedPointId(data.id);
+      const normalized = { ...data, priority: data?.priority === true };
+
+      setPoints((p) => [normalized, ...p]);
+      setSelectedPointId(normalized.id);
       setSelectedTunnelId(null);
 
-      focusPoint(data);
+      focusPoint(normalized);
     } catch (e) {
       if (e?.status === 401) return logout("expired");
       setApiError(`Nie mogę dodać punktu: ${String(e)}`);
@@ -1317,11 +1353,13 @@ async function toggleTunnelPriority(t) {
         }),
       });
       const data = await readJsonOrThrow(res);
-      setTunnels((prev) => [data, ...prev]);
-      setSelectedTunnelId(data.id);
+      const normalized = { ...data, priority: data?.priority === true };
+
+      setTunnels((prev) => [normalized, ...prev]);
+      setSelectedTunnelId(normalized.id);
       setSelectedPointId(null);
 
-      focusTunnel(data);
+      focusTunnel(normalized);
     } catch (err2) {
       if (err2?.status === 401) return logout("expired");
       setApiError(`Nie mogę dodać tunelu: ${String(err2)}`);
@@ -1361,7 +1399,9 @@ async function toggleTunnelPriority(t) {
           }),
         });
         const data = await readJsonOrThrow(res);
-        setTunnels((prev) => prev.map((x) => (x.id === data.id ? data : x)));
+        const normalized = { ...data, priority: data?.priority === true };
+
+        setTunnels((prev) => prev.map((x) => (x.id === normalized.id ? normalized : x)));
       }
     } catch (err2) {
       if (err2?.status === 401) return logout("expired");
@@ -1649,339 +1689,217 @@ async function toggleTunnelPriority(t) {
                 </div>
               </div>
 
-             {/* NARZĘDZIA (w ramce jak Dodawanie) */}
-<div
-  style={{
-    padding: 10,
-    borderRadius: 14,
-    border: `1px solid ${BORDER}`,
-    background: "rgba(255,255,255,0.05)",
-    marginBottom: 12,
-    display: "flex",
-    flexDirection: "column",
-    minHeight: 0,
-    flex: 1,
-  }}
->
-  <div style={{ fontWeight: 900, marginBottom: 8 }}>Narzędzia</div>
+              {/* NARZĘDZIA (w ramce jak Dodawanie) */}
+              <div
+                style={{
+                  padding: 10,
+                  borderRadius: 14,
+                  border: `1px solid ${BORDER}`,
+                  background: "rgba(255,255,255,0.05)",
+                  marginBottom: 12,
+                  display: "flex",
+                  flexDirection: "column",
+                  minHeight: 0,
+                  flex: 1,
+                }}
+              >
+                <div style={{ fontWeight: 900, marginBottom: 8 }}>Narzędzia</div>
 
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 8,
-      marginBottom: 10,
-    }}
-  >
-    <button
-      onClick={() => {
-        setPoints(
-  Array.isArray(data)
-    ? data.map((p) => ({ ...p, priority: p.priority === true }))
-    : []
-);
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 8,
+                    marginBottom: 10,
+                  }}
+                >
+                  <button
+                    onClick={() => {
+                      loadPoints();
+                      loadTunnels();
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: 10,
+                      borderRadius: 12,
+                      border: `1px solid ${BORDER}`,
+                      background: "rgba(255,255,255,0.08)",
+                      color: TEXT_LIGHT,
+                      cursor: "pointer",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {loadingPoints || loadingTunnels ? "Ładuję..." : "Odśwież"}
+                  </button>
 
-        setTunnels(
-  Array.isArray(data)
-    ? data.map((t) => ({ ...t, priority: t.priority === true }))
-    : []
-);
+                  <button
+                    onClick={() => {
+                      setSelectedPointId(null);
+                      setSelectedTunnelId(null);
+                      try {
+                        mapRef.current?.closePopup?.();
+                      } catch {}
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: 10,
+                      borderRadius: 12,
+                      border: `1px solid ${BORDER}`,
+                      background: "rgba(255,255,255,0.05)",
+                      color: TEXT_LIGHT,
+                      cursor: "pointer",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Odznacz
+                  </button>
+                </div>
 
-      }}
-      style={{
-        width: "100%",
-        padding: 10,
-        borderRadius: 12,
-        border: `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.08)",
-        color: TEXT_LIGHT,
-        cursor: "pointer",
-        fontWeight: 700,
-      }}
-    >
-      {loadingPoints || loadingTunnels ? "Ładuję..." : "Odśwież"}
-    </button>
+                {selectedPoint || selectedTunnel ? (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                    <button
+                      onClick={() => {
+                        if (selectedPoint) togglePointPriority(selectedPoint);
+                        else toggleTunnelPriority(selectedTunnel);
+                      }}
+                      style={{
+                        padding: 10,
+                        borderRadius: 12,
+                        border: `1px solid ${BORDER}`,
+                        background:
+                          selectedPoint?.priority === true || selectedTunnel?.priority === true
+                            ? "rgba(255,255,255,0.16)"
+                            : "rgba(255,255,255,0.08)",
+                        color: TEXT_LIGHT,
+                        cursor: "pointer",
+                        fontWeight: 900,
+                      }}
+                      title="Przełącz priorytet"
+                    >
+                      {selectedPoint?.priority === true || selectedTunnel?.priority === true
+                        ? "⭐ Tak"
+                        : "☆ Nie"}
+                    </button>
 
-    <button
-      onClick={() => {
-        setSelectedPointId(null);
-        setSelectedTunnelId(null);
-        try {
-          mapRef.current?.closePopup?.();
-        } catch {}
-      }}
-      style={{
-        width: "100%",
-        padding: 10,
-        borderRadius: 12,
-        border: `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.05)",
-        color: TEXT_LIGHT,
-        cursor: "pointer",
-        fontWeight: 700,
-      }}
-    >
-      Odznacz
-    </button>
-  </div>
+                    <button
+                      onClick={() => setEditOpen(true)}
+                      style={{
+                        padding: 10,
+                        borderRadius: 12,
+                        border: `1px solid ${BORDER}`,
+                        background: "rgba(255,255,255,0.10)",
+                        color: TEXT_LIGHT,
+                        cursor: "pointer",
+                        fontWeight: 900,
+                      }}
+                    >
+                      Edytuj
+                    </button>
 
-  {selectedPoint || selectedTunnel ? (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-      <button
-        onClick={() => {
-          if (selectedPoint) togglePointPriority(selectedPoint);
-          else toggleTunnelPriority(selectedTunnel);
-        }}
-        style={{
-          padding: 10,
-          borderRadius: 12,
-          border: `1px solid ${BORDER}`,
-          background:
-            selectedPoint?.priority || selectedTunnel?.priority
-              ? "rgba(255,255,255,0.16)"
-              : "rgba(255,255,255,0.08)",
-          color: TEXT_LIGHT,
-          cursor: "pointer",
-          fontWeight: 900,
-        }}
-        title="Przełącz priorytet"
-      >
-        {selectedPoint?.priority || selectedTunnel?.priority ? "⭐ Tak" : "☆ Nie"}
-      </button>
+                    <button
+                      onClick={deleteSelectedProject}
+                      style={{
+                        padding: 10,
+                        borderRadius: 12,
+                        border: "1px solid rgba(255,80,80,0.55)",
+                        background: "rgba(255,80,80,0.14)",
+                        color: TEXT_LIGHT,
+                        cursor: "pointer",
+                        fontWeight: 900,
+                      }}
+                    >
+                      Usuń
+                    </button>
+                  </div>
+                ) : null}
 
-      <button
-        onClick={() => setEditOpen(true)}
-        style={{
-          padding: 10,
-          borderRadius: 12,
-          border: `1px solid ${BORDER}`,
-          background: "rgba(255,255,255,0.10)",
-          color: TEXT_LIGHT,
-          cursor: "pointer",
-          fontWeight: 900,
-        }}
-      >
-        Edytuj
-      </button>
+                <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-      <button
-        onClick={deleteSelectedProject}
-        style={{
-          padding: 10,
-          borderRadius: 12,
-          border: "1px solid rgba(255,80,80,0.55)",
-          background: "rgba(255,80,80,0.14)",
-          color: TEXT_LIGHT,
-          cursor: "pointer",
-          fontWeight: 900,
-        }}
-      >
-        Usuń
-      </button>
-    </div>
-  ) : null}
+                <div style={{ fontWeight: 900, marginBottom: 8 }}>Lista projektów</div>
 
-  <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
+                {/* SCROLL TYLKO LISTY */}
+                <div style={{ overflow: "auto", paddingRight: 4, flex: 1, minHeight: 0 }}>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {filteredProjects.map((x) => {
+                      const isTunnel = x.kind === "tunnel";
+                      const selected = isTunnel
+                        ? x.id === selectedTunnelId
+                        : x.id === selectedPointId;
 
-  <div style={{ fontWeight: 900, marginBottom: 8 }}>Lista projektów</div>
+                      return (
+                        <div
+                          key={`${x.kind}-${x.id}`}
+                          onClick={() => {
+                            if (isTunnel) {
+                              setSelectedTunnelId(x.id);
+                              setSelectedPointId(null);
+                              focusTunnel(x);
+                            } else {
+                              setSelectedPointId(x.id);
+                              setSelectedTunnelId(null);
+                              focusPoint(x);
+                            }
+                          }}
+                          style={{
+                            padding: 10,
+                            borderRadius: 14,
+                            border: selected
+                              ? `2px solid rgba(255,255,255,0.35)`
+                              : `1px solid ${BORDER}`,
+                            background: "rgba(255,255,255,0.05)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span
+                              style={{
+                                width: 14,
+                                display: "flex",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {isTunnel ? "🟦" : "📍"}
+                            </span>
 
-  {/* SCROLL TYLKO LISTY */}
-  <div style={{ overflow: "auto", paddingRight: 4, flex: 1, minHeight: 0 }}>
-    <div style={{ display: "grid", gap: 8 }}>
-      {filteredProjects.map((x) => {
-  const isTunnel = x.kind === "tunnel";
-  const selected = isTunnel ? x.id === selectedTunnelId : x.id === selectedPointId;
+                            <span
+                              style={{
+                                fontWeight: 900,
+                                minWidth: 0,
+                                overflow: "hidden",
+                                display: "-webkit-box",
+                                WebkitBoxOrient: "vertical",
+                                WebkitLineClamp: 2,
+                                lineClamp: 2,
+                                whiteSpace: "normal",
+                                lineHeight: 1.2,
+                              }}
+                            >
+                              {x.priority === true ? "⭐ " : ""}
+                              {isTunnel ? x.name || `Tunel #${x.id}` : x.title}
+                            </span>
 
-  return (
-    <div
-      key={`${x.kind}-${x.id}`}
-      onClick={() => {
-        if (isTunnel) {
-          setSelectedTunnelId(x.id);
-          setSelectedPointId(null);
-          focusTunnel(x);
-        } else {
-          setSelectedPointId(x.id);
-          setSelectedTunnelId(null);
-          focusPoint(x);
-        }
-      }}
-      style={{
-        padding: 10,
-        borderRadius: 14,
-        border: selected
-          ? `2px solid rgba(255,255,255,0.35)`
-          : `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.05)",
-        cursor: "pointer",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span
-          style={{
-            width: 14,
-            display: "flex",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          {isTunnel ? "🟦" : "📍"}
-        </span>
+                            <span
+                              style={{
+                                ...pillStyle,
+                                marginLeft: "auto",
+                                whiteSpace: "nowrap",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {statusLabel(x.status)}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
 
-        <span
-          style={{
-            fontWeight: 900,
-            minWidth: 0,
-            overflow: "hidden",
-            display: "-webkit-box",
-            WebkitBoxOrient: "vertical",
-            WebkitLineClamp: 2,
-            lineClamp: 2,
-            whiteSpace: "normal",
-            lineHeight: 1.2,
-          }}
-        >
-          {x.priority ? "⭐ " : ""}
-          {isTunnel ? x.name || `Tunel #${x.id}` : x.title}
-        </span>
-
-        <span style={{ ...pillStyle, marginLeft: "auto", whiteSpace: "nowrap", flexShrink: 0 }}>
-          {statusLabel(x.status)}
-        </span>
-      </div>
-    </div>
-  );
-})}
-
-{filteredProjects.length === 0 ? (
-  <div style={emptyBoxStyle}>Brak danych dla zaznaczonych statusów.</div>
-) : null}
-
-    </div>
-  </div>
-</div>
-              <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
-
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>Lista projektów</div>
-
-              {/* SCROLL TYLKO LISTY */}
-<div style={{ overflow: "auto", paddingRight: 4, flex: 1 }}>
-  <div style={{ display: "grid", gap: 8 }}>
-    {filteredTunnels.map((t) => (
-      <div
-        key={`t-${t.id}`}
-        onClick={() => {
-          setSelectedTunnelId(t.id);
-          setSelectedPointId(null);
-          focusTunnel(t);
-        }}
-        style={{
-          padding: 10,
-          borderRadius: 14,
-          border:
-            t.id === selectedTunnelId
-              ? `2px solid rgba(255,255,255,0.35)`
-              : `1px solid ${BORDER}`,
-          background: "rgba(255,255,255,0.05)",
-          cursor: "pointer",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span
-            style={{
-              width: 14,
-              display: "flex",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            🟦
-          </span>
-
-          <span
-  style={{
-    fontWeight: 900,
-    minWidth: 0,
-    overflow: "hidden",
-    display: "-webkit-box",
-    WebkitBoxOrient: "vertical",
-    WebkitLineClamp: 2,   // <- 2 linie
-    lineClamp: 2,        // (niektóre przeglądarki)
-    whiteSpace: "normal",// <- pozwól łamać
-    lineHeight: 1.2,
-  }}
->
-  {t.name || `Tunel #${t.id}`}
-</span>
-
-          <span style={{ ...pillStyle, marginLeft: "auto", whiteSpace: "nowrap", flexShrink: 0 }}>
-            {statusLabel(t.status)}
-          </span>
-        </div>
-      </div>
-    ))}
-
-    {filteredPoints.map((pt) => (
-      <div
-        key={`p-${pt.id}`}
-        onClick={() => {
-          setSelectedPointId(pt.id);
-          setSelectedTunnelId(null);
-          focusPoint(pt);
-        }}
-        style={{
-          padding: 10,
-          borderRadius: 14,
-          border:
-            pt.id === selectedPointId
-              ? `2px solid rgba(255,255,255,0.35)`
-              : `1px solid ${BORDER}`,
-          background: "rgba(255,255,255,0.05)",
-          cursor: "pointer",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span
-            style={{
-              width: 14,
-              display: "flex",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            📍
-          </span>
-
-          <span
-  style={{
-    fontWeight: 900,
-    minWidth: 0,
-    overflow: "hidden",
-    display: "-webkit-box",
-    WebkitBoxOrient: "vertical",
-    WebkitLineClamp: 2,
-    lineClamp: 2,
-    whiteSpace: "normal",
-    lineHeight: 1.2,
-  }}
->
-  {pt.title}
-</span>
-
-
-          <span style={{ ...pillStyle, marginLeft: "auto", whiteSpace: "nowrap", flexShrink: 0 }}>
-            {statusLabel(pt.status)}
-          </span>
-        </div>
-      </div>
-    ))}
-
-    {filteredPoints.length === 0 && filteredTunnels.length === 0 ? (
-      <div style={emptyBoxStyle}>Brak danych dla zaznaczonych statusów.</div>
-    ) : null}
-  </div>
-</div>
-
+                    {filteredProjects.length === 0 ? (
+                      <div style={emptyBoxStyle}>Brak danych dla zaznaczonych statusów.</div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
             </div>
           </>
         ) : null}
@@ -2088,15 +2006,20 @@ async function toggleTunnelPriority(t) {
                       checked={visibleStatus[s.key]}
                       onChange={() => toggleStatus(s.key)}
                     />
-                    <span
-                      style={{ width: 10, height: 10, borderRadius: 999, background: s.color }}
-                    />
+                    <span style={{ width: 10, height: 10, borderRadius: 999, background: s.color }} />
                     <span style={{ flex: 1, fontWeight: 800 }}>{s.label}</span>
                     <span style={{ fontSize: 12, color: MUTED }}>{counts[s.key] ?? 0}</span>
                   </label>
                 ))}
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 2 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 8,
+                    marginTop: 2,
+                  }}
+                >
                   <button onClick={showAllStatuses} style={miniBtnStyle}>
                     Pokaż
                   </button>
@@ -2214,8 +2137,9 @@ async function toggleTunnelPriority(t) {
                 <Popup>
                   <div style={{ minWidth: 220 }}>
                     <div style={{ fontWeight: 900, marginBottom: 4 }}>
-  {t.priority ? "⭐ " : ""}{t.name || `Tunel #${t.id}`}
-</div>
+                      {t.priority === true ? "⭐ " : ""}
+                      {t.name || `Tunel #${t.id}`}
+                    </div>
 
                     <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
                       Status: <b>{statusLabel(t.status)}</b>
