@@ -2406,7 +2406,6 @@ export default function App() {
     journalCount: journalCounts.tunnels?.[t.id] || 0,
   })}
 />
-
                     </div>
 
                     <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
