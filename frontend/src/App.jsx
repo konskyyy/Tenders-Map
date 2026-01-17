@@ -771,7 +771,7 @@ function RecentUpdatesPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, updatesTick]);
 
-  return (
+   return (
     <div
       style={{
         position: "absolute",
@@ -803,6 +803,7 @@ function RecentUpdatesPanel({
           background: "rgba(0,0,0,0.10)",
         }}
       >
+        {/* TOGGLE */}
         <button
           onClick={() => setOpen((o) => !o)}
           style={{
@@ -812,58 +813,60 @@ function RecentUpdatesPanel({
             alignItems: "center",
             gap: 10,
             minWidth: 0,
+            flex: 1,
           }}
           title={open ? "Zwiń" : "Rozwiń"}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-  <span>Najnowsze aktualizacje</span>
+          <span style={{ whiteSpace: "nowrap" }}>Najnowsze aktualizacje</span>
 
-  {items.length > 0 ? (
-    <span
-      style={{
-        minWidth: 26,
-        height: 22,
-        padding: "0 8px",
-        borderRadius: 999,
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: 12,
-        fontWeight: 900,
-        color: "rgba(255,255,255,0.92)",
-        background: "rgba(239,68,68,0.22)",
-        border: "1px solid rgba(239,68,68,0.55)",
-        boxShadow: "0 0 18px rgba(239,68,68,0.15)",
-        animation: items.length > 0
-          ? "pulseBadge 1.25s ease-in-out infinite"
-          : "none",
-      }}
-      title="Liczba nieprzeczytanych aktualizacji"
-    >
-      {items.length}
-    </span>
-  ) : null}
+          {items.length > 0 ? (
+            <span
+              style={{
+                minWidth: 26,
+                height: 22,
+                padding: "0 8px",
+                borderRadius: 999,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 12,
+                fontWeight: 900,
+                color: "rgba(255,255,255,0.92)",
+                background: "rgba(239,68,68,0.22)",
+                border: "1px solid rgba(239,68,68,0.55)",
+                boxShadow: "0 0 18px rgba(239,68,68,0.15)",
+                animation:
+                  items.length > 0 ? "pulseBadge 1.25s ease-in-out infinite" : "none",
+                flexShrink: 0,
+              }}
+              title="Liczba nieprzeczytanych aktualizacji"
+            >
+              {items.length}
+            </span>
+          ) : null}
 
-  {/* 🔽 DOPISEK */}
-  {!open ? (
-    <span
-      style={{
-        fontSize: 12,
-        color: MUTED,
-        fontWeight: 700,
-        marginLeft: 4,
-        whiteSpace: "nowrap",
-      }}
-    >
-      Rozwiń, żeby zobaczyć więcej
-    </span>
-  ) : null}
-</div>
+          {!open ? (
+            <span
+              style={{
+                fontSize: 12,
+                color: MUTED,
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+              }}
+            >
+              Rozwiń, żeby zobaczyć więcej
+            </span>
+          ) : null}
 
+          <span style={{ fontSize: 12, color: MUTED, marginLeft: "auto" }}>
+            {open ? "▾" : "▸"}
+          </span>
+        </button>
 
+        {/* REFRESH */}
         <button
           onClick={(e) => {
-            e.stopPropagation(); // ważne: nie zwijaj panelu
+            e.stopPropagation();
             load();
           }}
           disabled={loading}
@@ -999,6 +1002,7 @@ function RecentUpdatesPanel({
       ) : null}
     </div>
   );
+
 }
 
 /** ===== EDIT MODAL ===== */
