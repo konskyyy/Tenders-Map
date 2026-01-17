@@ -1757,39 +1757,37 @@ export default function App() {
 
                 {selectedPoint || selectedTunnel ? (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                    <button
+<button
   onClick={() => {
     if (selectedPoint) togglePointPriority(selectedPoint);
     else toggleTunnelPriority(selectedTunnel);
   }}
   style={{
-    padding: 10,
+    padding: "10px 12px",
     borderRadius: 12,
     border: `1px solid ${BORDER}`,
     background: "rgba(255,255,255,0.08)",
     cursor: "pointer",
     fontWeight: 900,
 
-    // żeby ikona była idealnie wyśrodkowana
-    display: "grid",
-    placeItems: "center",
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    justifyContent: "center",
   }}
-  title={
-    selectedPoint?.priority || selectedTunnel?.priority
-      ? "Projekt oznaczony jako ważny"
-      : "Kliknij, aby oznaczyć jako ważne"
-  }
+  title="Oznacz jako ważne"
 >
   <span
     style={{
       fontSize: 18,
       lineHeight: 1,
 
-      // ODWROTNIE: brak priorytetu = kolorowy wykrzyknik
+      // ODWROTNA LOGIKA KOLORU
       color:
         selectedPoint?.priority || selectedTunnel?.priority
-          ? "rgba(255,255,255,0.65)" // "bezbarwny"/neutralny
-          : "rgba(245,158,11,0.95)", // kolor (np. bursztyn)
+          ? "rgba(255,255,255,0.65)"   // już ważne → neutralny
+          : "rgba(245,158,11,0.95)",   // nieważne → kolorowy
+
       textShadow:
         selectedPoint?.priority || selectedTunnel?.priority
           ? "none"
@@ -1798,7 +1796,12 @@ export default function App() {
   >
     ❗
   </span>
+
+  <span style={{ fontSize: 13, whiteSpace: "nowrap" }}>
+    Oznacz jako ważne
+  </span>
 </button>
+
 
 
 
