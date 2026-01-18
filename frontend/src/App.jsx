@@ -4,6 +4,39 @@ import { API_BASE, getToken, loginRequest, meRequest, setToken } from "./api";
 
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
+import { useMapEvents } from "react-leaflet";
+
+function MapAutoDeselect({
+  enabled,
+  onDeselect,
+  mapRef,
+}) {
+  useMapEvents({
+    click(e) {
+      if (!enabled) return;
+
+      const target = e?.originalEvent?.target;
+      if (!target) return;
+
+      // Jeśli klik w element Leaflet "interaktywny", to nie odznaczaj
+      // (markery, polylines/polygony, popupy, kontrolki typu zoom/draw)
+      const isInteractive = target.closest(
+        ".leaflet-marker-icon, .leaflet-interactive, .leaflet-popup, .leaflet-control"
+      );
+
+      if (isInteractive) return;
+
+      // klik w tło mapy => czyść selection
+      try {
+        mapRef?.current?.closePopup?.();
+      } catch {}
+
+      onDeselect?.();
+    },
+  });
+
+  return null;
+}
 
 import {
   MapContainer,
@@ -2954,384 +2987,142 @@ export default function App() {
             onGlobalUpdatesChange={bumpUpdates}
           />
         </div>
+        
 
-        <MapContainer
-          bounds={POLAND_BOUNDS}
-          boundsOptions={{ padding: [20, 20] }}
-          style={{ width: "100%", height: "100%" }}
-          zoomControl={false}
-          minZoom={3}
-        >
-          <MapRefSetter
-            onReady={(map) => {
-              mapRef.current = map;
+              <MapContainer
+        bounds={POLAND_BOUNDS}
+        boundsOptions={{ padding: [20, 20] }}
+        style={{ width: "100%", height: "100%" }}
+        zoomControl={false}
+        minZoom={3}
+      >
+        {/* AUTO-ODZNACZANIE: klik w tło mapy */}
+        <MapAutoDeselect
+          enabled={addMode == null || addMode === ""} // odznaczamy tylko gdy nie jesteś w trybie dodawania
+          mapRef={mapRef}
+          onDeselect={() => {
+            setSelectedTunnelId(null);
+            setSelectedPointId(null);
+            setEditOpen(false); // jeśli NIE chcesz zamykać edycji, usuń tę linię
+          }}
+        />
+
+        <MapRefSetter
+          onReady={(map) => {
+            mapRef.current = map;
+          }}
+        />
+
+        <ZoomControl position="bottomright" />
+        <TileLayer
+          attribution="&copy; OpenStreetMap contributors"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        {worldMask ? (
+          <GeoJSON
+            data={worldMask}
+            style={{
+              fillColor: "#0f172a",
+              fillOpacity: 0.55,
+              color: "#0f172a",
+              weight: 0,
             }}
           />
+        ) : null}
 
-          <ZoomControl position="bottomright" />
-          <TileLayer
-            attribution="&copy; OpenStreetMap contributors"
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+        <ClickHandler enabled={addMode === "point"} onAdd={addPoint} />
 
-          {worldMask ? (
-            <GeoJSON
-              data={worldMask}
-              style={{
-                fillColor: "#0f172a",
-                fillOpacity: 0.55,
-                color: "#0f172a",
-                weight: 0,
+        <FeatureGroup ref={drawGroupRef}>
+          {DrawEditControl ? (
+            <DrawEditControl
+              position="bottomright"
+              onCreated={onDrawCreated}
+              onEdited={onDrawEdited}
+              onDeleted={onDrawDeleted}
+              draw={
+                addMode === "tunnel"
+                  ? {
+                      polyline: {
+                        shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
+                      },
+                      polygon: false,
+                      rectangle: false,
+                      circle: false,
+                      circlemarker: false,
+                      marker: false,
+                    }
+                  : false
+              }
+              edit={{
+                edit: {},
+                remove: {},
               }}
             />
           ) : null}
 
-          <ClickHandler enabled={addMode === "point"} onAdd={addPoint} />
+          {/* TUNELE */}
+          {filteredTunnels.map((t) => (
+            <Polyline
+              ref={(ref) => {
+                if (ref) tunnelRefs.current[t.id] = ref;
+              }}
+              key={`tl-${t.id}`}
+              positions={(t.path || []).map((p) => [Number(p.lat), Number(p.lng)])}
+              pathOptions={{
+                color: tunnelColor(t.status),
+                weight: 10,
+                opacity: 0.95,
+                lineCap: "round",
+                lineJoin: "round",
+                tunnelId: t.id,
+              }}
+              eventHandlers={{
+                click: (e) => {
+                  setSelectedTunnelId(t.id);
+                  setSelectedPointId(null);
+                  try {
+                    e?.target?.openPopup?.();
+                  } catch {}
+                },
+              }}
+            >
+              {/* ... Twój Popup bez zmian ... */}
+              <Popup closeButton={false}>
+                {/* (tu zostawiasz dokładnie to co masz) */}
+                {/* ... */}
+              </Popup>
+            </Polyline>
+          ))}
 
-          <FeatureGroup ref={drawGroupRef}>
-            {DrawEditControl ? (
-              <DrawEditControl
-                position="bottomright"
-                onCreated={onDrawCreated}
-                onEdited={onDrawEdited}
-                onDeleted={onDrawDeleted}
-                draw={
-                  addMode === "tunnel"
-                    ? {
-                        polyline: {
-                          shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
-                        },
-                        polygon: false,
-                        rectangle: false,
-                        circle: false,
-                        circlemarker: false,
-                        marker: false,
-                      }
-                    : false
-                }
-                edit={{
-                  edit: {},
-                  remove: {},
-                }}
-              />
-            ) : null}
-
-            {/* TUNELE */}
-            {filteredTunnels.map((t) => (
-              <Polyline
-                ref={(ref) => {
-                  if (ref) tunnelRefs.current[t.id] = ref;
-                }}
-                key={`tl-${t.id}`}
-                positions={(t.path || []).map((p) => [Number(p.lat), Number(p.lng)])}
-                pathOptions={{
-                  color: tunnelColor(t.status),
-                  weight: 10,
-                  opacity: 0.95,
-                  lineCap: "round",
-                  lineJoin: "round",
-                  tunnelId: t.id,
-                }}
-                eventHandlers={{
-                  click: (e) => {
-                    setSelectedTunnelId(t.id);
-                    setSelectedPointId(null);
-                    try {
-                      e?.target?.openPopup?.();
-                    } catch {}
-                  },
-                }}
-              >
-                <Popup closeButton={false}>
-  <div
-    style={{
-      minWidth: 270,
-      borderRadius: 16,
-      border: `1px solid ${BORDER}`,
-      background: GLASS_BG,
-      backgroundImage:
-        "radial-gradient(500px 300px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
-      color: TEXT_LIGHT,
-      overflow: "hidden",
-      boxShadow: GLASS_SHADOW,
-      padding: 12,
-      position: "relative",
-      backdropFilter: "blur(8px)",
-    }}
-  >
-    {/* X (wyśrodkowany) */}
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        try {
-          mapRef.current?.closePopup?.();
-        } catch {}
-      }}
-      title="Zamknij"
-      style={{
-        position: "absolute",
-        top: 8,
-        right: 8,
-        width: 26,
-        height: 26,
-        borderRadius: 10,
-        border: `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.08)",
-        color: "rgba(255,255,255,0.92)",
-        cursor: "pointer",
-        display: "grid",
-        placeItems: "center",
-        padding: 0,
-        lineHeight: 0,
-      }}
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ display: "block" }}>
-        <path
-          d="M18 6L6 18M6 6l12 12"
-          stroke="currentColor"
-          strokeWidth="2.6"
-          strokeLinecap="round"
-        />
-      </svg>
-    </button>
-
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingRight: 42 }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
-          {t.name || `Tunel #${t.id}`}
-        </div>
-
-        <div style={{ fontSize: 12, color: MUTED }}>
-          Status:{" "}
-          <b style={{ color: "rgba(255,255,255,0.92)" }}>{statusLabel(t.status)}</b>
-        </div>
-      </div>
-
-      <ChanceRing
-        value={projectChance({
-          acquired: isAcquired("tunnels", t.id),
-          journalCount: journalCounts.tunnels?.[t.id] || 0,
-        })}
-        tooltip={chanceTooltip({
-          acquired: isAcquired("tunnels", t.id),
-          journalCount: journalCounts.tunnels?.[t.id] || 0,
-        })}
-      />
-    </div>
-
-    <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
-
-    {t.director ? (
-      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.95 }}>
-        <b>Dyrektor:</b> {t.director}
-      </div>
-    ) : null}
-
-    {t.winner ? (
-      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.95 }}>
-        <b>Firma:</b> {t.winner}
-      </div>
-    ) : null}
-
-    <div style={{ fontSize: 12, marginTop: 8, opacity: 0.95 }}>
-      {t.note ? t.note : <span style={{ opacity: 0.75 }}>Brak notatki</span>}
-    </div>
-
-    <div style={{ fontSize: 11, marginTop: 10, color: MUTED }}>
-      Wpisy w dzienniku: {journalCounts.tunnels?.[t.id] || 0}
-    </div>
-
-    {/* stopka: Rozwiń (mniejszy, nie nachodzi na tekst) */}
-    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedTunnelId(t.id);
-          setSelectedPointId(null);
-          setEditOpen(true);
-          try {
-            mapRef.current?.closePopup?.();
-          } catch {}
-        }}
-        title="Rozwiń i edytuj projekt"
-        style={{
-          padding: "6px 9px",
-          height: 28,
-          borderRadius: 10,
-          border: `1px solid ${BORDER}`,
-          background: "rgba(255,255,255,0.08)",
-          color: TEXT_LIGHT,
-          cursor: "pointer",
-          fontWeight: 800,
-          fontSize: 11,
-          lineHeight: 1,
-          opacity: 0.92,
-        }}
-      >
-        Rozwiń
-      </button>
-    </div>
-  </div>
-</Popup>
-
-              </Polyline>
-            ))}
-
-            {/* PUNKTY */}
-            {filteredPoints.map((pt) => (
-              <Marker
-                key={`pt-${pt.id}`}
-                position={[Number(pt.lat), Number(pt.lng)]}
-                icon={pinIcons[pt.status || "planowany"]}
-                ref={(ref) => {
-                  if (ref) markerRefs.current[pt.id] = ref;
-                }}
-                eventHandlers={{
-                  click: (e) => {
-                    setSelectedPointId(pt.id);
-                    setSelectedTunnelId(null);
-                    try {
-                      e?.target?.openPopup?.();
-                    } catch {}
-                  },
-                }}
-              >
-                <Popup closeButton={false}>
-  <div
-    style={{
-      minWidth: 270,
-      borderRadius: 16,
-      border: `1px solid ${BORDER}`,
-      background: GLASS_BG,
-      backgroundImage:
-        "radial-gradient(500px 300px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
-      color: TEXT_LIGHT,
-      overflow: "hidden",
-      boxShadow: GLASS_SHADOW,
-      padding: 12,
-      position: "relative",
-      backdropFilter: "blur(8px)",
-    }}
-  >
-    {/* X (wyśrodkowany) */}
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        try {
-          mapRef.current?.closePopup?.();
-        } catch {}
-      }}
-      title="Zamknij"
-      style={{
-        position: "absolute",
-        top: 8,
-        right: 8,
-        width: 26,
-        height: 26,
-        borderRadius: 10,
-        border: `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.08)",
-        color: "rgba(255,255,255,0.92)",
-        cursor: "pointer",
-        display: "grid",
-        placeItems: "center",
-        padding: 0,
-        lineHeight: 0,
-      }}
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ display: "block" }}>
-        <path
-          d="M18 6L6 18M6 6l12 12"
-          stroke="currentColor"
-          strokeWidth="2.6"
-          strokeLinecap="round"
-        />
-      </svg>
-    </button>
-
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingRight: 42 }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
-          {pt.title}
-        </div>
-
-        <div style={{ fontSize: 12, color: MUTED }}>
-          Status:{" "}
-          <b style={{ color: "rgba(255,255,255,0.92)" }}>{statusLabel(pt.status)}</b>
-        </div>
-      </div>
-
-      <ChanceRing
-        value={projectChance({
-          acquired: isAcquired("points", pt.id),
-          journalCount: journalCounts.points?.[pt.id] || 0,
-        })}
-        tooltip={chanceTooltip({
-          acquired: isAcquired("points", pt.id),
-          journalCount: journalCounts.points?.[pt.id] || 0,
-        })}
-      />
-    </div>
-
-    <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
-
-    {pt.director ? (
-      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.95 }}>
-        <b>Dyrektor:</b> {pt.director}
-      </div>
-    ) : null}
-
-    {pt.winner ? (
-      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.95 }}>
-        <b>Firma:</b> {pt.winner}
-      </div>
-    ) : null}
-
-    <div style={{ fontSize: 12, marginTop: 8, opacity: 0.95 }}>
-      {pt.note ? pt.note : <span style={{ opacity: 0.75 }}>Brak notatki</span>}
-    </div>
-
-    <div style={{ fontSize: 11, marginTop: 10, color: MUTED }}>
-      Wpisy w dzienniku: {journalCounts.points?.[pt.id] || 0}
-    </div>
-
-    {/* stopka: Rozwiń (mniejszy, nie nachodzi na tekst) */}
-    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedPointId(pt.id);
-          setSelectedTunnelId(null);
-          setEditOpen(true);
-          try {
-            mapRef.current?.closePopup?.();
-          } catch {}
-        }}
-        title="Rozwiń i edytuj projekt"
-        style={{
-          padding: "6px 9px",
-          height: 28,
-          borderRadius: 10,
-          border: `1px solid ${BORDER}`,
-          background: "rgba(255,255,255,0.08)",
-          color: TEXT_LIGHT,
-          cursor: "pointer",
-          fontWeight: 800,
-          fontSize: 11,
-          lineHeight: 1,
-          opacity: 0.92,
-        }}
-      >
-        Rozwiń
-      </button>
-    </div>
-  </div>
-</Popup>
-
-              </Marker>
-            ))}
-          </FeatureGroup>
-        </MapContainer>
+          {/* PUNKTY */}
+          {filteredPoints.map((pt) => (
+            <Marker
+              key={`pt-${pt.id}`}
+              position={[Number(pt.lat), Number(pt.lng)]}
+              icon={pinIcons[pt.status || "planowany"]}
+              ref={(ref) => {
+                if (ref) markerRefs.current[pt.id] = ref;
+              }}
+              eventHandlers={{
+                click: (e) => {
+                  setSelectedPointId(pt.id);
+                  setSelectedTunnelId(null);
+                  try {
+                    e?.target?.openPopup?.();
+                  } catch {}
+                },
+              }}
+            >
+              {/* ... Twój Popup bez zmian ... */}
+              <Popup closeButton={false}>
+                {/* (tu zostawiasz dokładnie to co masz) */}
+                {/* ... */}
+              </Popup>
+            </Marker>
+          ))}
+        </FeatureGroup>
+      </MapContainer>
 
         {/* MODAL EDYCJI — renderowany raz */}
         <EditProjectModal
