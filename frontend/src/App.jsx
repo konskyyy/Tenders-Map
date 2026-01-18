@@ -3157,85 +3157,55 @@ background: x.priority
         {addMode === "tunnel" && drawReady ? (
   <div
     style={{
-      padding: 12,
+      padding: 10,
       display: "flex",
       gap: 8,
       alignItems: "center",
       borderTop: `1px solid ${BORDER}`,
-      background: "rgba(0,0,0,0.06)",
+      background: "rgba(0,0,0,0.08)",
     }}
   >
+    {/* RYSUJ */}
     <button
+      title="Rysuj tunel"
       onClick={() => {
-        try {
-          editToolRef.current?.disable?.();
-          deleteToolRef.current?.disable?.();
-          drawPolylineRef.current?.enable?.();
-        } catch {}
+        editToolRef.current?.disable?.();
+        deleteToolRef.current?.disable?.();
+        drawPolylineRef.current?.enable?.();
       }}
-      style={{
-        padding: "8px 10px",
-        borderRadius: 12,
-        border: `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.08)",
-        color: TEXT_LIGHT,
-        fontWeight: 900,
-        fontSize: 12,
-        cursor: "pointer",
-      }}
+      style={toolBtnStyle}
     >
-      Rysuj
+      🧵
     </button>
 
+    {/* EDYTUJ */}
     <button
+      title="Edytuj geometrię"
       onClick={() => {
-        try {
-          drawPolylineRef.current?.disable?.();
-          deleteToolRef.current?.disable?.();
-          editToolRef.current?.enable?.();
-        } catch {}
+        drawPolylineRef.current?.disable?.();
+        deleteToolRef.current?.disable?.();
+        editToolRef.current?.enable?.();
       }}
-      style={{
-        padding: "8px 10px",
-        borderRadius: 12,
-        border: `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.06)",
-        color: TEXT_LIGHT,
-        fontWeight: 900,
-        fontSize: 12,
-        cursor: "pointer",
-      }}
+      style={toolBtnStyle}
     >
-      Edytuj
+      ✏️
     </button>
 
+    {/* USUŃ */}
     <button
+      title="Usuń tunel"
       onClick={() => {
-        try {
-          drawPolylineRef.current?.disable?.();
-          editToolRef.current?.disable?.();
-          deleteToolRef.current?.enable?.();
-        } catch {}
+        drawPolylineRef.current?.disable?.();
+        editToolRef.current?.disable?.();
+        deleteToolRef.current?.enable?.();
       }}
-      style={{
-        padding: "8px 10px",
-        borderRadius: 12,
-        border: "1px solid rgba(255,80,80,0.45)",
-        background: "rgba(255,80,80,0.10)",
-        color: TEXT_LIGHT,
-        fontWeight: 900,
-        fontSize: 12,
-        cursor: "pointer",
-      }}
+      style={{ ...toolBtnStyle, color: "#f87171" }}
     >
-      Usuń
+      🗑️
     </button>
-
-    <span style={{ marginLeft: "auto", fontSize: 11, color: MUTED, opacity: 0.9 }}>
-      Wybierz narzędzie i działaj na mapie.
-    </span>
   </div>
 ) : null}
+
 
         <div style={{ fontSize: 11, color: MUTED, fontWeight: 700, opacity: 0.85 }}>
           {addMode === "point"
