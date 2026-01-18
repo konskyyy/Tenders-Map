@@ -20,7 +20,6 @@ import {
 
 import L from "leaflet";
 
-
 /** ===== API ===== */
 const API = API_BASE.endsWith("/api") ? API_BASE : `${API_BASE}/api`;
 
@@ -611,8 +610,7 @@ function JournalPanel({
                 border: `1px solid ${BORDER}`,
                 background: "rgba(255,255,255,0.10)",
                 color: TEXT_LIGHT,
-                cursor:
-                  busyActionId === "add" || !draft.trim() ? "default" : "pointer",
+                cursor: busyActionId === "add" || !draft.trim() ? "default" : "pointer",
                 fontWeight: 900,
                 fontSize: 12,
                 width: "fit-content",
@@ -1066,7 +1064,8 @@ function RecentUpdatesPanel({
                 border: "1px solid rgba(239,68,68,0.55)",
                 boxShadow: "0 0 18px rgba(239,68,68,0.15)",
                 flexShrink: 0,
-                animation: !open && items.length > 0 ? "pulseBadge 1.2s ease-in-out infinite" : "none",
+                animation:
+                  !open && items.length > 0 ? "pulseBadge 1.2s ease-in-out infinite" : "none",
               }}
               title="Liczba nieprzeczytanych aktualizacji"
             >
@@ -1582,6 +1581,7 @@ function EditProjectModal({
     </div>
   );
 }
+
 function MapAutoDeselect({ enabled, onDeselect, mapRef, suppressRef }) {
   useMapEvents({
     click(e) {
@@ -1943,7 +1943,6 @@ export default function App() {
       focusTunnel(t);
     }
   }
-
   /** ===== World mask ===== */
   const [worldMask, setWorldMask] = useState(null);
   useEffect(() => {
@@ -2786,7 +2785,6 @@ export default function App() {
           </>
         ) : null}
       </aside>
-
       {/* MAP */}
       <main
         style={{
@@ -2984,151 +2982,148 @@ export default function App() {
             onGlobalUpdatesChange={bumpUpdates}
           />
         </div>
-        
 
-              <MapContainer
-        bounds={POLAND_BOUNDS}
-        boundsOptions={{ padding: [20, 20] }}
-        style={{ width: "100%", height: "100%" }}
-        zoomControl={false}
-        minZoom={3}
-      >
-        {/* AUTO-ODZNACZANIE: klik w tło mapy */}
-        <MapAutoDeselect
-  enabled={addMode == "none" || addMode === ""}
-  mapRef={mapRef}
-  suppressRef={suppressNextMapClickRef}
-  onDeselect={() => {
-    setSelectedTunnelId(null);
-    setSelectedPointId(null);
-    setEditOpen(false);
-  }}
-/>
-
-        <MapRefSetter
-          onReady={(map) => {
-            mapRef.current = map;
-          }}
-        />
-
-        <ZoomControl position="bottomright" />
-        <TileLayer
-          attribution="&copy; OpenStreetMap contributors"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-
-        {worldMask ? (
-          <GeoJSON
-            data={worldMask}
-            style={{
-              fillColor: "#0f172a",
-              fillOpacity: 0.55,
-              color: "#0f172a",
-              weight: 0,
+        <MapContainer
+          bounds={POLAND_BOUNDS}
+          boundsOptions={{ padding: [20, 20] }}
+          style={{ width: "100%", height: "100%" }}
+          zoomControl={false}
+          minZoom={3}
+        >
+          {/* AUTO-ODZNACZANIE: klik w tło mapy */}
+          <MapAutoDeselect
+            enabled={addMode === "none" || addMode === ""}
+            mapRef={mapRef}
+            suppressRef={suppressNextMapClickRef}
+            onDeselect={() => {
+              setSelectedTunnelId(null);
+              setSelectedPointId(null);
+              setEditOpen(false);
             }}
           />
-        ) : null}
 
-        <ClickHandler enabled={addMode === "point"} onAdd={addPoint} />
+          <MapRefSetter
+            onReady={(map) => {
+              mapRef.current = map;
+            }}
+          />
 
-        <FeatureGroup ref={drawGroupRef}>
-          {DrawEditControl ? (
-            <DrawEditControl
-              position="bottomright"
-              onCreated={onDrawCreated}
-              onEdited={onDrawEdited}
-              onDeleted={onDrawDeleted}
-              draw={
-                addMode === "tunnel"
-                  ? {
-                      polyline: {
-                        shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
-                      },
-                      polygon: false,
-                      rectangle: false,
-                      circle: false,
-                      circlemarker: false,
-                      marker: false,
-                    }
-                  : false
-              }
-              edit={{
-                edit: {},
-                remove: {},
+          <ZoomControl position="bottomright" />
+          <TileLayer
+            attribution="&copy; OpenStreetMap contributors"
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+
+          {worldMask ? (
+            <GeoJSON
+              data={worldMask}
+              style={{
+                fillColor: "#0f172a",
+                fillOpacity: 0.55,
+                color: "#0f172a",
+                weight: 0,
               }}
             />
           ) : null}
 
-          {/* TUNELE */}
-          {filteredTunnels.map((t) => (
-            <Polyline
-              ref={(ref) => {
-                if (ref) tunnelRefs.current[t.id] = ref;
-              }}
-              key={`tl-${t.id}`}
-              positions={(t.path || []).map((p) => [Number(p.lat), Number(p.lng)])}
-              pathOptions={{
-                color: tunnelColor(t.status),
-                weight: 10,
-                opacity: 0.95,
-                lineCap: "round",
-                lineJoin: "round",
-                tunnelId: t.id,
-              }}
-              eventHandlers={{
-  click: (e) => {
-    suppressNextMapClickRef.current = true;
-    setTimeout(() => (suppressNextMapClickRef.current = false), 0);
+          <ClickHandler enabled={addMode === "point"} onAdd={addPoint} />
 
-    setSelectedTunnelId(t.id);
-    setSelectedPointId(null);
-    try {
-      e?.target?.openPopup?.();
-    } catch {}
-  },
-}}
+          <FeatureGroup ref={drawGroupRef}>
+            {DrawEditControl ? (
+              <DrawEditControl
+                position="bottomright"
+                onCreated={onDrawCreated}
+                onEdited={onDrawEdited}
+                onDeleted={onDrawDeleted}
+                draw={
+                  addMode === "tunnel"
+                    ? {
+                        polyline: {
+                          shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
+                        },
+                        polygon: false,
+                        rectangle: false,
+                        circle: false,
+                        circlemarker: false,
+                        marker: false,
+                      }
+                    : false
+                }
+                edit={{
+                  edit: {},
+                  remove: {},
+                }}
+              />
+            ) : null}
 
-            >
-              {/* ... Twój Popup bez zmian ... */}
-              <Popup closeButton={false}>
-                {/* (tu zostawiasz dokładnie to co masz) */}
-                {/* ... */}
-              </Popup>
-            </Polyline>
-          ))}
+            {/* TUNELE */}
+            {filteredTunnels.map((t) => (
+              <Polyline
+                ref={(ref) => {
+                  if (ref) tunnelRefs.current[t.id] = ref;
+                }}
+                key={`tl-${t.id}`}
+                positions={(t.path || []).map((p) => [Number(p.lat), Number(p.lng)])}
+                pathOptions={{
+                  color: tunnelColor(t.status),
+                  weight: 10,
+                  opacity: 0.95,
+                  lineCap: "round",
+                  lineJoin: "round",
+                  tunnelId: t.id,
+                  bubblingMouseEvents: false,
+                }}
+                eventHandlers={{
+                  click: (e) => {
+                    suppressNextMapClickRef.current = true;
+                    setTimeout(() => (suppressNextMapClickRef.current = false), 0);
 
-          {/* PUNKTY */}
-          {filteredPoints.map((pt) => (
-            <Marker
-              key={`pt-${pt.id}`}
-              position={[Number(pt.lat), Number(pt.lng)]}
-              icon={pinIcons[pt.status || "planowany"]}
-              ref={(ref) => {
-                if (ref) markerRefs.current[pt.id] = ref;
-              }}
-              eventHandlers={{
-  click: (e) => {
-    suppressNextMapClickRef.current = true;
-    setTimeout(() => (suppressNextMapClickRef.current = false), 0);
+                    setSelectedTunnelId(t.id);
+                    setSelectedPointId(null);
+                    try {
+                      e?.target?.openPopup?.();
+                    } catch {}
+                  },
+                }}
+              >
+                {/* UWAGA: tu wklej swój prawdziwy Popup tunelu (bez zmian) */}
+                <Popup closeButton={false}>
+                  {/* ... */}
+                </Popup>
+              </Polyline>
+            ))}
 
-    setSelectedPointId(pt.id);
-    setSelectedTunnelId(null);
-    try {
-      e?.target?.openPopup?.();
-    } catch {}
-  },
-}}
+            {/* PUNKTY */}
+            {filteredPoints.map((pt) => (
+              <Marker
+                key={`pt-${pt.id}`}
+                position={[Number(pt.lat), Number(pt.lng)]}
+                icon={pinIcons[pt.status || "planowany"]}
+                bubblingMouseEvents={false}
+                ref={(ref) => {
+                  if (ref) markerRefs.current[pt.id] = ref;
+                }}
+                eventHandlers={{
+                  click: (e) => {
+                    suppressNextMapClickRef.current = true;
+                    setTimeout(() => (suppressNextMapClickRef.current = false), 0);
 
-            >
-              {/* ... Twój Popup bez zmian ... */}
-              <Popup closeButton={false}>
-                {/* (tu zostawiasz dokładnie to co masz) */}
-                {/* ... */}
-              </Popup>
-            </Marker>
-          ))}
-        </FeatureGroup>
-      </MapContainer>
+                    setSelectedPointId(pt.id);
+                    setSelectedTunnelId(null);
+                    try {
+                      e?.target?.openPopup?.();
+                    } catch {}
+                  },
+                }}
+              >
+                {/* UWAGA: tu wklej swój prawdziwy Popup punktu (bez zmian) */}
+                <Popup closeButton={false}>
+                  {/* ... */}
+                </Popup>
+              </Marker>
+            ))}
+          </FeatureGroup>
+        </MapContainer>
 
         {/* MODAL EDYCJI — renderowany raz */}
         <EditProjectModal
@@ -3297,3 +3292,4 @@ const hintStyle = {
   color: "white",
   textAlign: "center",
 };
+
