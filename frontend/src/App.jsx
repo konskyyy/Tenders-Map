@@ -341,12 +341,6 @@ function JournalPanel({
     return arr.filter((c) => isWithinDays(c.created_at, 14));
   }, [items]);
 
-  // ✅ tylko 2 wpisy w „Wszystkie wpisy”
-  const allItemsPreview = useMemo(() => {
-    const arr = Array.isArray(items) ? items : [];
-    return arr.slice(0, 2);
-  }, [items]);
-
   async function load() {
     if (!entityId) return;
     setLoading(true);
@@ -367,7 +361,6 @@ function JournalPanel({
 
   useEffect(() => {
     if (!visible) return;
-
     setOpen(readOpenFromStorage());
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -390,7 +383,7 @@ function JournalPanel({
       setDraft("");
 
       setItems((prev) => {
-        const next = [created, ...(prev || [])];
+        const next = [created, ...(Array.isArray(prev) ? prev : [])];
         onCountsChange?.(kind, entityId, next.length);
         return next;
       });
@@ -419,7 +412,12 @@ function JournalPanel({
       });
       const updated = await readJsonOrThrow(res);
 
-      setItems((prev) => (prev || []).map((x) => (String(x.id) === String(updated.id) ? updated : x)));
+      setItems((prev) =>
+        (Array.isArray(prev) ? prev : []).map((x) =>
+          String(x.id) === String(updated.id) ? updated : x
+        )
+      );
+
       setEditingId(null);
       setEditingBody("");
 
@@ -446,7 +444,9 @@ function JournalPanel({
       await readJsonOrThrow(res);
 
       setItems((prev) => {
-        const next = (prev || []).filter((x) => String(x.id) !== String(commentId));
+        const next = (Array.isArray(prev) ? prev : []).filter(
+          (x) => String(x.id) !== String(commentId)
+        );
         onCountsChange?.(kind, entityId, next.length);
         return next;
       });
@@ -512,10 +512,7 @@ function JournalPanel({
     gap: 8,
   };
 
-  const metaStyle = {
-    fontSize: 11,
-    color: MUTED,
-  };
+  const metaStyle = { fontSize: 11, color: MUTED };
 
   const bodyTextStyle = {
     whiteSpace: "pre-wrap",
@@ -534,6 +531,9 @@ function JournalPanel({
     fontWeight: 900,
     fontSize: 11,
   };
+
+  // ✅ wysokość scrolla dla „Wszystkie wpisy” (około 2 wpisy widoczne)
+  const maxHeightAll = 245;
 
   return (
     <div
@@ -609,7 +609,8 @@ function JournalPanel({
                 border: `1px solid ${BORDER}`,
                 background: "rgba(255,255,255,0.10)",
                 color: TEXT_LIGHT,
-                cursor: busyActionId === "add" ? "default" : "pointer",
+                cursor:
+                  busyActionId === "add" || !draft.trim() ? "default" : "pointer",
                 fontWeight: 900,
                 fontSize: 12,
                 width: "fit-content",
@@ -763,14 +764,14 @@ function JournalPanel({
           <div style={{ display: "grid", gap: 8 }}>
             <div>
               <div style={sectionTitleStyle}>Wszystkie wpisy</div>
-              <div style={sectionHintStyle}>Podgląd (2 ostatnie wpisy).</div>
+              <div style={sectionHintStyle}>Pełna historia projektu.</div>
             </div>
 
             {items.length === 0 ? (
               <div style={{ fontSize: 12, color: MUTED }}>Brak wpisów dla tego projektu.</div>
             ) : (
-              <div style={{ ...listWrapStyle, maxHeight: 160 }}>
-                {allItemsPreview.map((c) => {
+              <div style={{ ...listWrapStyle, maxHeight: maxHeightAll }}>
+                {items.map((c) => {
                   const isMine = String(c.user_id) === String(user?.id);
                   const isEditing = String(editingId) === String(c.id);
 
@@ -881,12 +882,6 @@ function JournalPanel({
                 })}
               </div>
             )}
-
-            {items.length > 2 ? (
-              <div style={{ fontSize: 12, color: MUTED }}>
-                Pokazuję 2 ostatnie. Łącznie wpisów: {items.length}.
-              </div>
-            ) : null}
           </div>
 
           <button
@@ -912,6 +907,7 @@ function JournalPanel({
     </div>
   );
 }
+
 
 
 
