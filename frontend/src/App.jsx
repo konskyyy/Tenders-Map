@@ -1841,6 +1841,11 @@ export default function App() {
       .slice()
       .sort(byPriorityThenIdDesc);
   }, [tunnels, visibleStatus]);
+  const filteredProjects = useMemo(() => {
+  const pts = (filteredPoints || []).map((p) => ({ ...p, kind: "point" }));
+  const tls = (filteredTunnels || []).map((t) => ({ ...t, kind: "tunnel" }));
+  return [...pts, ...tls].slice().sort(byPriorityThenIdDesc);
+}, [filteredPoints, filteredTunnels]);
 
   const filteredProjectsSearch = useMemo(() => {
   const q = String(projectQuery || "").trim().toLowerCase();
