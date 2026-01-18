@@ -889,7 +889,9 @@ function RecentUpdatesPanel({
     whiteSpace: "nowrap",
   }}
 >
-  {open ? "Kliknij, żeby zminimalizować" : "Rozwiń, żeby zobaczyć więcej"}
+  {open 
+  ? "Kliknij, żeby zminimalizować"
+  : "Rozwiń, żeby zobaczyć więcej"}
 </span>
 
           ) : null}
