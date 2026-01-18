@@ -750,26 +750,25 @@ function RecentUpdatesPanel({
 
   // ✅ MUSI BYĆ TU, a nie w środku markRead
   async function markAllRead() {
-    if (items.length === 0) return;
+  if (items.length === 0) return;
 
-    // optymistycznie czyścimy UI
-    setItems([]);
-    setExpanded({});
+  // optymistycznie
+  setItems([]);
+  setExpanded({});
 
-    try {
-      const res = await authFetch(`${API}/updates/read-all?limit=500`, {
-        method: "POST",
-      });
-      await readJsonOrThrow(res);
+  try {
+    const res = await authFetch(`${API}/updates/read-all?limit=500`, {
+      method: "POST",
+    });
+    await readJsonOrThrow(res);
 
-      // dociągnij prawdę z backendu (powinno być pusto)
-      await load();
-    } catch (e) {
-      if (e?.status === 401) return onUnauthorized?.();
-      setErr(String(e?.message || e));
-      load();
-    }
+    setOpen(false);        // ✅ AUTO-ZAMKNIĘCIE
+  } catch (e) {
+    if (e?.status === 401) return onUnauthorized?.();
+    setErr(String(e?.message || e));
+    load();
   }
+}
 
   async function markRead(u) {
     const itemKey = `${u.kind}:${u.entity_id}:${u.id}`;
