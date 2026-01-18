@@ -1352,6 +1352,7 @@ function EditProjectModal({
     winner: "",
     note: "",
     acquired: false,
+    lost: false, // ✅ NEW
   });
 
   const [saving, setSaving] = useState(false);
@@ -1370,6 +1371,7 @@ function EditProjectModal({
       winner: entity.winner ?? "",
       note: entity.note ?? "",
       acquired: !!entity.acquired,
+      lost: !!entity.lost, // ✅ NEW (na razie z entity)
     });
   }, [open, kind, entity]);
 
@@ -1389,6 +1391,7 @@ function EditProjectModal({
       winner: String(form.winner || ""),
       note: String(form.note || ""),
       acquired: !!form.acquired,
+      lost: !!form.lost, // ✅ NEW (przekazujemy wyżej, onSave może to przechwycić)
     };
 
     if (kind === "points") payload.title = String(form.titleOrName || "");
@@ -1429,50 +1432,58 @@ function EditProjectModal({
     color: TEXT_LIGHT,
     boxShadow: "0 18px 55px rgba(0,0,0,0.55)",
     overflow: "hidden",
+    backdropFilter: "blur(10px)",
   };
 
   const headerStyle = {
-    padding: "12px 14px",
+    padding: "10px 12px",
     borderBottom: `1px solid ${BORDER}`,
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     fontWeight: 900,
+    fontSize: 13,
+    background: "rgba(0,0,0,0.10)",
   };
 
   const bodyStyle = {
-    padding: 14,
+    padding: 12,
     display: "grid",
-    gap: 10,
+    gap: 9,
   };
 
   const inputStyleLocal = {
     boxSizing: "border-box",
     width: "100%",
-    height: 40,
+    height: 36,
     borderRadius: 12,
     border: `1px solid ${BORDER}`,
     background: "rgba(255,255,255,0.06)",
     color: TEXT_LIGHT,
     padding: "0 12px",
     outline: "none",
+    fontSize: 12,
+    fontWeight: 700,
   };
 
   const textareaStyleLocal = {
     ...inputStyleLocal,
-    height: 90,
+    height: 86,
     padding: 10,
     resize: "vertical",
+    lineHeight: 1.35,
   };
 
   const btnStyle = {
-    padding: 10,
+    padding: "9px 10px",
     borderRadius: 12,
     border: `1px solid ${BORDER}`,
     background: "rgba(255,255,255,0.10)",
     color: TEXT_LIGHT,
     cursor: "pointer",
-    fontWeight: 900,
+    fontWeight: 800,
+    fontSize: 12,
+    transition: "transform 120ms ease, background 120ms ease, border-color 120ms ease",
   };
 
   return (
@@ -1484,8 +1495,10 @@ function EditProjectModal({
     >
       <div style={modalStyle}>
         <div style={headerStyle}>
-          <span>{title}</span>
-          <button onClick={onClose} style={{ ...btnStyle, padding: "8px 10px" }}>
+          <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {title}
+          </span>
+          <button onClick={onClose} style={{ ...btnStyle, padding: "7px 10px", background: "rgba(255,255,255,0.06)" }}>
             Zamknij
           </button>
         </div>
@@ -1527,26 +1540,68 @@ function EditProjectModal({
             <option value="nieaktualny">nieaktualny</option>
           </select>
 
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              marginTop: 6,
-              cursor: "pointer",
-              userSelect: "none",
-              fontWeight: 800,
-              color: MUTED,
-              fontSize: 12,
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={!!form.acquired}
-              onChange={(e) => setForm((f) => ({ ...f, acquired: e.target.checked }))}
-            />
-            Projekt pozyskany (100%)
-          </label>
+          {/* ✅ acquired + lost (mutual exclusive) */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 2 }}>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                cursor: "pointer",
+                userSelect: "none",
+                fontWeight: 800,
+                color: MUTED,
+                fontSize: 12,
+                padding: "10px 12px",
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                background: "rgba(255,255,255,0.05)",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={!!form.acquired}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    acquired: e.target.checked,
+                    lost: e.target.checked ? false : f.lost, // ✅ wyklucz
+                  }))
+                }
+              />
+              Projekt pozyskany
+            </label>
+
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                cursor: "pointer",
+                userSelect: "none",
+                fontWeight: 800,
+                color: MUTED,
+                fontSize: 12,
+                padding: "10px 12px",
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                background: "rgba(255,255,255,0.05)",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={!!form.lost}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    lost: e.target.checked,
+                    acquired: e.target.checked ? false : f.acquired, // ✅ wyklucz
+                  }))
+                }
+              />
+              Projekt przegrany
+            </label>
+          </div>
 
           <label style={{ fontSize: 12, color: MUTED, fontWeight: 800 }}>Dyrektor</label>
           <input
@@ -1569,11 +1624,26 @@ function EditProjectModal({
             style={textareaStyleLocal}
           />
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 4 }}>
-            <button onClick={onClose} style={{ ...btnStyle, background: "rgba(255,255,255,0.05)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 2 }}>
+            <button
+              onClick={onClose}
+              style={{
+                ...btnStyle,
+                background: "rgba(255,255,255,0.05)",
+              }}
+            >
               Anuluj
             </button>
-            <button onClick={handleSave} disabled={saving} style={btnStyle}>
+
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                ...btnStyle,
+                opacity: saving ? 0.75 : 1,
+                cursor: saving ? "default" : "pointer",
+              }}
+            >
               {saving ? "Zapisuję..." : "Zapisz"}
             </button>
           </div>
@@ -1582,6 +1652,7 @@ function EditProjectModal({
     </div>
   );
 }
+
 
 function MapAutoDeselect({ enabled, onDeselect, mapRef, suppressRef }) {
   useMapEvents({
