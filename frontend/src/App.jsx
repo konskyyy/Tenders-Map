@@ -3087,20 +3087,107 @@ export default function App() {
                   },
                 }}
               >
-                <Tooltip
-  permanent
-  direction="top"
-  offset={[0, -12]}
-  opacity={1}
-  className="tmLabel"
->
-  {String(t.name || `Tunel #${t.id}`)}
-</Tooltip>
 
                 {/* UWAGA: tu wklej swój prawdziwy Popup tunelu (bez zmian) */}
-                <Popup closeButton={false}>
-                  {/* ... */}
-                </Popup>
+                <Popup closeButton={false} className="tmPopup">
+  <div
+    style={{
+      minWidth: 260,
+      borderRadius: 16,
+      border: `1px solid ${BORDER}`,
+      background: GLASS_BG,
+      backgroundImage:
+        "radial-gradient(520px 320px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
+      color: TEXT_LIGHT,
+      boxShadow: GLASS_SHADOW,
+      padding: 12,
+      position: "relative",
+      backdropFilter: "blur(8px)",
+    }}
+  >
+    {/* X */}
+    <button
+      onClick={() => tunnelRefs.current[t.id]?.closePopup?.()}
+      style={{
+        position: "absolute",
+        top: 8,
+        right: 8,
+        width: 26,
+        height: 26,
+        borderRadius: 999,
+        border: `1px solid ${BORDER}`,
+        background: "rgba(255,255,255,0.08)",
+        color: TEXT_LIGHT,
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 14,
+        lineHeight: 1,
+      }}
+      title="Zamknij"
+    >
+      ✕
+    </button>
+
+    {/* HEADER */}
+    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
+          {t.name || `Tunel #${t.id}`}
+        </div>
+        <div style={{ fontSize: 12, color: MUTED }}>
+          Status:{" "}
+          <b style={{ color: "rgba(255,255,255,0.92)" }}>
+            {statusLabel(t.status)}
+          </b>
+        </div>
+      </div>
+
+      <ChanceRing
+        value={projectChance({
+          acquired: isAcquired("tunnels", t.id),
+          journalCount: journalCounts.tunnels?.[t.id] || 0,
+        })}
+      />
+    </div>
+
+    <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
+
+    {t.winner && (
+      <div style={{ fontSize: 12, marginBottom: 6 }}>
+        <b>Firma:</b> {t.winner}
+      </div>
+    )}
+
+    <div style={{ fontSize: 12, opacity: 0.9 }}>
+      {t.note || <span style={{ opacity: 0.65 }}>Brak notatki</span>}
+    </div>
+
+    <div style={{ fontSize: 11, color: MUTED, marginTop: 8 }}>
+      Wpisy w dzienniku: {journalCounts.tunnels?.[t.id] || 0}
+    </div>
+
+    {/* ROZWIŃ */}
+    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+      <button
+        onClick={() => setEditOpen(true)}
+        style={{
+          padding: "6px 10px",
+          borderRadius: 10,
+          border: `1px solid ${BORDER}`,
+          background: "rgba(255,255,255,0.06)",
+          color: TEXT_LIGHT,
+          fontWeight: 800,
+          fontSize: 11,
+          cursor: "pointer",
+        }}
+      >
+        Rozwiń
+      </button>
+    </div>
+  </div>
+</Popup>
+
               </Polyline>
             ))}
 
@@ -3127,19 +3214,95 @@ export default function App() {
                   },
                 }}
               >
-                  <Tooltip
-                  permanent
-                  direction="top"
-                  offset={[0, -26]}
-                  opacity={1}
-                  className="tmLabel"
-                >
-                  {String(pt.title || `Punkt #${pt.id}`)}
-                </Tooltip>
                 {/* UWAGA: tu wklej swój prawdziwy Popup punktu (bez zmian) */}
-                <Popup closeButton={false}>
-                  {/* ... */}
-                </Popup>
+                <Popup closeButton={false} className="tmPopup">
+  <div
+    style={{
+      minWidth: 260,
+      borderRadius: 16,
+      border: `1px solid ${BORDER}`,
+      background: GLASS_BG,
+      backgroundImage:
+        "radial-gradient(520px 320px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
+      color: TEXT_LIGHT,
+      boxShadow: GLASS_SHADOW,
+      padding: 12,
+      position: "relative",
+      backdropFilter: "blur(8px)",
+    }}
+  >
+    <button
+      onClick={() => markerRefs.current[pt.id]?.closePopup?.()}
+      style={{
+        position: "absolute",
+        top: 8,
+        right: 8,
+        width: 26,
+        height: 26,
+        borderRadius: 999,
+        border: `1px solid ${BORDER}`,
+        background: "rgba(255,255,255,0.08)",
+        color: TEXT_LIGHT,
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 14,
+      }}
+    >
+      ✕
+    </button>
+
+    <div style={{ display: "flex", gap: 12 }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 900 }}>{pt.title}</div>
+        <div style={{ fontSize: 12, color: MUTED }}>
+          Status: <b>{statusLabel(pt.status)}</b>
+        </div>
+      </div>
+
+      <ChanceRing
+        value={projectChance({
+          acquired: isAcquired("points", pt.id),
+          journalCount: journalCounts.points?.[pt.id] || 0,
+        })}
+      />
+    </div>
+
+    <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
+
+    {pt.winner && (
+      <div style={{ fontSize: 12 }}>
+        <b>Firma:</b> {pt.winner}
+      </div>
+    )}
+
+    <div style={{ fontSize: 12, opacity: 0.9, marginTop: 6 }}>
+      {pt.note || <span style={{ opacity: 0.65 }}>Brak notatki</span>}
+    </div>
+
+    <div style={{ fontSize: 11, color: MUTED, marginTop: 8 }}>
+      Wpisy w dzienniku: {journalCounts.points?.[pt.id] || 0}
+    </div>
+
+    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+      <button
+        onClick={() => setEditOpen(true)}
+        style={{
+          padding: "6px 10px",
+          borderRadius: 10,
+          border: `1px solid ${BORDER}`,
+          background: "rgba(255,255,255,0.06)",
+          color: TEXT_LIGHT,
+          fontWeight: 800,
+          fontSize: 11,
+          cursor: "pointer",
+        }}
+      >
+        Rozwiń
+      </button>
+    </div>
+  </div>
+</Popup>
               </Marker>
             ))}
           </FeatureGroup>
