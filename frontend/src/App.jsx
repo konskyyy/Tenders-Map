@@ -306,9 +306,6 @@ function JournalPanel({
   const [editingBody, setEditingBody] = useState("");
   const [busyActionId, setBusyActionId] = useState(null);
 
-  // ✅ domyślnie filtr: ostatnie 2 tygodnie
-  const [onlyRecent, setOnlyRecent] = useState(true);
-
   // ===== open state per entity (localStorage) =====
   const openKey = entityId ? `journalOpen:${kind}:${entityId}` : null;
 
@@ -339,11 +336,10 @@ function JournalPanel({
     return now - t <= ms;
   }
 
-  const visibleItems = useMemo(() => {
+  const recentItems = useMemo(() => {
     const list = Array.isArray(items) ? items : [];
-    if (!onlyRecent) return list;
     return list.filter((c) => isWithinDays(c.created_at, 14));
-  }, [items, onlyRecent]);
+  }, [items]);
 
   async function load() {
     if (!entityId) return;
@@ -520,7 +516,7 @@ function JournalPanel({
         </span>
 
         <span style={{ fontSize: 12, color: MUTED, whiteSpace: "nowrap" }}>
-          {loading ? "Ładuję..." : `${visibleItems.length} wpis(y)`} {open ? "▾" : "▸"}
+          {loading ? "Ładuję..." : `${items.length} wpis(y)`} {open ? "▾" : "▸"}
         </span>
       </div>
 
@@ -579,200 +575,345 @@ function JournalPanel({
                 {busyActionId === "add" ? "Dodaję..." : "Dodaj wpis"}
               </button>
 
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  cursor: "pointer",
-                  userSelect: "none",
-                  fontSize: 12,
-                  color: MUTED,
-                  fontWeight: 800,
-                  marginLeft: "auto",
-                }}
-                title="Domyślnie pokazujemy wpisy z ostatnich 14 dni"
-              >
-                <input
-                  type="checkbox"
-                  checked={onlyRecent}
-                  onChange={(e) => setOnlyRecent(e.target.checked)}
-                  style={{ transform: "scale(0.95)" }}
-                />
-                Tylko ostatnie 2 tygodnie
-              </label>
-
-              {onlyRecent && items.length !== visibleItems.length ? (
-                <span style={{ fontSize: 12, color: MUTED, whiteSpace: "nowrap" }}>
-                  Ukryto: {items.length - visibleItems.length}
-                </span>
-              ) : null}
+              <div style={{ marginLeft: "auto", fontSize: 12, color: MUTED }}>
+                {loading ? "Ładuję..." : null}
+              </div>
             </div>
           </div>
 
           <div style={{ height: 1, background: BORDER, opacity: 0.9 }} />
 
-          {/* LIST */}
-          {visibleItems.length === 0 ? (
-            <div style={{ fontSize: 12, color: MUTED }}>
-              {items.length === 0
-                ? "Brak wpisów dla tego projektu."
-                : "Brak wpisów z ostatnich 2 tygodni. Odznacz filtr, żeby zobaczyć starsze."}
+          {/* === OSTATNIE 2 TYGODNIE === */}
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ fontSize: 12, color: MUTED, fontWeight: 900 }}>
+              Ostatnie 2 tygodnie
             </div>
-          ) : (
-            <div
-              style={{
-                display: "grid",
-                gap: 10,
-                maxHeight: 320,
-                overflow: "auto",
-                paddingRight: 4,
-              }}
-            >
-              {visibleItems.map((c) => {
-                const isMine = String(c.user_id) === String(user?.id);
-                const isEditing = String(editingId) === String(c.id);
 
-                return (
-                  <div
-                    key={c.id}
-                    style={{
-                      borderRadius: 14,
-                      border: `1px solid ${BORDER}`,
-                      background: "rgba(255,255,255,0.05)",
-                      padding: 10,
-                      display: "grid",
-                      gap: 8,
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                      <div style={{ fontSize: 11, color: MUTED }}>
-                        <b style={{ color: "rgba(255,255,255,0.92)" }}>
-                          {c.user_email || "użytkownik"}
-                        </b>{" "}
-                        • {formatDateTimePL(c.created_at)}
-                        {c.edited ? (
-                          <span style={{ marginLeft: 6, opacity: 0.8 }}>(edytowano)</span>
-                        ) : null}
-                      </div>
+            {recentItems.length === 0 ? (
+              <div style={{ fontSize: 12, color: MUTED }}>
+                Brak aktywności w ostatnim czasie dla tego projektu.
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gap: 10,
+                  maxHeight: 200,
+                  overflow: "auto",
+                  paddingRight: 4,
+                }}
+              >
+                {recentItems.map((c) => {
+                  const isMine = String(c.user_id) === String(user?.id);
+                  const isEditing = String(editingId) === String(c.id);
 
-                      {isMine ? (
-                        <div style={{ display: "flex", gap: 8 }}>
-                          {!isEditing ? (
+                  return (
+                    <div
+                      key={`recent-${c.id}`}
+                      style={{
+                        borderRadius: 14,
+                        border: `1px solid ${BORDER}`,
+                        background: "rgba(255,255,255,0.05)",
+                        padding: 10,
+                        display: "grid",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                        <div style={{ fontSize: 11, color: MUTED }}>
+                          <b style={{ color: "rgba(255,255,255,0.92)" }}>
+                            {c.user_email || "użytkownik"}
+                          </b>{" "}
+                          • {formatDateTimePL(c.created_at)}
+                          {c.edited ? (
+                            <span style={{ marginLeft: 6, opacity: 0.8 }}>(edytowano)</span>
+                          ) : null}
+                        </div>
+
+                        {isMine ? (
+                          <div style={{ display: "flex", gap: 8 }}>
+                            {!isEditing ? (
+                              <button
+                                onClick={() => {
+                                  setEditingId(c.id);
+                                  setEditingBody(c.body || "");
+                                }}
+                                style={{
+                                  padding: "6px 9px",
+                                  borderRadius: 12,
+                                  border: `1px solid ${BORDER}`,
+                                  background: "rgba(255,255,255,0.08)",
+                                  color: TEXT_LIGHT,
+                                  cursor: "pointer",
+                                  fontWeight: 900,
+                                  fontSize: 11,
+                                }}
+                              >
+                                Edytuj
+                              </button>
+                            ) : null}
+
                             <button
-                              onClick={() => {
-                                setEditingId(c.id);
-                                setEditingBody(c.body || "");
-                              }}
+                              onClick={() => removeComment(c.id)}
+                              disabled={busyActionId === c.id}
                               style={{
                                 padding: "6px 9px",
                                 borderRadius: 12,
-                                border: `1px solid ${BORDER}`,
-                                background: "rgba(255,255,255,0.08)",
+                                border: "1px solid rgba(255,80,80,0.55)",
+                                background: "rgba(255,80,80,0.12)",
                                 color: TEXT_LIGHT,
-                                cursor: "pointer",
+                                cursor: busyActionId === c.id ? "default" : "pointer",
                                 fontWeight: 900,
                                 fontSize: 11,
                               }}
                             >
-                              Edytuj
+                              {busyActionId === c.id ? "..." : "Usuń"}
                             </button>
-                          ) : null}
-
-                          <button
-                            onClick={() => removeComment(c.id)}
-                            disabled={busyActionId === c.id}
-                            style={{
-                              padding: "6px 9px",
-                              borderRadius: 12,
-                              border: "1px solid rgba(255,80,80,0.55)",
-                              background: "rgba(255,80,80,0.12)",
-                              color: TEXT_LIGHT,
-                              cursor: busyActionId === c.id ? "default" : "pointer",
-                              fontWeight: 900,
-                              fontSize: 11,
-                            }}
-                          >
-                            {busyActionId === c.id ? "..." : "Usuń"}
-                          </button>
-                        </div>
-                      ) : null}
-                    </div>
-
-                    {!isEditing ? (
-                      <div
-                        style={{
-                          whiteSpace: "pre-wrap",
-                          fontSize: 13,
-                          lineHeight: 1.45,
-                          color: "rgba(255,255,255,0.92)",
-                        }}
-                      >
-                        {c.body}
+                          </div>
+                        ) : null}
                       </div>
-                    ) : (
-                      <div style={{ display: "grid", gap: 8 }}>
-                        <textarea
-                          className="journalTextarea"
-                          rows={2}
-                          value={editingBody}
-                          onChange={(e) => setEditingBody(e.target.value)}
+
+                      {!isEditing ? (
+                        <div
                           style={{
-                            padding: 8,
-                            borderRadius: 12,
-                            border: `1px solid ${BORDER}`,
-                            background: "rgba(255,255,255,0.08)",
-                            outline: "none",
-                            resize: "vertical",
+                            whiteSpace: "pre-wrap",
+                            fontSize: 13,
+                            lineHeight: 1.45,
+                            color: "rgba(255,255,255,0.92)",
                           }}
-                        />
-
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button
-                            onClick={() => saveEdit(c.id)}
-                            disabled={busyActionId === c.id || !editingBody.trim()}
-                            style={{
-                              flex: 1,
-                              padding: "9px 10px",
-                              borderRadius: 12,
-                              border: `1px solid ${BORDER}`,
-                              background: "rgba(255,255,255,0.10)",
-                              color: TEXT_LIGHT,
-                              cursor: busyActionId === c.id ? "default" : "pointer",
-                              fontWeight: 900,
-                              fontSize: 12,
-                            }}
-                          >
-                            {busyActionId === c.id ? "Zapisuję..." : "Zapisz"}
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setEditingId(null);
-                              setEditingBody("");
-                            }}
-                            style={{
-                              flex: 1,
-                              padding: "9px 10px",
-                              borderRadius: 12,
-                              border: `1px solid ${BORDER}`,
-                              background: "rgba(255,255,255,0.05)",
-                              color: TEXT_LIGHT,
-                              cursor: "pointer",
-                              fontWeight: 900,
-                              fontSize: 12,
-                            }}
-                          >
-                            Anuluj
-                          </button>
+                        >
+                          {c.body}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      ) : (
+                        <div style={{ display: "grid", gap: 8 }}>
+                          <textarea
+                            className="journalTextarea"
+                            rows={2}
+                            value={editingBody}
+                            onChange={(e) => setEditingBody(e.target.value)}
+                            style={{
+                              padding: 8,
+                              borderRadius: 12,
+                              border: `1px solid ${BORDER}`,
+                              background: "rgba(255,255,255,0.08)",
+                              outline: "none",
+                              resize: "vertical",
+                            }}
+                          />
+
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button
+                              onClick={() => saveEdit(c.id)}
+                              disabled={busyActionId === c.id || !editingBody.trim()}
+                              style={{
+                                flex: 1,
+                                padding: "9px 10px",
+                                borderRadius: 12,
+                                border: `1px solid ${BORDER}`,
+                                background: "rgba(255,255,255,0.10)",
+                                color: TEXT_LIGHT,
+                                cursor: busyActionId === c.id ? "default" : "pointer",
+                                fontWeight: 900,
+                                fontSize: 12,
+                              }}
+                            >
+                              {busyActionId === c.id ? "Zapisuję..." : "Zapisz"}
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setEditingId(null);
+                                setEditingBody("");
+                              }}
+                              style={{
+                                flex: 1,
+                                padding: "9px 10px",
+                                borderRadius: 12,
+                                border: `1px solid ${BORDER}`,
+                                background: "rgba(255,255,255,0.05)",
+                                color: TEXT_LIGHT,
+                                cursor: "pointer",
+                                fontWeight: 900,
+                                fontSize: 12,
+                              }}
+                            >
+                              Anuluj
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div style={{ height: 1, background: BORDER, opacity: 0.9 }} />
+
+          {/* === WSZYSTKIE WPISY === */}
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ fontSize: 12, color: MUTED, fontWeight: 900 }}>
+              Wszystkie wpisy
             </div>
-          )}
+
+            {items.length === 0 ? (
+              <div style={{ fontSize: 12, color: MUTED }}>Brak wpisów dla tego projektu.</div>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gap: 10,
+                  maxHeight: 260,
+                  overflow: "auto",
+                  paddingRight: 4,
+                }}
+              >
+                {items.map((c) => {
+                  const isMine = String(c.user_id) === String(user?.id);
+                  const isEditing = String(editingId) === String(c.id);
+
+                  return (
+                    <div
+                      key={`all-${c.id}`}
+                      style={{
+                        borderRadius: 14,
+                        border: `1px solid ${BORDER}`,
+                        background: "rgba(255,255,255,0.05)",
+                        padding: 10,
+                        display: "grid",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                        <div style={{ fontSize: 11, color: MUTED }}>
+                          <b style={{ color: "rgba(255,255,255,0.92)" }}>
+                            {c.user_email || "użytkownik"}
+                          </b>{" "}
+                          • {formatDateTimePL(c.created_at)}
+                          {c.edited ? (
+                            <span style={{ marginLeft: 6, opacity: 0.8 }}>(edytowano)</span>
+                          ) : null}
+                        </div>
+
+                        {isMine ? (
+                          <div style={{ display: "flex", gap: 8 }}>
+                            {!isEditing ? (
+                              <button
+                                onClick={() => {
+                                  setEditingId(c.id);
+                                  setEditingBody(c.body || "");
+                                }}
+                                style={{
+                                  padding: "6px 9px",
+                                  borderRadius: 12,
+                                  border: `1px solid ${BORDER}`,
+                                  background: "rgba(255,255,255,0.08)",
+                                  color: TEXT_LIGHT,
+                                  cursor: "pointer",
+                                  fontWeight: 900,
+                                  fontSize: 11,
+                                }}
+                              >
+                                Edytuj
+                              </button>
+                            ) : null}
+
+                            <button
+                              onClick={() => removeComment(c.id)}
+                              disabled={busyActionId === c.id}
+                              style={{
+                                padding: "6px 9px",
+                                borderRadius: 12,
+                                border: "1px solid rgba(255,80,80,0.55)",
+                                background: "rgba(255,80,80,0.12)",
+                                color: TEXT_LIGHT,
+                                cursor: busyActionId === c.id ? "default" : "pointer",
+                                fontWeight: 900,
+                                fontSize: 11,
+                              }}
+                            >
+                              {busyActionId === c.id ? "..." : "Usuń"}
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {!isEditing ? (
+                        <div
+                          style={{
+                            whiteSpace: "pre-wrap",
+                            fontSize: 13,
+                            lineHeight: 1.45,
+                            color: "rgba(255,255,255,0.92)",
+                          }}
+                        >
+                          {c.body}
+                        </div>
+                      ) : (
+                        <div style={{ display: "grid", gap: 8 }}>
+                          <textarea
+                            className="journalTextarea"
+                            rows={2}
+                            value={editingBody}
+                            onChange={(e) => setEditingBody(e.target.value)}
+                            style={{
+                              padding: 8,
+                              borderRadius: 12,
+                              border: `1px solid ${BORDER}`,
+                              background: "rgba(255,255,255,0.08)",
+                              outline: "none",
+                              resize: "vertical",
+                            }}
+                          />
+
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button
+                              onClick={() => saveEdit(c.id)}
+                              disabled={busyActionId === c.id || !editingBody.trim()}
+                              style={{
+                                flex: 1,
+                                padding: "9px 10px",
+                                borderRadius: 12,
+                                border: `1px solid ${BORDER}`,
+                                background: "rgba(255,255,255,0.10)",
+                                color: TEXT_LIGHT,
+                                cursor: busyActionId === c.id ? "default" : "pointer",
+                                fontWeight: 900,
+                                fontSize: 12,
+                              }}
+                            >
+                              {busyActionId === c.id ? "Zapisuję..." : "Zapisz"}
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setEditingId(null);
+                                setEditingBody("");
+                              }}
+                              style={{
+                                flex: 1,
+                                padding: "9px 10px",
+                                borderRadius: 12,
+                                border: `1px solid ${BORDER}`,
+                                background: "rgba(255,255,255,0.05)",
+                                color: TEXT_LIGHT,
+                                cursor: "pointer",
+                                fontWeight: 900,
+                                fontSize: 12,
+                              }}
+                            >
+                              Anuluj
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           <button
             onClick={load}
@@ -795,6 +936,7 @@ function JournalPanel({
     </div>
   );
 }
+
 
 
 
