@@ -2991,7 +2991,7 @@ export default function App() {
       >
         {/* AUTO-ODZNACZANIE: klik w tło mapy */}
         <MapAutoDeselect
-          enabled={addMode == null || addMode === ""} // odznaczamy tylko gdy nie jesteś w trybie dodawania
+          enabled={addMode == "none" || addMode === ""} // odznaczamy tylko gdy nie jesteś w trybie dodawania
           mapRef={mapRef}
           onDeselect={() => {
             setSelectedTunnelId(null);
