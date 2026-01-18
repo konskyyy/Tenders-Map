@@ -280,7 +280,7 @@ function chanceTooltip({ acquired, journalCount }) {
 /** ===== JOURNAL ===== */
 function JournalPanel({
   visible,
-  kind, // "points" | "tunnels"
+  kind,
   entity,
   user,
   authFetch,
@@ -306,141 +306,6 @@ function JournalPanel({
   const [editingBody, setEditingBody] = useState("");
   const [busyActionId, setBusyActionId] = useState(null);
 
-  const openKey = entityId ? `journalOpen:${kind}:${entityId}` : null;
-
-  function readOpenFromStorage() {
-    if (!openKey) return true;
-    try {
-      const raw = localStorage.getItem(openKey);
-      if (raw === null) return true;
-      return JSON.parse(raw) === true;
-    } catch {
-      return true;
-    }
-  }
-
-  function saveOpenToStorage(nextOpen) {
-    if (!openKey) return;
-    try {
-      localStorage.setItem(openKey, JSON.stringify(!!nextOpen));
-    } catch {}
-  }
-
-  async function load() {
-    if (!entityId) return;
-    setLoading(true);
-    setErr("");
-    try {
-      const res = await authFetch(`${API}/${kind}/${entityId}/comments`);
-      const data = await readJsonOrThrow(res);
-      const next = Array.isArray(data) ? data : [];
-      setItems(next);
-      onCountsChange?.(kind, entityId, next.length);
-    } catch (e) {
-      if (e?.status === 401) return onUnauthorized?.();
-      setErr(String(e?.message || e));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (!visible) return;
-    setOpen(readOpenFromStorage());
-    load();
-    // eslint-disable-next-line
-  }, [visible, kind, entityId]);
-
-  async function addComment() {
-    if (!entityId) return;
-    const body = String(draft || "").trim();
-    if (!body) return;
-
-    setBusyActionId("add");
-    setErr("");
-    try {
-      const res = await authFetch(`${API}/${kind}/${entityId}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
-      });
-      const created = await readJsonOrThrow(res);
-      setDraft("");
-
-      setItems((prev) => {
-        const next = [created, ...prev];
-        onCountsChange?.(kind, entityId, next.length);
-        return next;
-      });
-
-      onGlobalUpdatesChange?.();
-    } catch (e) {
-      if (e?.status === 401) return onUnauthorized?.();
-      setErr(String(e?.message || e));
-    } finally {
-      setBusyActionId(null);
-    }
-  }
-
-  async function saveEdit(commentId) {
-    const body = String(editingBody || "").trim();
-    if (!body) return;
-
-    setBusyActionId(commentId);
-    setErr("");
-    try {
-      const res = await authFetch(
-        `${API}/${kind}/${entityId}/comments/${commentId}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body }),
-        }
-      );
-      const updated = await readJsonOrThrow(res);
-
-      setItems((prev) =>
-        prev.map((x) => (x.id === updated.id ? updated : x))
-      );
-      setEditingId(null);
-      setEditingBody("");
-      onGlobalUpdatesChange?.();
-    } catch (e) {
-      if (e?.status === 401) return onUnauthorized?.();
-      setErr(String(e?.message || e));
-    } finally {
-      setBusyActionId(null);
-    }
-  }
-
-  async function removeComment(commentId) {
-    const ok = window.confirm("Usunąć ten wpis z dziennika?");
-    if (!ok) return;
-
-    setBusyActionId(commentId);
-    setErr("");
-    try {
-      const res = await authFetch(
-        `${API}/${kind}/${entityId}/comments/${commentId}`,
-        { method: "DELETE" }
-      );
-      await readJsonOrThrow(res);
-
-      setItems((prev) => {
-        const next = prev.filter((x) => x.id !== commentId);
-        onCountsChange?.(kind, entityId, next.length);
-        return next;
-      });
-
-      onGlobalUpdatesChange?.();
-    } catch (e) {
-      if (e?.status === 401) return onUnauthorized?.();
-      setErr(String(e?.message || e));
-    } finally {
-      setBusyActionId(null);
-    }
-  }
-
   if (!visible) return null;
 
   const title =
@@ -453,24 +318,18 @@ function JournalPanel({
       style={{
         borderRadius: 16,
         border: `1px solid ${BORDER}`,
-        background: "rgba(22,42,64,0.90)",
+        background: GLASS_BG,
         backgroundImage:
-          "radial-gradient(520px 320px at 20% 10%, rgba(255,255,255,0.08), transparent 60%)",
+          "radial-gradient(600px 360px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
         color: TEXT_LIGHT,
-        overflow: "hidden",
         boxShadow: GLASS_SHADOW,
-        backdropFilter: "blur(10px)",
+        backdropFilter: "blur(8px)",
+        overflow: "hidden",
       }}
     >
       {/* HEADER */}
       <div
-        onClick={() => {
-          setOpen((o) => {
-            const next = !o;
-            saveOpenToStorage(next);
-            return next;
-          });
-        }}
+        onClick={() => setOpen((o) => !o)}
         style={{
           padding: "10px 12px",
           cursor: "pointer",
@@ -478,6 +337,7 @@ function JournalPanel({
           justifyContent: "space-between",
           alignItems: "center",
           fontWeight: 900,
+          background: "rgba(0,0,0,0.12)",
         }}
       >
         <span>{title}</span>
@@ -487,7 +347,7 @@ function JournalPanel({
       </div>
 
       {open && (
-        <div style={{ padding: "10px", display: "grid", gap: 10 }}>
+        <div style={{ padding: 12, display: "grid", gap: 10 }}>
           {/* ADD */}
           <textarea
             rows={2}
@@ -498,20 +358,19 @@ function JournalPanel({
               padding: 10,
               borderRadius: 12,
               border: `1px solid ${BORDER}`,
-              background: "rgba(10,18,30,0.45)",
+              background: "rgba(255,255,255,0.06)",
               color: TEXT_LIGHT,
               resize: "vertical",
             }}
           />
 
           <button
-            onClick={addComment}
-            disabled={busyActionId === "add" || !draft.trim()}
+            disabled={!draft.trim()}
             style={{
               padding: "8px 10px",
               borderRadius: 12,
               border: `1px solid ${BORDER}`,
-              background: "rgba(255,255,255,0.10)",
+              background: "rgba(255,255,255,0.08)",
               color: TEXT_LIGHT,
               fontWeight: 900,
               fontSize: 12,
@@ -524,73 +383,45 @@ function JournalPanel({
           {/* LIST */}
           <div
             style={{
-              maxHeight: 340,
+              maxHeight: 320,
               overflow: "auto",
               display: "grid",
               gap: 10,
             }}
           >
-            {items.map((c) => {
-              const isMine = String(c.user_id) === String(user?.id);
-              const isEditing = editingId === c.id;
-
-              return (
-                <div
-                  key={c.id}
-                  style={{
-                    borderRadius: 14,
-                    border: `1px solid ${BORDER}`,
-                    background: "rgba(10,18,30,0.42)",
-                    boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
-                    padding: 10,
-                    display: "grid",
-                    gap: 8,
-                  }}
-                >
-                  <div style={{ fontSize: 12, color: MUTED }}>
-                    <b>{c.user_email}</b> • {formatDateTimePL(c.created_at)}
-                  </div>
-
-                  {!isEditing ? (
-                    <div>{c.body}</div>
-                  ) : (
-                    <>
-                      <textarea
-                        value={editingBody}
-                        onChange={(e) => setEditingBody(e.target.value)}
-                        rows={2}
-                        style={{
-                          padding: 8,
-                          borderRadius: 10,
-                          border: `1px solid ${BORDER}`,
-                          background: "rgba(10,18,30,0.45)",
-                          color: TEXT_LIGHT,
-                        }}
-                      />
-                      <button onClick={() => saveEdit(c.id)}>Zapisz</button>
-                    </>
-                  )}
-
-                  {isMine && !isEditing && (
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => {
-                        setEditingId(c.id);
-                        setEditingBody(c.body);
-                      }}>
-                        Edytuj
-                      </button>
-                      <button onClick={() => removeComment(c.id)}>Usuń</button>
-                    </div>
-                  )}
+            {items.map((c) => (
+              <div
+                key={c.id}
+                style={{
+                  borderRadius: 14,
+                  border: `1px solid ${BORDER}`,
+                  background: "rgba(255,255,255,0.05)",
+                  padding: 10,
+                  display: "grid",
+                  gap: 6,
+                }}
+              >
+                <div style={{ fontSize: 12, color: MUTED }}>
+                  <b>{c.user_email}</b> • {formatDateTimePL(c.created_at)}
                 </div>
-              );
-            })}
+
+                <div style={{ whiteSpace: "pre-wrap" }}>{c.body}</div>
+
+                {String(c.user_id) === String(user?.id) && (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button style={{ fontSize: 12 }}>Edytuj</button>
+                    <button style={{ fontSize: 12 }}>Usuń</button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}
     </div>
   );
 }
+
 
 
 function RecentUpdatesPanel({
