@@ -3107,27 +3107,39 @@ export default function App() {
   >
     {/* X */}
     <button
-      onClick={() => tunnelRefs.current[t.id]?.closePopup?.()}
-      style={{
-        position: "absolute",
-        top: 8,
-        right: 8,
-        width: 26,
-        height: 26,
-        borderRadius: 999,
-        border: `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.08)",
-        color: TEXT_LIGHT,
-        cursor: "pointer",
-        display: "grid",
-        placeItems: "center",
-        fontSize: 14,
-        lineHeight: 1,
-      }}
-      title="Zamknij"
-    >
-      ✕
-    </button>
+  onClick={() => mapRef.current?.closePopup?.()}
+  title="Zamknij"
+  style={{
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    border: `1px solid ${BORDER}`,
+    background: "rgba(255,255,255,0.06)",
+    color: "rgba(255,255,255,0.85)",
+    cursor: "pointer",
+    display: "grid",
+    placeItems: "center",
+    padding: 0,
+  }}
+>
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M6 6l12 12M18 6l-12 12"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+    />
+  </svg>
+</button>
 
     {/* HEADER */}
     <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
@@ -3232,25 +3244,39 @@ export default function App() {
     }}
   >
     <button
-      onClick={() => markerRefs.current[pt.id]?.closePopup?.()}
-      style={{
-        position: "absolute",
-        top: 8,
-        right: 8,
-        width: 26,
-        height: 26,
-        borderRadius: 999,
-        border: `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.08)",
-        color: TEXT_LIGHT,
-        cursor: "pointer",
-        display: "grid",
-        placeItems: "center",
-        fontSize: 14,
-      }}
-    >
-      ✕
-    </button>
+  onClick={() => mapRef.current?.closePopup?.()}
+  title="Zamknij"
+  style={{
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    border: `1px solid ${BORDER}`,
+    background: "rgba(255,255,255,0.06)",
+    color: "rgba(255,255,255,0.85)",
+    cursor: "pointer",
+    display: "grid",
+    placeItems: "center",
+    padding: 0,
+  }}
+>
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M6 6l12 12M18 6l-12 12"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+    />
+  </svg>
+</button>
 
     <div style={{ display: "flex", gap: 12 }}>
       <div style={{ flex: 1 }}>
