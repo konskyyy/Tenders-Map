@@ -3155,16 +3155,17 @@ export default function App() {
         }}
         title="Rozwiń i edytuj projekt"
         style={{
-          padding: "7px 10px",
-          height: 32,
-          borderRadius: 12,
+          padding: "6px 9px",
+          height: 28,
+          borderRadius: 10,
           border: `1px solid ${BORDER}`,
           background: "rgba(255,255,255,0.08)",
           color: TEXT_LIGHT,
           cursor: "pointer",
-          fontWeight: 900,
-          fontSize: 12,
+          fontWeight: 800,
+          fontSize: 11,
           lineHeight: 1,
+          opacity: 0.92,
         }}
       >
         Rozwiń
@@ -3308,16 +3309,17 @@ export default function App() {
         }}
         title="Rozwiń i edytuj projekt"
         style={{
-          padding: "7px 10px",
-          height: 32,
-          borderRadius: 12,
+          padding: "6px 9px",
+          height: 28,
+          borderRadius: 10,
           border: `1px solid ${BORDER}`,
           background: "rgba(255,255,255,0.08)",
           color: TEXT_LIGHT,
           cursor: "pointer",
-          fontWeight: 900,
-          fontSize: 12,
+          fontWeight: 800,
+          fontSize: 11,
           lineHeight: 1,
+          opacity: 0.92,
         }}
       >
         Rozwiń
