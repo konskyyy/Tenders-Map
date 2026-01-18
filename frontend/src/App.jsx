@@ -1723,6 +1723,20 @@ function MapAutoDeselect({ enabled, onDeselect, mapRef, suppressRef }) {
 
   return null;
 }
+const toolBtnStyle = {
+  width: 36,
+  height: 36,
+  borderRadius: 10,
+  border: `1px solid ${BORDER}`,
+  background: "rgba(255,255,255,0.08)",
+  color: TEXT_LIGHT,
+  fontSize: 16,
+  cursor: "pointer",
+  display: "grid",
+  placeItems: "center",
+  lineHeight: 1,
+  padding: 0,
+};
 
 export default function App() {
   /** ===== Leaflet Draw FIX (L is not defined) ===== */
