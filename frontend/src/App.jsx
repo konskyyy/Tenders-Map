@@ -4,39 +4,6 @@ import { API_BASE, getToken, loginRequest, meRequest, setToken } from "./api";
 
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
-import { useMapEvents } from "react-leaflet";
-
-function MapAutoDeselect({
-  enabled,
-  onDeselect,
-  mapRef,
-}) {
-  useMapEvents({
-    click(e) {
-      if (!enabled) return;
-
-      const target = e?.originalEvent?.target;
-      if (!target) return;
-
-      // Jeśli klik w element Leaflet "interaktywny", to nie odznaczaj
-      // (markery, polylines/polygony, popupy, kontrolki typu zoom/draw)
-      const isInteractive = target.closest(
-        ".leaflet-marker-icon, .leaflet-interactive, .leaflet-popup, .leaflet-control"
-      );
-
-      if (isInteractive) return;
-
-      // klik w tło mapy => czyść selection
-      try {
-        mapRef?.current?.closePopup?.();
-      } catch {}
-
-      onDeselect?.();
-    },
-  });
-
-  return null;
-}
 
 import {
   MapContainer,
@@ -50,7 +17,9 @@ import {
   FeatureGroup,
   Polyline,
 } from "react-leaflet";
+
 import L from "leaflet";
+
 
 /** ===== API ===== */
 const API = API_BASE.endsWith("/api") ? API_BASE : `${API_BASE}/api`;
