@@ -292,7 +292,7 @@ function JournalPanel({
   GLASS_SHADOW,
   onCountsChange,
   onUnauthorized,
-  onGlobalUpdatesChange,
+  onGlobalUpdatesChange, // ✅ trigger refresh of updates feed
 }) {
   const entityId = entity?.id ?? null;
 
@@ -305,6 +305,9 @@ function JournalPanel({
   const [editingId, setEditingId] = useState(null);
   const [editingBody, setEditingBody] = useState("");
   const [busyActionId, setBusyActionId] = useState(null);
+
+  // ✅ domyślnie filtr: ostatnie 2 tygodnie
+  const [onlyRecent, setOnlyRecent] = useState(true);
 
   // ===== open state per entity (localStorage) =====
   const openKey = entityId ? `journalOpen:${kind}:${entityId}` : null;
@@ -327,6 +330,21 @@ function JournalPanel({
     } catch {}
   }
 
+  function isWithinDays(iso, days = 14) {
+    if (!iso) return false;
+    const t = new Date(iso).getTime();
+    if (!Number.isFinite(t)) return false;
+    const now = Date.now();
+    const ms = days * 24 * 60 * 60 * 1000;
+    return now - t <= ms;
+  }
+
+  const visibleItems = useMemo(() => {
+    const list = Array.isArray(items) ? items : [];
+    if (!onlyRecent) return list;
+    return list.filter((c) => isWithinDays(c.created_at, 14));
+  }, [items, onlyRecent]);
+
   async function load() {
     if (!entityId) return;
     setLoading(true);
@@ -348,7 +366,7 @@ function JournalPanel({
   useEffect(() => {
     if (!visible) return;
 
-    // open z localStorage per projekt
+    // ustaw open z localStorage per projekt
     setOpen(readOpenFromStorage());
 
     load();
@@ -372,12 +390,12 @@ function JournalPanel({
       setDraft("");
 
       setItems((prev) => {
-        const next = [created, ...prev];
+        const next = [created, ...(Array.isArray(prev) ? prev : [])];
         onCountsChange?.(kind, entityId, next.length);
         return next;
       });
 
-      // odśwież globalny feed aktualizacji
+      // ✅ refresh global updates feed (so new entry shows immediately)
       onGlobalUpdatesChange?.();
     } catch (e) {
       if (e?.status === 401) return onUnauthorized?.();
@@ -402,10 +420,16 @@ function JournalPanel({
       });
       const updated = await readJsonOrThrow(res);
 
-      setItems((prev) => prev.map((x) => (String(x.id) === String(updated.id) ? updated : x)));
+      setItems((prev) =>
+        (Array.isArray(prev) ? prev : []).map((x) =>
+          String(x.id) === String(updated.id) ? updated : x
+        )
+      );
+
       setEditingId(null);
       setEditingBody("");
 
+      // ✅ refresh updates
       onGlobalUpdatesChange?.();
     } catch (e) {
       if (e?.status === 401) return onUnauthorized?.();
@@ -429,7 +453,9 @@ function JournalPanel({
       await readJsonOrThrow(res);
 
       setItems((prev) => {
-        const next = prev.filter((x) => String(x.id) !== String(commentId));
+        const next = (Array.isArray(prev) ? prev : []).filter(
+          (x) => String(x.id) !== String(commentId)
+        );
         onCountsChange?.(kind, entityId, next.length);
         return next;
       });
@@ -439,6 +465,7 @@ function JournalPanel({
         setEditingBody("");
       }
 
+      // ✅ refresh updates
       onGlobalUpdatesChange?.();
     } catch (e) {
       if (e?.status === 401) return onUnauthorized?.();
@@ -488,14 +515,17 @@ function JournalPanel({
           background: "rgba(0,0,0,0.10)",
         }}
       >
-        <span>{title}</span>
-        <span style={{ fontSize: 12, color: MUTED }}>
-          {loading ? "Ładuję..." : `${items.length} wpis(y)`} {open ? "▾" : "▸"}
+        <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
+          {title}
+        </span>
+
+        <span style={{ fontSize: 12, color: MUTED, whiteSpace: "nowrap" }}>
+          {loading ? "Ładuję..." : `${visibleItems.length} wpis(y)`} {open ? "▾" : "▸"}
         </span>
       </div>
 
       {open ? (
-        <div style={{ padding: 12, display: "grid", gap: 10 }}>
+        <div style={{ padding: "10px 12px 12px", display: "grid", gap: 10 }}>
           {err ? (
             <div
               style={{
@@ -529,42 +559,77 @@ function JournalPanel({
               }}
             />
 
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                onClick={addComment}
+                disabled={busyActionId === "add" || !draft.trim()}
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 12,
+                  border: `1px solid ${BORDER}`,
+                  background: "rgba(255,255,255,0.10)",
+                  color: TEXT_LIGHT,
+                  cursor:
+                    busyActionId === "add" || !draft.trim() ? "default" : "pointer",
+                  fontWeight: 900,
+                  fontSize: 12,
+                  width: "fit-content",
+                }}
+              >
+                {busyActionId === "add" ? "Dodaję..." : "Dodaj wpis"}
+              </button>
 
-            <button
-              onClick={addComment}
-              disabled={busyActionId === "add" || !draft.trim()}
-              style={{
-                padding: "8px 10px", // ✅ mniejszy
-                borderRadius: 12,
-                border: `1px solid ${BORDER}`,
-                background: "rgba(255,255,255,0.10)",
-                color: TEXT_LIGHT,
-                cursor: busyActionId === "add" ? "default" : "pointer",
-                fontWeight: 900,
-                fontSize: 12,
-                width: "fit-content",
-              }}
-            >
-              {busyActionId === "add" ? "Dodaję..." : "Dodaj wpis"}
-            </button>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  cursor: "pointer",
+                  userSelect: "none",
+                  fontSize: 12,
+                  color: MUTED,
+                  fontWeight: 800,
+                  marginLeft: "auto",
+                }}
+                title="Domyślnie pokazujemy wpisy z ostatnich 14 dni"
+              >
+                <input
+                  type="checkbox"
+                  checked={onlyRecent}
+                  onChange={(e) => setOnlyRecent(e.target.checked)}
+                  style={{ transform: "scale(0.95)" }}
+                />
+                Tylko ostatnie 2 tygodnie
+              </label>
+
+              {onlyRecent && items.length !== visibleItems.length ? (
+                <span style={{ fontSize: 12, color: MUTED, whiteSpace: "nowrap" }}>
+                  Ukryto: {items.length - visibleItems.length}
+                </span>
+              ) : null}
+            </div>
           </div>
 
           <div style={{ height: 1, background: BORDER, opacity: 0.9 }} />
 
           {/* LIST */}
-          {items.length === 0 ? (
-            <div style={{ fontSize: 12, color: MUTED }}>Brak wpisów dla tego projektu.</div>
+          {visibleItems.length === 0 ? (
+            <div style={{ fontSize: 12, color: MUTED }}>
+              {items.length === 0
+                ? "Brak wpisów dla tego projektu."
+                : "Brak wpisów z ostatnich 2 tygodni. Odznacz filtr, żeby zobaczyć starsze."}
+            </div>
           ) : (
             <div
               style={{
                 display: "grid",
                 gap: 10,
-                maxHeight: 340,
+                maxHeight: 320,
                 overflow: "auto",
                 paddingRight: 4,
               }}
             >
-              {items.map((c) => {
+              {visibleItems.map((c) => {
                 const isMine = String(c.user_id) === String(user?.id);
                 const isEditing = String(editingId) === String(c.id);
 
@@ -581,7 +646,7 @@ function JournalPanel({
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                      <div style={{ fontSize: 12, color: MUTED }}>
+                      <div style={{ fontSize: 11, color: MUTED }}>
                         <b style={{ color: "rgba(255,255,255,0.92)" }}>
                           {c.user_email || "użytkownik"}
                         </b>{" "}
@@ -600,14 +665,14 @@ function JournalPanel({
                                 setEditingBody(c.body || "");
                               }}
                               style={{
-                                padding: "6px 10px",
+                                padding: "6px 9px",
                                 borderRadius: 12,
                                 border: `1px solid ${BORDER}`,
                                 background: "rgba(255,255,255,0.08)",
                                 color: TEXT_LIGHT,
                                 cursor: "pointer",
                                 fontWeight: 900,
-                                fontSize: 12,
+                                fontSize: 11,
                               }}
                             >
                               Edytuj
@@ -618,14 +683,14 @@ function JournalPanel({
                             onClick={() => removeComment(c.id)}
                             disabled={busyActionId === c.id}
                             style={{
-                              padding: "6px 10px",
+                              padding: "6px 9px",
                               borderRadius: 12,
                               border: "1px solid rgba(255,80,80,0.55)",
                               background: "rgba(255,80,80,0.12)",
                               color: TEXT_LIGHT,
                               cursor: busyActionId === c.id ? "default" : "pointer",
                               fontWeight: 900,
-                              fontSize: 12,
+                              fontSize: 11,
                             }}
                           >
                             {busyActionId === c.id ? "..." : "Usuń"}
@@ -636,27 +701,27 @@ function JournalPanel({
 
                     {!isEditing ? (
                       <div
-                          style={{
-                            whiteSpace: "pre-wrap",
-                            fontSize: 13,        // ⬅ było domyślne ~16
-                            lineHeight: 1.45,    // ⬅ lepsza czytelność
-                          }}
-                        >
-                          {c.body}
-                        </div>
-
+                        style={{
+                          whiteSpace: "pre-wrap",
+                          fontSize: 13,
+                          lineHeight: 1.45,
+                          color: "rgba(255,255,255,0.92)",
+                        }}
+                      >
+                        {c.body}
+                      </div>
                     ) : (
                       <div style={{ display: "grid", gap: 8 }}>
                         <textarea
+                          className="journalTextarea"
                           rows={2}
                           value={editingBody}
                           onChange={(e) => setEditingBody(e.target.value)}
                           style={{
-                            padding: 10,
+                            padding: 8,
                             borderRadius: 12,
                             border: `1px solid ${BORDER}`,
-                            background: "rgba(255,255,255,0.06)",
-                            color: TEXT_LIGHT,
+                            background: "rgba(255,255,255,0.08)",
                             outline: "none",
                             resize: "vertical",
                           }}
@@ -668,13 +733,14 @@ function JournalPanel({
                             disabled={busyActionId === c.id || !editingBody.trim()}
                             style={{
                               flex: 1,
-                              padding: 10,
+                              padding: "9px 10px",
                               borderRadius: 12,
                               border: `1px solid ${BORDER}`,
                               background: "rgba(255,255,255,0.10)",
                               color: TEXT_LIGHT,
                               cursor: busyActionId === c.id ? "default" : "pointer",
                               fontWeight: 900,
+                              fontSize: 12,
                             }}
                           >
                             {busyActionId === c.id ? "Zapisuję..." : "Zapisz"}
@@ -687,13 +753,14 @@ function JournalPanel({
                             }}
                             style={{
                               flex: 1,
-                              padding: 10,
+                              padding: "9px 10px",
                               borderRadius: 12,
                               border: `1px solid ${BORDER}`,
                               background: "rgba(255,255,255,0.05)",
                               color: TEXT_LIGHT,
                               cursor: "pointer",
                               fontWeight: 900,
+                              fontSize: 12,
                             }}
                           >
                             Anuluj
@@ -728,6 +795,7 @@ function JournalPanel({
     </div>
   );
 }
+
 
 
 function RecentUpdatesPanel({
