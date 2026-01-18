@@ -423,7 +423,6 @@ function JournalPanel({
 }
 
 
-
 function RecentUpdatesPanel({
   user,
   authFetch,
