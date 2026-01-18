@@ -533,7 +533,7 @@ function JournalPanel({
   };
 
   // ✅ wysokość scrolla dla „Wszystkie wpisy” (około 2 wpisy widoczne)
-  const maxHeightAll = 245;
+  const maxHeightAll = 170;
 
   return (
     <div
@@ -644,7 +644,7 @@ function JournalPanel({
                 Brak aktywności w ostatnim czasie dla tego projektu.
               </div>
             ) : (
-              <div style={{ ...listWrapStyle, maxHeight: 220 }}>
+              <div style={{ ...listWrapStyle, maxHeight: 160 }}>
                 {recentItems.map((c) => {
                   const isMine = String(c.user_id) === String(user?.id);
                   const isEditing = String(editingId) === String(c.id);
