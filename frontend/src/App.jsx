@@ -16,6 +16,7 @@ import {
   GeoJSON,
   FeatureGroup,
   Polyline,
+  Tooltip,
 } from "react-leaflet";
 
 import L from "leaflet";
@@ -3086,6 +3087,16 @@ export default function App() {
                   },
                 }}
               >
+                <Tooltip
+  permanent
+  direction="top"
+  offset={[0, -12]}
+  opacity={1}
+  className="tmLabel"
+>
+  {String(t.name || `Tunel #${t.id}`)}
+</Tooltip>
+
                 {/* UWAGA: tu wklej swój prawdziwy Popup tunelu (bez zmian) */}
                 <Popup closeButton={false}>
                   {/* ... */}
@@ -3116,6 +3127,15 @@ export default function App() {
                   },
                 }}
               >
+                  <Tooltip
+                  permanent
+                  direction="top"
+                  offset={[0, -26]}
+                  opacity={1}
+                  className="tmLabel"
+                >
+                  {String(pt.title || `Punkt #${pt.id}`)}
+                </Tooltip>
                 {/* UWAGA: tu wklej swój prawdziwy Popup punktu (bez zmian) */}
                 <Popup closeButton={false}>
                   {/* ... */}
