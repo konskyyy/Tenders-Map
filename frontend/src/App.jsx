@@ -1582,6 +1582,30 @@ function EditProjectModal({
     </div>
   );
 }
+function MapAutoDeselect({ enabled, onDeselect, mapRef }) {
+  useMapEvents({
+    click(e) {
+      if (!enabled) return;
+
+      const target = e?.originalEvent?.target;
+      if (!target) return;
+
+      const isInteractive = target.closest(
+        ".leaflet-marker-icon, .leaflet-interactive, .leaflet-popup, .leaflet-control"
+      );
+
+      if (isInteractive) return;
+
+      try {
+        mapRef?.current?.closePopup?.();
+      } catch {}
+
+      onDeselect?.();
+    },
+  });
+
+  return null;
+}
 
 export default function App() {
   /** ===== Leaflet Draw FIX (L is not defined) ===== */
