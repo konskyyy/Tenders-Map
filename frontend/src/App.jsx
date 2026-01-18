@@ -3141,36 +3141,42 @@ export default function App() {
   </svg>
 </button>
 
-    {/* HEADER */}
-    <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
-          {t.name || `Tunel #${t.id}`}
-        </div>
-        <div style={{ fontSize: 12, color: MUTED }}>
-          Status:{" "}
-          <b style={{ color: "rgba(255,255,255,0.92)" }}>
-            {statusLabel(t.status)}
-          </b>
-        </div>
-      </div>
-      
-      <div style={{ marginRight: 34, flexShrink: 0 }}>
-        <ChanceRing
-          value={projectChance({
-            acquired: isAcquired("tunnels", t.id),
-            journalCount: journalCounts.tunnels?.[t.id] || 0,
-          })}
-        />
-      </div>
+   {/* HEADER */}
+<div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+  <div style={{ flex: 1, minWidth: 0 }}>
+    <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
+      {t.name || `Tunel #${t.id}`}
+    </div>
 
-    <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
+    <div style={{ fontSize: 12, color: MUTED }}>
+      Status:{" "}
+      <b style={{ color: "rgba(255,255,255,0.92)" }}>
+        {statusLabel(t.status)}
+      </b>
+    </div>
+  </div>
 
-    {t.winner && (
-      <div style={{ fontSize: 12, marginBottom: 6 }}>
-        <b>Firma:</b> {t.winner}
-      </div>
-    )}
+  {/* SZANSA */}
+  <div style={{ marginRight: 34, flexShrink: 0 }}>
+    <ChanceRing
+      value={projectChance({
+        acquired: isAcquired("tunnels", t.id),
+        journalCount: journalCounts.tunnels?.[t.id] || 0,
+      })}
+    />
+  </div>
+</div>
+
+{/* SEPARATOR */}
+<div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
+
+{/* FIRMA */}
+{t.winner && (
+  <div style={{ fontSize: 12, marginBottom: 6 }}>
+    <b>Firma:</b> {t.winner}
+  </div>
+)}
+
 
     <div style={{ fontSize: 12, opacity: 0.9 }}>
       {t.note || <span style={{ opacity: 0.65 }}>Brak notatki</span>}
