@@ -1564,7 +1564,7 @@ export default function App() {
   const [addMode, setAddMode] = useState("none"); // none | point | tunnel
   const [visibleStatus, setVisibleStatus] = useState({
   planowany: true,
-  przetarg: false,     // ✅ domyślnie OFF
+  przetarg: true,     
   realizacja: true,
   nieaktualny: false,  // ✅ domyślnie OFF
 });
