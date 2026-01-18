@@ -514,20 +514,21 @@ function JournalPanel({
           {/* ADD */}
           <div style={{ display: "grid", gap: 8 }}>
             <textarea
+              className="journalTextarea"
               rows={2}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Dodaj wpis do dziennika…"
               style={{
-                padding: 10,
+                padding: 8,
                 borderRadius: 12,
                 border: `1px solid ${BORDER}`,
-                background: "rgba(255,255,255,0.06)",
-                color: TEXT_LIGHT,
+                background: "rgba(255,255,255,0.08)",
                 outline: "none",
                 resize: "vertical",
               }}
             />
+
 
             <button
               onClick={addComment}

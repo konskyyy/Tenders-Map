@@ -102,3 +102,13 @@ body {
   transform: none !important;
   box-shadow: none !important;
 }
+/* ===== Journal textarea ===== */
+.journalTextarea {
+  color: rgba(255,255,255,0.92);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.journalTextarea::placeholder {
+  color: rgba(255,255,255,0.45);
+}
