@@ -880,8 +880,7 @@ function RecentUpdatesPanel({
             </span>
           ) : null}
 
-          {!open ? (
-            <span
+          <span
   style={{
     fontSize: 10,
     color: MUTED,
@@ -893,8 +892,6 @@ function RecentUpdatesPanel({
 >
   {open ? "Kliknij, żeby zminimalizować" : "Rozwiń, żeby zobaczyć więcej"}
 </span>
-
-          ) : null}
 
           <span style={{ fontSize: 12, color: MUTED, marginLeft: "auto" }}>
             {open ? "▾" : "▸"}
