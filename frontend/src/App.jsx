@@ -3339,7 +3339,10 @@ background: x.priority
       circlemarker: false,
       marker: false,
     }}
-    edit={false}
+    edit={{
+      edit: false,
+      remove: false,
+    }}
   />
 ) : null}
 
