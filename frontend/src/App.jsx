@@ -307,11 +307,6 @@ function JournalPanel({
   const [editingId, setEditingId] = useState(null);
   const [editingBody, setEditingBody] = useState("");
   const [busyActionId, setBusyActionId] = useState(null);
-  const [drawReady, setDrawReady] = useState(false);
-  const drawPolylineRef = useRef(null);
-  const editToolRef = useRef(null);
-  const deleteToolRef = useRef(null);
-
 
   // ===== open state per entity (localStorage) =====
   const openKey = entityId ? `journalOpen:${kind}:${entityId}` : null;
@@ -1754,6 +1749,10 @@ export default function App() {
 }, []);
 
   const [projectQuery, setProjectQuery] = useState("");
+  const [drawReady, setDrawReady] = useState(false);
+const drawPolylineRef = useRef(null);
+const editToolRef = useRef(null);
+const deleteToolRef = useRef(null);
 
   /** ===== global refresh trigger for updates feed ===== */
   const [updatesTick, setUpdatesTick] = useState(0);
