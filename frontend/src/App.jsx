@@ -887,12 +887,15 @@ function RecentUpdatesPanel({
     color: MUTED,
     fontWeight: 700,
     whiteSpace: "nowrap",
+    marginLeft: 10,
+    opacity: 0.85,
   }}
 >
-  {open 
-  ? "Kliknij, żeby zminimalizować"
-  : "Rozwiń, żeby zobaczyć więcej"}
+  {open
+    ? "Kliknij, żeby zminimalizować"
+    : "Rozwiń, żeby zobaczyć więcej"}
 </span>
+
 
           ) : null}
 
