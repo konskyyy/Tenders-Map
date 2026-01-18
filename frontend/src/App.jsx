@@ -307,6 +307,11 @@ function JournalPanel({
   const [editingId, setEditingId] = useState(null);
   const [editingBody, setEditingBody] = useState("");
   const [busyActionId, setBusyActionId] = useState(null);
+  const [drawReady, setDrawReady] = useState(false);
+  const drawPolylineRef = useRef(null);
+  const editToolRef = useRef(null);
+  const deleteToolRef = useRef(null);
+
 
   // ===== open state per entity (localStorage) =====
   const openKey = entityId ? `journalOpen:${kind}:${entityId}` : null;
@@ -1729,24 +1734,25 @@ export default function App() {
   const [DrawEditControl, setDrawEditControl] = useState(null);
 
   useEffect(() => {
-    let alive = true;
+  let alive = true;
 
-    (async () => {
-      try {
-        window.L = L;
-        await import("leaflet-draw");
-        const mod = await import("react-leaflet-draw");
-        if (!alive) return;
-        setDrawEditControl(() => mod.EditControl);
-      } catch (e) {
-        console.error("Leaflet draw init failed:", e);
-      }
-    })();
+  (async () => {
+    try {
+      window.L = L;
+      await import("leaflet-draw");
 
-    return () => {
-      alive = false;
-    };
-  }, []);
+      if (!alive) return;
+      setDrawReady(true);
+    } catch (e) {
+      console.error("Leaflet draw init failed:", e);
+    }
+  })();
+
+  return () => {
+    alive = false;
+  };
+}, []);
+
   const [projectQuery, setProjectQuery] = useState("");
 
   /** ===== global refresh trigger for updates feed ===== */
@@ -2063,6 +2069,71 @@ export default function App() {
       focusTunnel(t);
     }
   }
+  useEffect(() => {
+  const map = mapRef.current;
+  const fg = drawGroupRef.current;
+
+  if (!drawReady || !map || !fg) return;
+
+  // Tworzymy narzędzia programowo
+  drawPolylineRef.current = new L.Draw.Polyline(map, {
+    shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
+  });
+
+  editToolRef.current = new L.EditToolbar.Edit(map, {
+    featureGroup: fg,
+    selectedPathOptions: { maintainColor: true, opacity: 0.9, weight: 10 },
+  });
+
+  deleteToolRef.current = new L.EditToolbar.Delete(map, {
+    featureGroup: fg,
+  });
+
+  // Eventy draw
+  const onCreated = (e) => {
+    // tylko gdy jesteśmy w trybie tunel
+    if (addMode !== "tunnel") return;
+
+    // dodaj warstwę do FG żeby dało się edytować/usuwać
+    try {
+      fg.addLayer(e.layer);
+    } catch {}
+
+    // używamy Twojej logiki zapisu tunelu
+    onDrawCreated({ layerType: "polyline", layer: e.layer });
+
+    // po narysowaniu – wyłącz tryb i narzędzia
+    try {
+      drawPolylineRef.current?.disable?.();
+      editToolRef.current?.disable?.();
+      deleteToolRef.current?.disable?.();
+    } catch {}
+    setAddMode("none");
+  };
+
+  const onEditedEv = (e) => {
+    onDrawEdited({ layers: e.layers });
+  };
+
+  const onDeletedEv = (e) => {
+    onDrawDeleted({ layers: e.layers });
+    try {
+      deleteToolRef.current?.disable?.();
+    } catch {}
+  };
+
+  map.on(L.Draw.Event.CREATED, onCreated);
+  map.on(L.Draw.Event.EDITED, onEditedEv);
+  map.on(L.Draw.Event.DELETED, onDeletedEv);
+
+  return () => {
+    map.off(L.Draw.Event.CREATED, onCreated);
+    map.off(L.Draw.Event.EDITED, onEditedEv);
+    map.off(L.Draw.Event.DELETED, onDeletedEv);
+  };
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [drawReady, addMode]);
+
   /** ===== World mask ===== */
   const [worldMask, setWorldMask] = useState(null);
   useEffect(() => {
@@ -2703,6 +2774,75 @@ export default function App() {
               : "Wybierz tryb dodawania: Punkt albo Tunel."}
           </div>
         </div>
+{addMode === "tunnel" && drawReady ? (
+  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+    <button
+      onClick={() => {
+        try {
+          editToolRef.current?.disable?.();
+          deleteToolRef.current?.disable?.();
+          drawPolylineRef.current?.enable?.();
+        } catch {}
+      }}
+      style={{
+        padding: "8px 10px",
+        borderRadius: 12,
+        border: `1px solid ${BORDER}`,
+        background: "rgba(255,255,255,0.08)",
+        color: TEXT_LIGHT,
+        fontWeight: 900,
+        fontSize: 12,
+        cursor: "pointer",
+      }}
+    >
+      Rysuj
+    </button>
+
+    <button
+      onClick={() => {
+        try {
+          drawPolylineRef.current?.disable?.();
+          deleteToolRef.current?.disable?.();
+          editToolRef.current?.enable?.();
+        } catch {}
+      }}
+      style={{
+        padding: "8px 10px",
+        borderRadius: 12,
+        border: `1px solid ${BORDER}`,
+        background: "rgba(255,255,255,0.06)",
+        color: TEXT_LIGHT,
+        fontWeight: 900,
+        fontSize: 12,
+        cursor: "pointer",
+      }}
+    >
+      Edytuj
+    </button>
+
+    <button
+      onClick={() => {
+        try {
+          drawPolylineRef.current?.disable?.();
+          editToolRef.current?.disable?.();
+          deleteToolRef.current?.enable?.();
+        } catch {}
+      }}
+      style={{
+        padding: "8px 10px",
+        borderRadius: 12,
+        border: `1px solid rgba(255,80,80,0.45)`,
+        background: "rgba(255,80,80,0.10)",
+        color: TEXT_LIGHT,
+        fontWeight: 900,
+        fontSize: 12,
+        cursor: "pointer",
+      }}
+    >
+      Usuń
+    </button>
+  </div>
+) : null}
 
         {/* NARZĘDZIA */}
         <div
@@ -3125,6 +3265,14 @@ background: x.priority
           title="Wyjdź z trybu dodawania"
         >
           Zakończ
+          onClick={() => {
+  try {
+    drawPolylineRef.current?.disable?.();
+    editToolRef.current?.disable?.();
+    deleteToolRef.current?.disable?.();
+  } catch {}
+  setAddMode("none");
+}}
         </button>
       </div>
     </div>
@@ -3323,28 +3471,7 @@ background: x.priority
           <ClickHandler enabled={addMode === "point"} onAdd={addPoint} />
 
           <FeatureGroup ref={drawGroupRef}>
-            {DrawEditControl && addMode === "tunnel" ? (
-  <DrawEditControl
-    position="topright"
-    onCreated={onDrawCreated}
-    onEdited={onDrawEdited}
-    onDeleted={onDrawDeleted}
-    draw={{
-      polyline: {
-        shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
-      },
-      polygon: false,
-      rectangle: false,
-      circle: false,
-      circlemarker: false,
-      marker: false,
-    }}
-    edit={{
-      edit: false,
-      remove: false,
-    }}
-  />
-) : null}
+            
 
             {/* TUNELE */}
             {filteredTunnels.map((t) => (
