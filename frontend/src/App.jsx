@@ -871,7 +871,7 @@ function RecentUpdatesPanel({
                 border: "1px solid rgba(239,68,68,0.55)",
                 boxShadow: "0 0 18px rgba(239,68,68,0.15)",
                 flexShrink: 0,
-                animation: items.length > 0 ? "pulseBadge 1.2s ease-in-out infinite" : "none",
+                animation: !open && items.length > 0 ? "pulseBadge 1.2s ease-in-out infinite" : "none",
               }}
               title="Liczba nieprzeczytanych aktualizacji"
             >
