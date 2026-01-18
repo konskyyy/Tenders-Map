@@ -1,7 +1,3 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import "./App.css";
-import { API_BASE, getToken, loginRequest, meRequest, setToken } from "./api";
-
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 
@@ -272,12 +268,6 @@ function projectChance({ acquired, journalCount }) {
   if (acquired) return 100;
   return chanceFromJournalCount(journalCount);
 }
-function chanceTooltip({ acquired, journalCount }) {
-  if (acquired) return "Szansa: 100% (projekt pozyskany)";
-  const n = Math.max(0, Number(journalCount) || 0);
-  const pct = chanceFromJournalCount(n);
-  return `Szansa: ${pct}% (liczona z liczby wpisów w dzienniku: ${n})\n0=50%, 1=60%, 2=70%, 3=80%, 4+=90%`;
-}
 
 /** ===== JOURNAL ===== */
 function JournalPanel({
@@ -534,7 +524,7 @@ function JournalPanel({
     fontSize: 11,
   };
 
-  // wysokość scrolla dla „Wszystkie wpisy” (około 2 wpisy widoczne)
+  // wysokość scrolla dla „Wszystkie wpisy”
   const maxHeightAll = 170;
 
   return (
@@ -956,7 +946,6 @@ function RecentUpdatesPanel({
         method: "POST",
       });
       await readJsonOrThrow(res);
-
       setOpen(false); // auto-zamknięcie
     } catch (e) {
       if (e?.status === 401) return onUnauthorized?.();
@@ -1467,7 +1456,7 @@ function EditProjectModal({
     height: 38,
     borderRadius: 12,
     border: `1px solid ${BORDER}`,
-    background: "rgba(255,255,255,0.08)", // jak dziennik/statusy
+    background: "rgba(255,255,255,0.08)",
     color: TEXT_LIGHT,
     padding: "0 12px",
     outline: "none",
@@ -1523,7 +1512,6 @@ function EditProjectModal({
       };
     }
 
-    // red (lost)
     return {
       ...base,
       color: "rgba(239,68,68,0.95)",
@@ -1654,7 +1642,6 @@ function EditProjectModal({
             style={inputStyleLocal}
           />
 
-          {/* ✅ zamiast "Notatka" -> "Opis projektu" */}
           <label style={labelStyleLocal}>Opis projektu</label>
           <textarea
             value={form.note}
@@ -1694,14 +1681,10 @@ function EditProjectModal({
   );
 }
 
-
-
 function MapAutoDeselect({ enabled, onDeselect, mapRef, suppressRef }) {
   useMapEvents({
     click(e) {
       if (!enabled) return;
-
-      // Jeśli przed chwilą kliknięto marker/polyline – nie odznaczaj
       if (suppressRef?.current) return;
 
       const target = e?.originalEvent?.target;
@@ -1723,28 +1706,17 @@ function MapAutoDeselect({ enabled, onDeselect, mapRef, suppressRef }) {
 
   return null;
 }
-const toolBtnStyle = {
-  width: 36,
-  height: 36,
-  borderRadius: 10,
-  border: `1px solid ${BORDER}`,
-  background: "rgba(255,255,255,0.08)",
-  color: TEXT_LIGHT,
-  fontSize: 16,
-  cursor: "pointer",
-  display: "grid",
-  placeItems: "center",
-  lineHeight: 1,
-  padding: 0,
-};
 
 export default function App() {
-  /** ===== Leaflet Draw FIX (L is not defined) ===== */
+  /** ===== Leaflet Draw init ===== */
   const [drawReady, setDrawReady] = useState(false);
 
   const drawPolylineRef = useRef(null);
   const editToolRef = useRef(null);
   const deleteToolRef = useRef(null);
+
+  // active tool UI highlight
+  const [activeDrawTool, setActiveDrawTool] = useState("draw"); // draw | edit | delete
 
   useEffect(() => {
     let alive = true;
@@ -1753,7 +1725,6 @@ export default function App() {
       try {
         window.L = L;
         await import("leaflet-draw");
-
         if (!alive) return;
         setDrawReady(true);
       } catch (e) {
@@ -1973,6 +1944,7 @@ export default function App() {
       .slice()
       .sort(byPriorityThenIdDesc);
   }, [tunnels, visibleStatus]);
+
   const filteredProjects = useMemo(() => {
     const pts = (filteredPoints || []).map((p) => ({ ...p, kind: "point" }));
     const tls = (filteredTunnels || []).map((t) => ({ ...t, kind: "tunnel" }));
@@ -2082,71 +2054,6 @@ export default function App() {
       focusTunnel(t);
     }
   }
-
-  useEffect(() => {
-    const map = mapRef.current;
-    const fg = drawGroupRef.current;
-
-    if (!drawReady || !map || !fg) return;
-
-    // Tworzymy narzędzia programowo
-    drawPolylineRef.current = new L.Draw.Polyline(map, {
-      shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
-    });
-
-    editToolRef.current = new L.EditToolbar.Edit(map, {
-      featureGroup: fg,
-      selectedPathOptions: { maintainColor: true, opacity: 0.9, weight: 10 },
-    });
-
-    deleteToolRef.current = new L.EditToolbar.Delete(map, {
-      featureGroup: fg,
-    });
-
-    // Eventy draw
-    const onCreated = (e) => {
-      // tylko gdy jesteśmy w trybie tunel
-      if (addMode !== "tunnel") return;
-
-      // dodaj warstwę do FG żeby dało się edytować/usuwać
-      try {
-        fg.addLayer(e.layer);
-      } catch {}
-
-      // używamy Twojej logiki zapisu tunelu
-      onDrawCreated({ layerType: "polyline", layer: e.layer });
-
-      // po narysowaniu – wyłącz tryb i narzędzia
-      try {
-        drawPolylineRef.current?.disable?.();
-        editToolRef.current?.disable?.();
-        deleteToolRef.current?.disable?.();
-      } catch {}
-      setAddMode("none");
-    };
-
-    const onEditedEv = (e) => {
-      onDrawEdited({ layers: e.layers });
-    };
-
-    const onDeletedEv = (e) => {
-      onDrawDeleted({ layers: e.layers });
-      try {
-        deleteToolRef.current?.disable?.();
-      } catch {}
-    };
-
-    map.on(L.Draw.Event.CREATED, onCreated);
-    map.on(L.Draw.Event.EDITED, onEditedEv);
-    map.on(L.Draw.Event.DELETED, onDeletedEv);
-
-    return () => {
-      map.off(L.Draw.Event.CREATED, onCreated);
-      map.off(L.Draw.Event.EDITED, onEditedEv);
-      map.off(L.Draw.Event.DELETED, onDeletedEv);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawReady, addMode]);
 
   /** ===== World mask ===== */
   const [worldMask, setWorldMask] = useState(null);
@@ -2534,6 +2441,85 @@ export default function App() {
     }
   }
 
+  /** ===== Init Leaflet Draw tools + events ===== */
+  useEffect(() => {
+    const map = mapRef.current;
+    const fg = drawGroupRef.current;
+
+    if (!drawReady || !map || !fg) return;
+
+    drawPolylineRef.current = new L.Draw.Polyline(map, {
+      shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
+    });
+
+    editToolRef.current = new L.EditToolbar.Edit(map, {
+      featureGroup: fg,
+      selectedPathOptions: { maintainColor: true, opacity: 0.9, weight: 10 },
+    });
+
+    deleteToolRef.current = new L.EditToolbar.Delete(map, {
+      featureGroup: fg,
+    });
+
+    const onCreated = (e) => {
+      if (addMode !== "tunnel") return;
+
+      try {
+        fg.addLayer(e.layer);
+      } catch {}
+
+      onDrawCreated({ layerType: "polyline", layer: e.layer });
+
+      try {
+        drawPolylineRef.current?.disable?.();
+        editToolRef.current?.disable?.();
+        deleteToolRef.current?.disable?.();
+      } catch {}
+
+      setActiveDrawTool("draw");
+      setAddMode("none");
+    };
+
+    const onEditedEv = (e) => {
+      onDrawEdited({ layers: e.layers });
+    };
+
+    const onDeletedEv = (e) => {
+      onDrawDeleted({ layers: e.layers });
+      try {
+        deleteToolRef.current?.disable?.();
+      } catch {}
+      setActiveDrawTool("draw");
+    };
+
+    map.on(L.Draw.Event.CREATED, onCreated);
+    map.on(L.Draw.Event.EDITED, onEditedEv);
+    map.on(L.Draw.Event.DELETED, onDeletedEv);
+
+    return () => {
+      map.off(L.Draw.Event.CREATED, onCreated);
+      map.off(L.Draw.Event.EDITED, onEditedEv);
+      map.off(L.Draw.Event.DELETED, onDeletedEv);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawReady, addMode, tunnels]);
+
+  const toolBtnStyle = (active) => ({
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    border: active ? "1px solid rgba(96,165,250,0.70)" : `1px solid ${BORDER}`,
+    background: active ? "rgba(96,165,250,0.14)" : "rgba(255,255,255,0.08)",
+    color: TEXT_LIGHT,
+    fontSize: 16,
+    cursor: "pointer",
+    display: "grid",
+    placeItems: "center",
+    lineHeight: 1,
+    padding: 0,
+    boxShadow: active ? "0 0 14px rgba(96,165,250,0.14)" : "none",
+  });
+
   /** ===== LOGIN UI ===== */
   if (mode === "checking") {
     return (
@@ -2609,215 +2595,195 @@ export default function App() {
   const sidebarWidthOpen = 380;
   const sidebarWidthClosed = 0;
 
- return (
-  <div
-    style={{
-      position: "fixed",
-      inset: 0,
-      display: "grid",
-      gridTemplateColumns: `${sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed}px 1fr`,
-      width: "100%",
-      height: "100%",
-      overflow: "hidden",
-    }}
-  >
-    {/* ===== GÓRNA ZAKŁADKA TRYBU DODAWANIA ===== */}
-    {addMode !== "none" && (
-      <div
-        style={{
-          position: "absolute",
-          top: 12,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 1800,
-          width: "min(520px, calc(100% - 420px))",
-          maxWidth: "52vw",
-          borderRadius: 16,
-          border: `1px solid ${BORDER}`,
-          background: GLASS_BG,
-          backgroundImage:
-            "radial-gradient(700px 420px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
-          color: TEXT_LIGHT,
-          boxShadow: GLASS_SHADOW,
-          overflow: "hidden",
-          backdropFilter: "blur(8px)",
-        }}
-      >
-        {/* HEADER */}
-        <div
-          style={{
-            padding: "10px 12px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            fontWeight: 900,
-            background: "rgba(0,0,0,0.10)",
-          }}
-        >
-          <div style={{ display: "grid", gap: 2 }}>
-            <span>
-              {addMode === "point" ? "Tryb: Punkt" : "Tryb: Tunel"}
-            </span>
-            <span style={{ fontSize: 11, color: MUTED }}>
-              {addMode === "point"
-                ? "Kliknij na mapie, aby dodać marker."
-                : "Rysuj linię (klik / klik / klik i zakończ)."}
-            </span>
-          </div>
-
-          <button
-            onClick={() => setAddMode("none")}
-            style={{
-              padding: "6px 10px",
-              borderRadius: 10,
-              border: `1px solid ${BORDER}`,
-              background: "rgba(255,255,255,0.06)",
-              color: TEXT_LIGHT,
-              cursor: "pointer",
-              fontWeight: 800,
-              fontSize: 11,
-            }}
-          >
-            Zakończ
-          </button>
-        </div>
-
-        {/* NARZĘDZIA RYSOWANIA */}
-        {addMode === "tunnel" && drawReady && (
-          <div
-            style={{
-              padding: 10,
-              display: "flex",
-              gap: 8,
-              alignItems: "center",
-              borderTop: `1px solid ${BORDER}`,
-              background: "rgba(0,0,0,0.08)",
-            }}
-          >
-            <button
-              title="Rysuj tunel"
-              onClick={() => {
-                editToolRef.current?.disable?.();
-                deleteToolRef.current?.disable?.();
-                drawPolylineRef.current?.enable?.();
-              }}
-              style={toolBtnStyle}
-            >
-              ━
-            </button>
-
-            <button
-              title="Edytuj geometrię"
-              onClick={() => {
-                drawPolylineRef.current?.disable?.();
-                deleteToolRef.current?.disable?.();
-                editToolRef.current?.enable?.();
-              }}
-              style={toolBtnStyle}
-            >
-              ✏️
-            </button>
-
-            <button
-              title="Usuń tunel"
-              onClick={() => {
-                drawPolylineRef.current?.disable?.();
-                editToolRef.current?.disable?.();
-                deleteToolRef.current?.enable?.();
-              }}
-              style={{ ...toolBtnStyle, color: "#f87171" }}
-            >
-              🗑️
-            </button>
-          </div>
-        )}
-      </div>
-    )}
-
-    {/* ===== SIDEBAR ===== */}
-    <aside
+  return (
+    <div
       style={{
-        color: TEXT_LIGHT,
-        borderRight: sidebarOpen ? `1px solid ${BORDER}` : "none",
+        position: "fixed",
+        inset: 0,
+        display: "grid",
+        gridTemplateColumns: `${sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed}px 1fr`,
+        width: "100%",
+        height: "100%",
         overflow: "hidden",
-        width: sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed,
-        transition: "width 200ms ease",
-        background: GLASS_BG,
-        backgroundImage: GLASS_HIGHLIGHT,
-        backdropFilter: "blur(8px)",
-        boxShadow: GLASS_SHADOW,
-        zIndex: 1200,
       }}
     >
-      {sidebarOpen ? (
-        <>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "10px 12px",
-              borderBottom: `1px solid ${BORDER}`,
-              background: GLASS_BG_DARK,
-            }}
-          >
-            <button
-              onClick={() => setSidebarOpen(false)}
-              title="Zwiń panel"
+      {/* SIDEBAR */}
+      <aside
+        style={{
+          color: TEXT_LIGHT,
+          borderRight: sidebarOpen ? `1px solid ${BORDER}` : "none",
+          overflow: "hidden",
+          width: sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed,
+          transition: "width 200ms ease",
+          background: GLASS_BG,
+          backgroundImage: GLASS_HIGHLIGHT,
+          backdropFilter: "blur(8px)",
+          boxShadow: GLASS_SHADOW,
+        }}
+      >
+        {sidebarOpen ? (
+          <>
+            <div
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: 10,
-                border: `1px solid ${BORDER}`,
-                background: "transparent",
-                color: TEXT_LIGHT,
-                cursor: "pointer",
-                display: "grid",
-                placeItems: "center",
-                fontSize: 16,
-                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "10px 12px",
+                borderBottom: `1px solid ${BORDER}`,
+                background: GLASS_BG_DARK,
+                backdropFilter: "blur(8px)",
               }}
             >
-              ⟨
-            </button>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                title="Zwiń panel"
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 10,
+                  border: `1px solid ${BORDER}`,
+                  background: "transparent",
+                  color: TEXT_LIGHT,
+                  cursor: "pointer",
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: 16,
+                  lineHeight: 1,
+                  padding: 0,
+                }}
+              >
+                ⟨
+              </button>
 
-            <div style={{ display: "grid", gap: 2, flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 800, fontSize: 13 }}>
-                Mapa projektów – BD
+              <div style={{ display: "grid", gap: 2, flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 800, letterSpacing: 0.2, fontSize: 13 }}>
+                  Mapa projektów - BD
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: MUTED,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Zalogowano: {user?.email || "(użytkownik)"}
+                </div>
               </div>
-              <div style={{ fontSize: 11, color: MUTED }}>
-                Zalogowano: {user?.email || "(użytkownik)"}
-              </div>
+
+              <button
+                onClick={() => logout()}
+                style={{
+                  padding: "7px 10px",
+                  borderRadius: 12,
+                  border: `1px solid ${BORDER}`,
+                  background: "rgba(255,255,255,0.06)",
+                  color: TEXT_LIGHT,
+                  cursor: "pointer",
+                  fontWeight: 800,
+                  fontSize: 11,
+                }}
+              >
+                Wyloguj
+              </button>
             </div>
 
-            <button
-              onClick={() => logout()}
+            <div
               style={{
-                padding: "7px 10px",
-                borderRadius: 12,
-                border: `1px solid ${BORDER}`,
-                background: "rgba(255,255,255,0.06)",
-                color: TEXT_LIGHT,
-                cursor: "pointer",
-                fontWeight: 800,
-                fontSize: 11,
+                padding: 10,
+                height: "calc(100% - 55px)",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
               }}
             >
-              Wyloguj
-            </button>
-          </div>
+              {apiError ? (
+                <div
+                  style={{
+                    padding: 10,
+                    borderRadius: 14,
+                    border: "1px solid rgba(255,120,120,0.45)",
+                    background: "rgba(255,120,120,0.12)",
+                    color: "rgba(255,255,255,0.95)",
+                    fontSize: 11,
+                    marginBottom: 10,
+                  }}
+                >
+                  {apiError}
+                </div>
+              ) : null}
 
-          {/* reszta sidebaru BEZ narzędzi rysowania */}
-        </>
-      ) : null}
-    </aside>
+              {/* Dodawanie */}
+              <div
+                style={{
+                  padding: 10,
+                  borderRadius: 14,
+                  border: `1px solid ${BORDER}`,
+                  background: "rgba(255,255,255,0.05)",
+                  marginBottom: 10,
+                }}
+              >
+                <div style={{ fontWeight: 800, marginBottom: 8, fontSize: 13 }}>
+                  Dodawanie projektów
+                </div>
 
-    {/* ===== MAPA ===== */}
-    <div style={{ position: "relative" }}>
-      {/* MapContainer jest dalej bez zmian */}
-    </div>
-  </div>
-);
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <button
+                    onClick={() => {
+                      setActiveDrawTool("draw");
+                      setAddMode((m) => (m === "point" ? "none" : "point"));
+                    }}
+                    style={{
+                      padding: "9px 10px",
+                      borderRadius: 12,
+                      border: `1px solid ${BORDER}`,
+                      background:
+                        addMode === "point"
+                          ? "rgba(255,255,255,0.14)"
+                          : "rgba(255,255,255,0.08)",
+                      color: TEXT_LIGHT,
+                      cursor: "pointer",
+                      fontWeight: 800,
+                      fontSize: 12,
+                    }}
+                    title="Kliknij mapę, aby dodać punkt"
+                  >
+                    🎯 Punkt
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveDrawTool("draw");
+                      setAddMode((m) => (m === "tunnel" ? "none" : "tunnel"));
+                    }}
+                    style={{
+                      padding: "9px 10px",
+                      borderRadius: 12,
+                      border: `1px solid ${BORDER}`,
+                      background:
+                        addMode === "tunnel"
+                          ? "rgba(255,255,255,0.14)"
+                          : "rgba(255,255,255,0.08)",
+                      color: TEXT_LIGHT,
+                      cursor: "pointer",
+                      fontWeight: 800,
+                      fontSize: 12,
+                    }}
+                    title="Rysuj linię na mapie"
+                  >
+                    🧵 Tunel
+                  </button>
+                </div>
+
+                <div style={{ marginTop: 8, fontSize: 11, color: MUTED, lineHeight: 1.35 }}>
+                  {addMode === "point"
+                    ? "Dodawanie: Punkt — kliknij na mapie, żeby dodać marker."
+                    : addMode === "tunnel"
+                    ? "Dodawanie: Tunel — użyj narzędzia rysowania linii (klik/klik/klik i zakończ)."
+                    : "Wybierz tryb dodawania: Punkt albo Tunel."}
+                </div>
+              </div>
 
               {/* NARZĘDZIA */}
               <div
@@ -3045,15 +3011,13 @@ export default function App() {
                             padding: 9,
                             borderRadius: 14,
                             border: x.priority
-                              ? "2px solid #FFD84D"
+                              ? "2px solid rgba(255,216,77,0.70)"
                               : selected
                               ? "2px solid rgba(255,255,255,0.35)"
                               : `1px solid ${BORDER}`,
-
                             background: x.priority
                               ? "rgba(255,216,77,0.08)"
                               : "rgba(255,255,255,0.05)",
-
                             cursor: "pointer",
                           }}
                         >
@@ -3104,7 +3068,7 @@ export default function App() {
 
                     {filteredProjectsSearch.length === 0 ? (
                       <div style={{ ...emptyBoxStyle, fontSize: 11 }}>
-                        Brak danych dla zaznaczonych statusów.
+                        Brak danych dla zaznaczonych statusów / wyszukiwania.
                       </div>
                     ) : null}
                   </div>
@@ -3153,19 +3117,7 @@ export default function App() {
           </button>
         ) : null}
 
-        <RecentUpdatesPanel
-          user={user}
-          authFetch={authFetch}
-          API={API}
-          BORDER={BORDER}
-          MUTED={MUTED}
-          TEXT_LIGHT={TEXT_LIGHT}
-          GLASS_BG={GLASS_BG}
-          GLASS_SHADOW={GLASS_SHADOW}
-          onUnauthorized={() => logout("expired")}
-          onJumpToProject={jumpToProject}
-          updatesTick={updatesTick}
-        />
+        {/* ===== górna zakładka narzędzi (tylko w addMode) ===== */}
         {addMode !== "none" ? (
           <div
             style={{
@@ -3173,7 +3125,7 @@ export default function App() {
               top: 12,
               left: "50%",
               transform: "translateX(-50%)",
-              zIndex: 1700,
+              zIndex: 1800,
               width: "min(520px, calc(100% - 420px))",
               maxWidth: "52vw",
               borderRadius: 16,
@@ -3209,52 +3161,54 @@ export default function App() {
                       : "Narysuj linię na mapie (klik/klik/klik i zakończ)."}
                   </span>
                 </div>
+
                 {addMode === "tunnel" && drawReady ? (
                   <div
                     style={{
-                      padding: 10,
+                      paddingTop: 10,
                       display: "flex",
                       gap: 8,
                       alignItems: "center",
-                      borderTop: `1px solid ${BORDER}`,
-                      background: "rgba(0,0,0,0.08)",
                     }}
                   >
-                    {/* RYSUJ */}
                     <button
                       title="Rysuj tunel"
                       onClick={() => {
+                        setActiveDrawTool("draw");
                         editToolRef.current?.disable?.();
                         deleteToolRef.current?.disable?.();
                         drawPolylineRef.current?.enable?.();
                       }}
-                      style={toolBtnStyle}
+                      style={toolBtnStyle(activeDrawTool === "draw")}
                     >
-                      🧵
+                      ━
                     </button>
 
-                    {/* EDYTUJ */}
                     <button
                       title="Edytuj geometrię"
                       onClick={() => {
+                        setActiveDrawTool("edit");
                         drawPolylineRef.current?.disable?.();
                         deleteToolRef.current?.disable?.();
                         editToolRef.current?.enable?.();
                       }}
-                      style={toolBtnStyle}
+                      style={toolBtnStyle(activeDrawTool === "edit")}
                     >
                       ✏️
                     </button>
 
-                    {/* USUŃ */}
                     <button
                       title="Usuń tunel"
                       onClick={() => {
+                        setActiveDrawTool("delete");
                         drawPolylineRef.current?.disable?.();
                         editToolRef.current?.disable?.();
                         deleteToolRef.current?.enable?.();
                       }}
-                      style={{ ...toolBtnStyle, color: "#f87171" }}
+                      style={{
+                        ...toolBtnStyle(activeDrawTool === "delete"),
+                        color: "#f87171",
+                      }}
                     >
                       🗑️
                     </button>
@@ -3270,7 +3224,10 @@ export default function App() {
 
               <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                 <button
-                  onClick={() => setAddMode(addMode === "point" ? "tunnel" : "point")}
+                  onClick={() => {
+                    setActiveDrawTool("draw");
+                    setAddMode(addMode === "point" ? "tunnel" : "point");
+                  }}
                   style={{
                     padding: "9px 10px",
                     borderRadius: 12,
@@ -3293,6 +3250,7 @@ export default function App() {
                       editToolRef.current?.disable?.();
                       deleteToolRef.current?.disable?.();
                     } catch {}
+                    setActiveDrawTool("draw");
                     setAddMode("none");
                   }}
                   style={{
@@ -3313,6 +3271,20 @@ export default function App() {
             </div>
           </div>
         ) : null}
+
+        <RecentUpdatesPanel
+          user={user}
+          authFetch={authFetch}
+          API={API}
+          BORDER={BORDER}
+          MUTED={MUTED}
+          TEXT_LIGHT={TEXT_LIGHT}
+          GLASS_BG={GLASS_BG}
+          GLASS_SHADOW={GLASS_SHADOW}
+          onUnauthorized={() => logout("expired")}
+          onJumpToProject={jumpToProject}
+          updatesTick={updatesTick}
+        />
 
         {/* PRAWA STRONA: Statusy + Dziennik */}
         <div
@@ -3467,7 +3439,6 @@ export default function App() {
           zoomControl={false}
           minZoom={3}
         >
-          {/* AUTO-ODZNACZANIE: klik w tło mapy */}
           <MapAutoDeselect
             enabled={addMode === "none" || addMode === ""}
             mapRef={mapRef}
@@ -3479,11 +3450,7 @@ export default function App() {
             }}
           />
 
-          <MapRefSetter
-            onReady={(map) => {
-              mapRef.current = map;
-            }}
-          />
+          <MapRefSetter onReady={(map) => (mapRef.current = map)} />
 
           <ZoomControl position="bottomright" />
           <TileLayer
@@ -3536,7 +3503,6 @@ export default function App() {
                   },
                 }}
               >
-                {/* UWAGA: tu wklej swój prawdziwy Popup tunelu (bez zmian) */}
                 <Popup closeButton={false} className="tmPopup">
                   <div
                     style={{
@@ -3553,7 +3519,6 @@ export default function App() {
                       backdropFilter: "blur(8px)",
                     }}
                   >
-                    {/* X */}
                     <button
                       onClick={() => mapRef.current?.closePopup?.()}
                       title="Zamknij"
@@ -3589,7 +3554,6 @@ export default function App() {
                       </svg>
                     </button>
 
-                    {/* HEADER */}
                     <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
@@ -3604,7 +3568,6 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* SZANSA */}
                       <div style={{ marginRight: 34, flexShrink: 0 }}>
                         <ChanceRing
                           value={projectChance({
@@ -3615,10 +3578,8 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* SEPARATOR */}
                     <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-                    {/* FIRMA */}
                     {t.winner && (
                       <div style={{ fontSize: 12, marginBottom: 6 }}>
                         <b>Firma:</b> {t.winner}
@@ -3633,7 +3594,6 @@ export default function App() {
                       Wpisy w dzienniku: {journalCounts.tunnels?.[t.id] || 0}
                     </div>
 
-                    {/* ROZWIŃ */}
                     <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
                       <button
                         onClick={() => setEditOpen(true)}
@@ -3679,7 +3639,6 @@ export default function App() {
                   },
                 }}
               >
-                {/* UWAGA: tu wklej swój prawdziwy Popup punktu (bez zmian) */}
                 <Popup closeButton={false} className="tmPopup">
                   <div
                     style={{
@@ -3732,15 +3691,19 @@ export default function App() {
                     </button>
 
                     <div style={{ display: "flex", gap: 12 }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 900 }}>{pt.title}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
+                          {pt.title}
+                        </div>
                         <div style={{ fontSize: 12, color: MUTED }}>
-                          Status: <b>{statusLabel(pt.status)}</b>
+                          Status:{" "}
+                          <b style={{ color: "rgba(255,255,255,0.92)" }}>
+                            {statusLabel(pt.status)}
+                          </b>
                         </div>
                       </div>
 
-                      {/* SZANSA – odsunięta od X */}
-                      <div style={{ marginRight: 32, flexShrink: 0 }}>
+                      <div style={{ marginRight: 34, flexShrink: 0 }}>
                         <ChanceRing
                           value={projectChance({
                             acquired: isAcquired("points", pt.id),
@@ -3790,7 +3753,6 @@ export default function App() {
           </FeatureGroup>
         </MapContainer>
 
-        {/* MODAL EDYCJI — renderowany raz */}
         <EditProjectModal
           open={editOpen}
           kind={selectedPoint ? "points" : "tunnels"}
@@ -3829,16 +3791,6 @@ const pillStyle = {
   border: `1px solid ${BORDER}`,
   color: "rgba(255,255,255,0.9)",
   whiteSpace: "nowrap",
-};
-
-const miniBtnStyle = {
-  padding: "10px 10px",
-  borderRadius: 12,
-  border: `1px solid ${BORDER}`,
-  background: "rgba(255,255,255,0.08)",
-  color: TEXT_LIGHT,
-  cursor: "pointer",
-  fontWeight: 800,
 };
 
 /** ===== Login styles ===== */
@@ -3957,4 +3909,3 @@ const hintStyle = {
   color: "white",
   textAlign: "center",
 };
-
