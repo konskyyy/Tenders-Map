@@ -3293,12 +3293,15 @@ export default function App() {
         </div>
       </div>
 
-      <ChanceRing
-        value={projectChance({
-          acquired: isAcquired("points", pt.id),
-          journalCount: journalCounts.points?.[pt.id] || 0,
-        })}
-      />
+     {/* SZANSA – odsunięta od X */}
+      <div style={{ marginRight: 32, flexShrink: 0 }}>
+        <ChanceRing
+          value={projectChance({
+            acquired: isAcquired("points", pt.id),
+            journalCount: journalCounts.points?.[pt.id] || 0,
+          })}
+        />
+      </div>
     </div>
 
     <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
