@@ -807,25 +807,26 @@ function RecentUpdatesPanel({
   }, [user?.id, updatesTick]);
 
   return (
-    <div
-      style={{
-        position: "absolute",
-        left: 12,
-        bottom: 12,
-        width: "min(760px, calc(100% - 420px))",
-        maxWidth: "52vw",
-        zIndex: 1700,
-        borderRadius: 16,
-        border: `1px solid ${BORDER}`,
-        background: GLASS_BG,
-        backgroundImage:
-          "radial-gradient(700px 420px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
-        color: TEXT_LIGHT,
-        boxShadow: GLASS_SHADOW,
-        overflow: "hidden",
-        backdropFilter: "blur(8px)",
-      }}
-    >
+  <div
+    style={{
+      position: "absolute",
+      left: "50%",
+      transform: "translateX(-50%)",
+      bottom: 12,
+      width: "min(760px, calc(100% - 420px))",
+      maxWidth: "52vw",
+      zIndex: 1700,
+      borderRadius: 16,
+      border: `1px solid ${BORDER}`,
+      background: GLASS_BG,
+      backgroundImage:
+        "radial-gradient(700px 420px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
+      color: TEXT_LIGHT,
+      boxShadow: GLASS_SHADOW,
+      overflow: "hidden",
+      backdropFilter: "blur(8px)",
+    }}
+  >
       {/* HEADER */}
       <div
         style={{
