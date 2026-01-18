@@ -1634,6 +1634,7 @@ export default function App() {
       alive = false;
     };
   }, []);
+  const [projectQuery, setProjectQuery] = useState("");
 
   /** ===== global refresh trigger for updates feed ===== */
   const [updatesTick, setUpdatesTick] = useState(0);
@@ -1841,17 +1842,17 @@ export default function App() {
       .sort(byPriorityThenIdDesc);
   }, [tunnels, visibleStatus]);
 
-  const filteredProjects = useMemo(() => {
-    const pts = points
-      .filter((p) => visibleStatus[p.status || "planowany"] !== false)
-      .map((p) => ({ kind: "point", ...p }));
+  const filteredProjectsSearch = useMemo(() => {
+  const q = String(projectQuery || "").trim().toLowerCase();
+  if (!q) return filteredProjects;
 
-    const tls = tunnels
-      .filter((t) => visibleStatus[t.status || "planowany"] !== false)
-      .map((t) => ({ kind: "tunnel", ...t }));
-
-    return [...tls, ...pts].slice().sort(byPriorityThenIdDesc);
-  }, [points, tunnels, visibleStatus]);
+  return filteredProjects.filter((x) => {
+    const name = x.kind === "tunnel" ? x.name : x.title;
+    const label = String(name || "").toLowerCase();
+    const idStr = String(x.id);
+    return label.includes(q) || idStr.includes(q);
+  });
+}, [filteredProjects, projectQuery]);
 
   const counts = useMemo(() => {
     const c = { planowany: 0, przetarg: 0, realizacja: 0, nieaktualny: 0 };
@@ -2728,11 +2729,59 @@ export default function App() {
 
           <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-          <div style={{ fontWeight: 800, marginBottom: 8, fontSize: 13 }}>Lista projektów</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 8 }}>
+  <div style={{ fontWeight: 900 }}>Lista projektów</div>
+
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      fontSize: 11,
+      color: MUTED,
+      whiteSpace: "nowrap",
+      flexShrink: 0,
+    }}
+  >
+    <span
+      style={{
+        width: 10,
+        height: 10,
+        borderRadius: 999,
+        border: "1px solid rgba(255,216,77,0.55)",
+        background: "rgba(255,216,77,0.10)",
+        boxShadow: "0 0 10px rgba(255,216,77,0.12)",
+        display: "inline-block",
+      }}
+    />
+    Ważny
+  </div>
+</div>
+
+<input
+  value={projectQuery}
+  onChange={(e) => setProjectQuery(e.target.value)}
+  placeholder="Szukaj projektu… (nazwa lub ID)"
+  style={{
+    width: "100%",
+    boxSizing: "border-box",
+    height: 36,
+    padding: "0 10px",
+    borderRadius: 12,
+    border: `1px solid ${BORDER}`,
+    background: "rgba(255,255,255,0.06)",
+    color: TEXT_LIGHT,
+    outline: "none",
+    fontSize: 12,
+    fontWeight: 700,
+    marginBottom: 10,
+  }}
+/>
+
 
           <div style={{ overflow: "auto", paddingRight: 4, flex: 1, minHeight: 0 }}>
             <div style={{ display: "grid", gap: 8 }}>
-              {filteredProjects.map((x) => {
+              {filteredProjectsSearch.map((x) => {
                 const isTunnel = x.kind === "tunnel";
                 const selected = isTunnel ? x.id === selectedTunnelId : x.id === selectedPointId;
 
@@ -2811,7 +2860,7 @@ background: x.priority
                 );
               })}
 
-              {filteredProjects.length === 0 ? (
+              {filteredProjectsSearch.length === 0 ? (
                 <div style={{ ...emptyBoxStyle, fontSize: 11 }}>Brak danych dla zaznaczonych statusów.</div>
               ) : null}
             </div>
