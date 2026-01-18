@@ -2327,6 +2327,7 @@ export default function App() {
       setSelectedTunnelId(null);
 
       focusPoint(normalized);
+      setAddMode("none");
     } catch (e) {
       if (e?.status === 401) return logout("expired");
       setApiError(`Nie mogę dodać punktu: ${String(e)}`);
@@ -2366,6 +2367,7 @@ export default function App() {
       setSelectedPointId(null);
 
       focusTunnel(normalized);
+      setAddMode("none");
     } catch (err2) {
       if (err2?.status === 401) return logout("expired");
       setApiError(`Nie mogę dodać tunelu: ${String(err2)}`);
@@ -3025,7 +3027,7 @@ background: x.priority
             <span style={{ fontSize: 13 }}>Panel główny</span>
           </button>
         ) : null}
-
+        
         <RecentUpdatesPanel
           user={user}
           authFetch={authFetch}
@@ -3039,6 +3041,95 @@ background: x.priority
           onJumpToProject={jumpToProject}
           updatesTick={updatesTick}
         />
+        {addMode !== "none" ? (
+  <div
+    style={{
+      position: "absolute",
+      top: 12,
+      left: "50%",
+      transform: "translateX(-50%)",
+      zIndex: 1700,
+      width: "min(520px, calc(100% - 420px))",
+      maxWidth: "52vw",
+      borderRadius: 16,
+      border: `1px solid ${BORDER}`,
+      background: GLASS_BG,
+      backgroundImage:
+        "radial-gradient(700px 420px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
+      color: TEXT_LIGHT,
+      boxShadow: GLASS_SHADOW,
+      overflow: "hidden",
+      backdropFilter: "blur(8px)",
+    }}
+  >
+    <div
+      style={{
+        padding: "10px 12px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
+        fontWeight: 900,
+        background: "rgba(0,0,0,0.10)",
+      }}
+    >
+      <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ whiteSpace: "nowrap" }}>
+            {addMode === "point" ? "Tryb: Punkt" : "Tryb: Tunel"}
+          </span>
+          <span style={{ fontSize: 11, color: MUTED, fontWeight: 800, opacity: 0.9 }}>
+            {addMode === "point"
+              ? "Kliknij na mapie, aby dodać marker."
+              : "Narysuj linię na mapie (klik/klik/klik i zakończ)."}
+          </span>
+        </div>
+
+        <div style={{ fontSize: 11, color: MUTED, fontWeight: 700, opacity: 0.85 }}>
+          {addMode === "point"
+            ? "Po dodaniu punktu tryb wyłączy się automatycznie."
+            : "Po zapisaniu tunelu tryb wyłączy się automatycznie."}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+        <button
+          onClick={() => setAddMode(addMode === "point" ? "tunnel" : "point")}
+          style={{
+            padding: "9px 10px",
+            borderRadius: 12,
+            border: `1px solid ${BORDER}`,
+            background: "rgba(255,255,255,0.06)",
+            color: TEXT_LIGHT,
+            cursor: "pointer",
+            fontWeight: 900,
+            fontSize: 12,
+          }}
+          title="Przełącz tryb"
+        >
+          {addMode === "point" ? "Tunel" : "Punkt"}
+        </button>
+
+        <button
+          onClick={() => setAddMode("none")}
+          style={{
+            padding: "9px 10px",
+            borderRadius: 12,
+            border: `1px solid ${BORDER}`,
+            background: "rgba(255,255,255,0.06)",
+            color: TEXT_LIGHT,
+            cursor: "pointer",
+            fontWeight: 900,
+            fontSize: 12,
+          }}
+          title="Wyjdź z trybu dodawania"
+        >
+          Zakończ
+        </button>
+      </div>
+    </div>
+  </div>
+) : null}
 
         {/* PRAWA STRONA: Statusy + Dziennik */}
         <div
@@ -3232,32 +3323,25 @@ background: x.priority
           <ClickHandler enabled={addMode === "point"} onAdd={addPoint} />
 
           <FeatureGroup ref={drawGroupRef}>
-            {DrawEditControl ? (
-              <DrawEditControl
-                position="bottomright"
-                onCreated={onDrawCreated}
-                onEdited={onDrawEdited}
-                onDeleted={onDrawDeleted}
-                draw={
-                  addMode === "tunnel"
-                    ? {
-                        polyline: {
-                          shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
-                        },
-                        polygon: false,
-                        rectangle: false,
-                        circle: false,
-                        circlemarker: false,
-                        marker: false,
-                      }
-                    : false
-                }
-                edit={{
-                  edit: {},
-                  remove: {},
-                }}
-              />
-            ) : null}
+            {DrawEditControl && addMode === "tunnel" ? (
+  <DrawEditControl
+    position="topright"
+    onCreated={onDrawCreated}
+    onEdited={onDrawEdited}
+    onDeleted={onDrawDeleted}
+    draw={{
+      polyline: {
+        shapeOptions: { color: "#60a5fa", weight: 10, opacity: 0.9 },
+      },
+      polygon: false,
+      rectangle: false,
+      circle: false,
+      circlemarker: false,
+      marker: false,
+    }}
+    edit={false}
+  />
+) : null}
 
             {/* TUNELE */}
             {filteredTunnels.map((t) => (
