@@ -3154,15 +3154,15 @@ export default function App() {
           </b>
         </div>
       </div>
-<div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
-
-      <ChanceRing
-        value={projectChance({
-          acquired: isAcquired("tunnels", t.id),
-          journalCount: journalCounts.tunnels?.[t.id] || 0,
-        })}
-      />
-    </div>
+      
+      <div style={{ marginRight: 34, flexShrink: 0 }}>
+        <ChanceRing
+          value={projectChance({
+            acquired: isAcquired("tunnels", t.id),
+            journalCount: journalCounts.tunnels?.[t.id] || 0,
+          })}
+        />
+      </div>
 
     <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
