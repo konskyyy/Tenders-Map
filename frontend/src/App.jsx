@@ -2754,13 +2754,13 @@ export default function App() {
                       padding: 9,
                       borderRadius: 14,
                       border: x.priority
-  ? "2px solid #FFCC00"
+  ? "2px solid #FFD84D"
   : selected
   ? "2px solid rgba(255,255,255,0.35)"
   : `1px solid ${BORDER}`,
 
 background: x.priority
-  ? "rgba(255,204,0,0.10)"
+  ? "rgba(255,216,77,0.08)"
   : "rgba(255,255,255,0.05)",
 
                       cursor: "pointer",
