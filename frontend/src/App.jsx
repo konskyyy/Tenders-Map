@@ -871,24 +871,27 @@ function RecentUpdatesPanel({
                 border: "1px solid rgba(239,68,68,0.55)",
                 boxShadow: "0 0 18px rgba(239,68,68,0.15)",
                 flexShrink: 0,
+                animation: items.length > 0 ? "pulseBadge 1.2s ease-in-out infinite" : "none",
               }}
               title="Liczba nieprzeczytanych aktualizacji"
             >
               {items.length}
+              
             </span>
           ) : null}
 
           {!open ? (
             <span
-              style={{
-                fontSize: 12,
-                color: MUTED,
-                fontWeight: 700,
-                whiteSpace: "nowrap",
-              }}
-            >
-              Rozwiń, żeby zobaczyć więcej
-            </span>
+  style={{
+    fontSize: 12,
+    color: MUTED,
+    fontWeight: 700,
+    whiteSpace: "nowrap",
+  }}
+>
+  {open ? "Kliknij, żeby zminimalizować" : "Rozwiń, żeby zobaczyć więcej"}
+</span>
+
           ) : null}
 
           <span style={{ fontSize: 12, color: MUTED, marginLeft: "auto" }}>
@@ -925,18 +928,19 @@ function RecentUpdatesPanel({
             disabled={items.length === 0}
             title="Oznacz wszystkie widoczne aktualizacje jako przeczytane"
             style={{
-              padding: "10px 12px",
-              borderRadius: 12,
-              border: `1px solid ${BORDER}`,
-              background:
-                items.length === 0 ? "rgba(255,255,255,0.04)" : "rgba(34,197,94,0.12)",
-              color: TEXT_LIGHT,
-              cursor: items.length === 0 ? "default" : "pointer",
-              fontWeight: 900,
-              fontSize: 12,
-            }}
+  padding: "10px 12px",
+  borderRadius: 12,
+  border: `1px solid ${BORDER}`,
+  background: "rgba(255,255,255,0.06)", // ✅ neutralny zawsze
+  color: TEXT_LIGHT,
+  cursor: items.length === 0 ? "default" : "pointer",
+  fontWeight: 900,
+  fontSize: 12,
+  transition: "background 120ms ease, border-color 120ms ease, transform 120ms ease",
+}}
+className="markAllBtn"
           >
-            Oznacz wszystko
+            Oznacz wszystkie jako przeczytane
           </button>
         </div>
       </div>
