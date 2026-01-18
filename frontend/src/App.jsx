@@ -1582,16 +1582,19 @@ function EditProjectModal({
     </div>
   );
 }
-function MapAutoDeselect({ enabled, onDeselect, mapRef }) {
+function MapAutoDeselect({ enabled, onDeselect, mapRef, suppressRef }) {
   useMapEvents({
     click(e) {
       if (!enabled) return;
+
+      // Jeśli przed chwilą kliknięto marker/polyline – nie odznaczaj
+      if (suppressRef?.current) return;
 
       const target = e?.originalEvent?.target;
       if (!target) return;
 
       const isInteractive = target.closest(
-        ".leaflet-marker-icon, .leaflet-interactive, .leaflet-popup, .leaflet-control"
+        ".leaflet-marker-icon, .leaflet-interactive, .leaflet-popup, .leaflet-control, .leaflet-tooltip"
       );
 
       if (isInteractive) return;
@@ -1800,6 +1803,7 @@ export default function App() {
   const mapRef = useRef(null);
   const markerRefs = useRef({});
   const tunnelRefs = useRef({});
+  const suppressNextMapClickRef = useRef(false);
 
   /** ===== Filters + Add mode ===== */
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -2991,14 +2995,15 @@ export default function App() {
       >
         {/* AUTO-ODZNACZANIE: klik w tło mapy */}
         <MapAutoDeselect
-          enabled={addMode == "none" || addMode === ""} // odznaczamy tylko gdy nie jesteś w trybie dodawania
-          mapRef={mapRef}
-          onDeselect={() => {
-            setSelectedTunnelId(null);
-            setSelectedPointId(null);
-            setEditOpen(false); // jeśli NIE chcesz zamykać edycji, usuń tę linię
-          }}
-        />
+  enabled={addMode == "none" || addMode === ""}
+  mapRef={mapRef}
+  suppressRef={suppressNextMapClickRef}
+  onDeselect={() => {
+    setSelectedTunnelId(null);
+    setSelectedPointId(null);
+    setEditOpen(false);
+  }}
+/>
 
         <MapRefSetter
           onReady={(map) => {
@@ -3071,14 +3076,18 @@ export default function App() {
                 tunnelId: t.id,
               }}
               eventHandlers={{
-                click: (e) => {
-                  setSelectedTunnelId(t.id);
-                  setSelectedPointId(null);
-                  try {
-                    e?.target?.openPopup?.();
-                  } catch {}
-                },
-              }}
+  click: (e) => {
+    suppressNextMapClickRef.current = true;
+    setTimeout(() => (suppressNextMapClickRef.current = false), 0);
+
+    setSelectedTunnelId(t.id);
+    setSelectedPointId(null);
+    try {
+      e?.target?.openPopup?.();
+    } catch {}
+  },
+}}
+
             >
               {/* ... Twój Popup bez zmian ... */}
               <Popup closeButton={false}>
@@ -3098,14 +3107,18 @@ export default function App() {
                 if (ref) markerRefs.current[pt.id] = ref;
               }}
               eventHandlers={{
-                click: (e) => {
-                  setSelectedPointId(pt.id);
-                  setSelectedTunnelId(null);
-                  try {
-                    e?.target?.openPopup?.();
-                  } catch {}
-                },
-              }}
+  click: (e) => {
+    suppressNextMapClickRef.current = true;
+    setTimeout(() => (suppressNextMapClickRef.current = false), 0);
+
+    setSelectedPointId(pt.id);
+    setSelectedTunnelId(null);
+    try {
+      e?.target?.openPopup?.();
+    } catch {}
+  },
+}}
+
             >
               {/* ... Twój Popup bez zmian ... */}
               <Popup closeButton={false}>
