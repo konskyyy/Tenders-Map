@@ -634,7 +634,16 @@ function JournalPanel({
                     </div>
 
                     {!isEditing ? (
-                      <div style={{ whiteSpace: "pre-wrap" }}>{c.body}</div>
+                      <div
+                          style={{
+                            whiteSpace: "pre-wrap",
+                            fontSize: 13,        // ⬅ było domyślne ~16
+                            lineHeight: 1.45,    // ⬅ lepsza czytelność
+                          }}
+                        >
+                          {c.body}
+                        </div>
+
                     ) : (
                       <div style={{ display: "grid", gap: 8 }}>
                         <textarea
