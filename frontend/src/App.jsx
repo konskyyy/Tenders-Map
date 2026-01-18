@@ -2767,9 +2767,9 @@ const deleteToolRef = useRef(null);
 
           <div style={{ marginTop: 8, fontSize: 11, color: MUTED, lineHeight: 1.35 }}>
             {addMode === "point"
-              ? "Tryb: Punkt — kliknij na mapie, żeby dodać marker."
+              ? "Dodawanie: Punkt — kliknij na mapie, żeby dodać marker."
               : addMode === "tunnel"
-              ? "Tryb: Tunel — użyj narzędzia rysowania linii (klik/klik/klik i zakończ)."
+              ? "Dodawanie: Tunel — użyj narzędzia rysowania linii (klik/klik/klik i zakończ)."
               : "Wybierz tryb dodawania: Punkt albo Tunel."}
           </div>
         </div>
