@@ -3072,9 +3072,9 @@ export default function App() {
         position: "absolute",
         top: 8,
         right: 8,
-        width: 30,
-        height: 30,
-        borderRadius: 12,
+        width: 26,
+        height: 26,
+        borderRadius: 10,
         border: `1px solid ${BORDER}`,
         background: "rgba(255,255,255,0.08)",
         color: "rgba(255,255,255,0.92)",
@@ -3085,7 +3085,7 @@ export default function App() {
         lineHeight: 0,
       }}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ display: "block" }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ display: "block" }}>
         <path
           d="M18 6L6 18M6 6l12 12"
           stroke="currentColor"
@@ -3225,9 +3225,9 @@ export default function App() {
         position: "absolute",
         top: 8,
         right: 8,
-        width: 30,
-        height: 30,
-        borderRadius: 12,
+        width: 26,
+        height: 26,
+        borderRadius: 10,
         border: `1px solid ${BORDER}`,
         background: "rgba(255,255,255,0.08)",
         color: "rgba(255,255,255,0.92)",
@@ -3238,7 +3238,7 @@ export default function App() {
         lineHeight: 0,
       }}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ display: "block" }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ display: "block" }}>
         <path
           d="M18 6L6 18M6 6l12 12"
           stroke="currentColor"
