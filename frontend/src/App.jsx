@@ -854,31 +854,54 @@ function RecentUpdatesPanel({
           <span style={{ whiteSpace: "nowrap" }}>Najnowsze aktualizacje</span>
 
           {items.length > 0 ? (
-            <span
-              style={{
-                minWidth: 26,
-                height: 22,
-                padding: "0 8px",
-                borderRadius: 999,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 12,
-                fontWeight: 900,
-                color: "rgba(255,255,255,0.92)",
-                background: "rgba(239,68,68,0.22)",
-                border: "1px solid rgba(239,68,68,0.55)",
-                boxShadow: "0 0 18px rgba(239,68,68,0.15)",
-                flexShrink: 0,
-                animation: !open && items.length > 0 ? "pulseBadge 1.2s ease-in-out infinite" : "none",
-              }}
-              title="Liczba nieprzeczytanych aktualizacji"
-            >
-              {items.length}
-              
-            </span>
-          ) : null}
-
+  <span
+    style={{
+      minWidth: 26,
+      height: 22,
+      padding: "0 8px",
+      borderRadius: 999,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 12,
+      fontWeight: 900,
+      color: "rgba(255,255,255,0.92)",
+      background: "rgba(239,68,68,0.22)",
+      border: "1px solid rgba(239,68,68,0.55)",
+      boxShadow: "0 0 18px rgba(239,68,68,0.15)",
+      flexShrink: 0,
+      animation:
+        !open && items.length > 0
+          ? "pulseBadge 1.2s ease-in-out infinite"
+          : "none",
+    }}
+    title="Liczba nieprzeczytanych aktualizacji"
+  >
+    {items.length}
+  </span>
+) : (
+  <span
+    style={{
+      minWidth: 26,
+      height: 22,
+      padding: "0 10px",
+      borderRadius: 999,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 12,
+      fontWeight: 900,
+      color: "rgba(34,197,94,0.95)",
+      background: "rgba(34,197,94,0.08)",
+      border: "1px solid rgba(34,197,94,0.55)",
+      boxShadow: "0 0 12px rgba(34,197,94,0.18)",
+      flexShrink: 0,
+    }}
+    title="Brak nowych aktualizacji"
+  >
+    Brak
+  </span>
+)}
           <span
   style={{
     fontSize: 10,
