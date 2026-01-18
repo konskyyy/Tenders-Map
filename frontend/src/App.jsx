@@ -3250,29 +3250,29 @@ background: x.priority
         </button>
 
         <button
-          onClick={() => setAddMode("none")}
-          style={{
-            padding: "9px 10px",
-            borderRadius: 12,
-            border: `1px solid ${BORDER}`,
-            background: "rgba(255,255,255,0.06)",
-            color: TEXT_LIGHT,
-            cursor: "pointer",
-            fontWeight: 900,
-            fontSize: 12,
-          }}
-          title="Wyjdź z trybu dodawania"
-        >
-          Zakończ
-          onClick={() => {
-  try {
-    drawPolylineRef.current?.disable?.();
-    editToolRef.current?.disable?.();
-    deleteToolRef.current?.disable?.();
-  } catch {}
-  setAddMode("none");
-}}
-        </button>
+  onClick={() => {
+    try {
+      drawPolylineRef.current?.disable?.();
+      editToolRef.current?.disable?.();
+      deleteToolRef.current?.disable?.();
+    } catch {}
+    setAddMode("none");
+  }}
+  style={{
+    padding: "9px 10px",
+    borderRadius: 12,
+    border: `1px solid ${BORDER}`,
+    background: "rgba(255,255,255,0.06)",
+    color: TEXT_LIGHT,
+    cursor: "pointer",
+    fontWeight: 900,
+    fontSize: 12,
+  }}
+  title="Wyjdź z trybu dodawania"
+>
+  Zakończ
+</button>
+
       </div>
     </div>
   </div>
