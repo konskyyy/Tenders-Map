@@ -883,7 +883,7 @@ function RecentUpdatesPanel({
           {!open ? (
             <span
   style={{
-    fontSize: 12,
+    fontSize: 10,
     color: MUTED,
     fontWeight: 700,
     whiteSpace: "nowrap",
