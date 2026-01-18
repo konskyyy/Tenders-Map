@@ -460,16 +460,19 @@ function JournalPanel({
       : `Dziennik: ${entity?.name || `#${entityId}`}`;
 
   return (
-    <div
-      style={{
-        borderRadius: 16,
-        border: `1px solid ${BORDER}`,
-        background: GLASS_BG,
-        color: TEXT_LIGHT,
-        overflow: "hidden",
-        boxShadow: GLASS_SHADOW,
-      }}
-    >
+            <div
+          style={{
+            borderRadius: 16,
+            border: `1px solid ${BORDER}`,
+            background: GLASS_BG_DARK, // ✅ mocniej
+            backgroundImage:
+              "radial-gradient(520px 320px at 20% 10%, rgba(255,255,255,0.08), transparent 60%)",
+            color: TEXT_LIGHT,
+            overflow: "hidden",
+            boxShadow: GLASS_SHADOW,
+            backdropFilter: "blur(10px)",
+          }}
+        >
       <div
         onClick={() => {
           setOpen((o) => {
