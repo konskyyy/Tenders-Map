@@ -292,7 +292,7 @@ function JournalPanel({
   GLASS_SHADOW,
   onCountsChange,
   onUnauthorized,
-  onGlobalUpdatesChange, // ✅ trigger refresh of updates feed
+  onGlobalUpdatesChange, // trigger refresh of updates feed
 }) {
   const entityId = entity?.id ?? null;
 
@@ -532,7 +532,7 @@ function JournalPanel({
     fontSize: 11,
   };
 
-  // ✅ wysokość scrolla dla „Wszystkie wpisy” (około 2 wpisy widoczne)
+  // wysokość scrolla dla „Wszystkie wpisy” (około 2 wpisy widoczne)
   const maxHeightAll = 170;
 
   return (
@@ -908,11 +908,6 @@ function JournalPanel({
   );
 }
 
-
-
-
-
-
 function RecentUpdatesPanel({
   user,
   authFetch,
@@ -948,27 +943,26 @@ function RecentUpdatesPanel({
     }
   }
 
-  // ✅ MUSI BYĆ TU, a nie w środku markRead
   async function markAllRead() {
-  if (items.length === 0) return;
+    if (items.length === 0) return;
 
-  // optymistycznie
-  setItems([]);
-  setExpanded({});
+    // optymistycznie
+    setItems([]);
+    setExpanded({});
 
-  try {
-    const res = await authFetch(`${API}/updates/read-all?limit=500`, {
-      method: "POST",
-    });
-    await readJsonOrThrow(res);
+    try {
+      const res = await authFetch(`${API}/updates/read-all?limit=500`, {
+        method: "POST",
+      });
+      await readJsonOrThrow(res);
 
-    setOpen(false);        // ✅ AUTO-ZAMKNIĘCIE
-  } catch (e) {
-    if (e?.status === 401) return onUnauthorized?.();
-    setErr(String(e?.message || e));
-    load();
+      setOpen(false); // auto-zamknięcie
+    } catch (e) {
+      if (e?.status === 401) return onUnauthorized?.();
+      setErr(String(e?.message || e));
+      load();
+    }
   }
-}
 
   async function markRead(u) {
     const itemKey = `${u.kind}:${u.entity_id}:${u.id}`;
@@ -1006,26 +1000,26 @@ function RecentUpdatesPanel({
   }, [user?.id, updatesTick]);
 
   return (
-  <div
-    style={{
-      position: "absolute",
-      left: "50%",
-      transform: "translateX(-50%)",
-      bottom: 12,
-      width: "min(760px, calc(100% - 420px))",
-      maxWidth: "52vw",
-      zIndex: 1700,
-      borderRadius: 16,
-      border: `1px solid ${BORDER}`,
-      background: GLASS_BG,
-      backgroundImage:
-        "radial-gradient(700px 420px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
-      color: TEXT_LIGHT,
-      boxShadow: GLASS_SHADOW,
-      overflow: "hidden",
-      backdropFilter: "blur(8px)",
-    }}
-  >
+    <div
+      style={{
+        position: "absolute",
+        left: "50%",
+        transform: "translateX(-50%)",
+        bottom: 12,
+        width: "min(760px, calc(100% - 420px))",
+        maxWidth: "52vw",
+        zIndex: 1700,
+        borderRadius: 16,
+        border: `1px solid ${BORDER}`,
+        background: GLASS_BG,
+        backgroundImage:
+          "radial-gradient(700px 420px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
+        color: TEXT_LIGHT,
+        boxShadow: GLASS_SHADOW,
+        overflow: "hidden",
+        backdropFilter: "blur(8px)",
+      }}
+    >
       {/* HEADER */}
       <div
         style={{
@@ -1054,70 +1048,66 @@ function RecentUpdatesPanel({
           <span style={{ whiteSpace: "nowrap" }}>Najnowsze aktualizacje</span>
 
           {items.length > 0 ? (
-  <span
-    style={{
-      minWidth: 26,
-      height: 22,
-      padding: "0 8px",
-      borderRadius: 999,
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: 12,
-      fontWeight: 900,
-      color: "rgba(255,255,255,0.92)",
-      background: "rgba(239,68,68,0.22)",
-      border: "1px solid rgba(239,68,68,0.55)",
-      boxShadow: "0 0 18px rgba(239,68,68,0.15)",
-      flexShrink: 0,
-      animation:
-        !open && items.length > 0
-          ? "pulseBadge 1.2s ease-in-out infinite"
-          : "none",
-    }}
-    title="Liczba nieprzeczytanych aktualizacji"
-  >
-    {items.length}
-  </span>
-) : (
-  <span
-    style={{
-      minWidth: 26,
-      height: 22,
-      padding: "0 10px",
-      borderRadius: 999,
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: 12,
-      fontWeight: 900,
-      color: "rgba(34,197,94,0.95)",
-      background: "rgba(34,197,94,0.08)",
-      border: "1px solid rgba(34,197,94,0.55)",
-      boxShadow: "0 0 12px rgba(34,197,94,0.18)",
-      flexShrink: 0,
-    }}
-    title="Brak nowych aktualizacji"
-  >
-    Brak
-  </span>
-)}
-          <span
-  style={{
-    fontSize: 10,
-    color: MUTED,
-    fontWeight: 700,
-    whiteSpace: "nowrap",
-    marginLeft: 10,
-    opacity: 0.85,
-  }}
->
-  {open ? "Kliknij, żeby zminimalizować" : "Rozwiń, żeby zobaczyć więcej"}
-</span>
+            <span
+              style={{
+                minWidth: 26,
+                height: 22,
+                padding: "0 8px",
+                borderRadius: 999,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 12,
+                fontWeight: 900,
+                color: "rgba(255,255,255,0.92)",
+                background: "rgba(239,68,68,0.22)",
+                border: "1px solid rgba(239,68,68,0.55)",
+                boxShadow: "0 0 18px rgba(239,68,68,0.15)",
+                flexShrink: 0,
+                animation: !open && items.length > 0 ? "pulseBadge 1.2s ease-in-out infinite" : "none",
+              }}
+              title="Liczba nieprzeczytanych aktualizacji"
+            >
+              {items.length}
+            </span>
+          ) : (
+            <span
+              style={{
+                minWidth: 26,
+                height: 22,
+                padding: "0 10px",
+                borderRadius: 999,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 12,
+                fontWeight: 900,
+                color: "rgba(34,197,94,0.95)",
+                background: "rgba(34,197,94,0.08)",
+                border: "1px solid rgba(34,197,94,0.55)",
+                boxShadow: "0 0 12px rgba(34,197,94,0.18)",
+                flexShrink: 0,
+              }}
+              title="Brak nowych aktualizacji"
+            >
+              Brak
+            </span>
+          )}
 
-          <span style={{ fontSize: 12, color: MUTED, marginLeft: "auto" }}>
-            {open ? "▾" : "▸"}
+          <span
+            style={{
+              fontSize: 10,
+              color: MUTED,
+              fontWeight: 700,
+              whiteSpace: "nowrap",
+              marginLeft: 10,
+              opacity: 0.85,
+            }}
+          >
+            {open ? "Kliknij, żeby zminimalizować" : "Rozwiń, żeby zobaczyć więcej"}
           </span>
+
+          <span style={{ fontSize: 12, color: MUTED, marginLeft: "auto" }}>{open ? "▾" : "▸"}</span>
         </button>
 
         <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -1149,19 +1139,19 @@ function RecentUpdatesPanel({
             disabled={items.length === 0}
             title="Oznacz wszystkie widoczne aktualizacje jako przeczytane"
             style={{
-  padding: "10px 12px",
-  borderRadius: 12,
-  border: `1px solid ${BORDER}`,
-  background: "rgba(255,255,255,0.06)", // ✅ neutralny zawsze
-  color: TEXT_LIGHT,
-  cursor: items.length === 0 ? "default" : "pointer",
-  fontWeight: 900,
-  fontSize: 12,
-  transition: "background 120ms ease, border-color 120ms ease, transform 120ms ease",
-}}
-className="markAllBtn"
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: `1px solid ${BORDER}`,
+              background: "rgba(255,255,255,0.06)",
+              color: TEXT_LIGHT,
+              cursor: items.length === 0 ? "default" : "pointer",
+              fontWeight: 900,
+              fontSize: 12,
+              transition: "background 120ms ease, border-color 120ms ease, transform 120ms ease",
+            }}
+            className="markAllBtn"
           >
-             Wszystko przeczytane
+            Wszystko przeczytane
           </button>
         </div>
       </div>
@@ -1215,49 +1205,49 @@ className="markAllBtn"
                     }}
                   >
                     <button
-  className="tickBtn"
-  onClick={(e) => {
-    e.stopPropagation();
-    markRead(u);
-  }}
-  title="Odczytane"
-  style={{
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    border: `1px solid ${BORDER}`,
-    background: "rgba(255,255,255,0.08)",
-    color: "rgba(255,255,255,0.85)", // currentColor -> SVG
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 0,
-    lineHeight: 0,
-    pointerEvents: "auto",
-    zIndex: 5,
-  }}
->
-  <svg
-    width="18"
-    height="18"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    style={{ display: "block", pointerEvents: "none" }}
-  >
-    <path
-      d="M20 6L9 17l-5-5"
-      stroke="currentColor"
-      strokeWidth="2.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-</button>
+                      className="tickBtn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markRead(u);
+                      }}
+                      title="Odczytane"
+                      style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        width: 34,
+                        height: 34,
+                        borderRadius: 12,
+                        border: `1px solid ${BORDER}`,
+                        background: "rgba(255,255,255,0.08)",
+                        color: "rgba(255,255,255,0.85)",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 0,
+                        lineHeight: 0,
+                        pointerEvents: "auto",
+                        zIndex: 5,
+                      }}
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        style={{ display: "block", pointerEvents: "none" }}
+                      >
+                        <path
+                          d="M20 6L9 17l-5-5"
+                          stroke="currentColor"
+                          strokeWidth="2.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
 
                     <div style={{ fontSize: 12, color: MUTED, paddingRight: 44 }}>
                       <b style={{ color: "rgba(255,255,255,0.92)" }}>
@@ -1340,6 +1330,7 @@ className="markAllBtn"
     </div>
   );
 }
+
 /** ===== EDIT MODAL ===== */
 function EditProjectModal({
   open,
@@ -1614,7 +1605,7 @@ export default function App() {
     };
   }, []);
 
-  /** ✅ NEW: global refresh trigger for updates feed */
+  /** ===== global refresh trigger for updates feed ===== */
   const [updatesTick, setUpdatesTick] = useState(0);
   function bumpUpdates() {
     setUpdatesTick((x) => x + 1);
@@ -1789,11 +1780,11 @@ export default function App() {
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [addMode, setAddMode] = useState("none"); // none | point | tunnel
   const [visibleStatus, setVisibleStatus] = useState({
-  planowany: true,
-  przetarg: true,     
-  realizacja: true,
-  nieaktualny: false,  // ✅ domyślnie OFF
-});
+    planowany: true,
+    przetarg: true,
+    realizacja: true,
+    nieaktualny: false, // domyślnie OFF
+  });
 
   /** ===== EDIT ===== */
   const [editOpen, setEditOpen] = useState(false);
@@ -1936,9 +1927,7 @@ export default function App() {
 
         const keepFeatures = (fc.features || []).filter((f) => {
           const a3 =
-            f?.properties?.ADM0_A3 ||
-            f?.properties?.ISO_A3 ||
-            f?.properties?.iso_a3;
+            f?.properties?.ADM0_A3 || f?.properties?.ISO_A3 || f?.properties?.iso_a3;
           return KEEP_COUNTRIES_A3.has(a3);
         });
 
@@ -2700,9 +2689,7 @@ export default function App() {
                   <div style={{ display: "grid", gap: 8 }}>
                     {filteredProjects.map((x) => {
                       const isTunnel = x.kind === "tunnel";
-                      const selected = isTunnel
-                        ? x.id === selectedTunnelId
-                        : x.id === selectedPointId;
+                      const selected = isTunnel ? x.id === selectedTunnelId : x.id === selectedPointId;
 
                       return (
                         <div
@@ -2726,21 +2713,12 @@ export default function App() {
                               : selected
                               ? "2px solid rgba(255,255,255,0.35)"
                               : `1px solid ${BORDER}`,
-                            background: x.priority
-                              ? "rgba(239,68,68,0.08)"
-                              : "rgba(255,255,255,0.05)",
+                            background: x.priority ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.05)",
                             cursor: "pointer",
                           }}
                         >
                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <span
-                              style={{
-                                width: 14,
-                                display: "flex",
-                                justifyContent: "center",
-                                flexShrink: 0,
-                              }}
-                            >
+                            <span style={{ width: 14, display: "flex", justifyContent: "center", flexShrink: 0 }}>
                               {isTunnel ? "🟦" : "📍"}
                             </span>
 
@@ -2760,14 +2738,7 @@ export default function App() {
                               {isTunnel ? x.name || `Tunel #${x.id}` : x.title}
                             </span>
 
-                            <span
-                              style={{
-                                ...pillStyle,
-                                marginLeft: "auto",
-                                whiteSpace: "nowrap",
-                                flexShrink: 0,
-                              }}
-                            >
+                            <span style={{ ...pillStyle, marginLeft: "auto", whiteSpace: "nowrap", flexShrink: 0 }}>
                               {statusLabel(x.status)}
                             </span>
                           </div>
@@ -2883,95 +2854,86 @@ export default function App() {
             </div>
 
             {filtersOpen ? (
-  <div style={{ padding: "8px 12px 12px", display: "grid", gap: 10 }}>
-    {/* ✅ 2 kolumny */}
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 8,
-      }}
-    >
-      {STATUSES.map((s) => (
-        <label
-          key={s.key}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            cursor: "pointer",
-            opacity: visibleStatus[s.key] ? 1 : 0.55,
-            userSelect: "none",
-            padding: "8px 10px",
-            borderRadius: 12,
-            border: `1px solid ${BORDER}`,
-            background: "rgba(255,255,255,0.04)",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={visibleStatus[s.key]}
-            onChange={() => toggleStatus(s.key)}
-            style={{ transform: "scale(0.95)" }}
-          />
-          <span
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: 999,
-              background: s.color,
-              flexShrink: 0,
-            }}
-          />
-          <span style={{ fontWeight: 800, fontSize: 12, lineHeight: 1.1 }}>
-            {s.label}
-          </span>
-          <span style={{ marginLeft: "auto", fontSize: 12, color: MUTED }}>
-            {counts[s.key] ?? 0}
-          </span>
-        </label>
-      ))}
-    </div>
+              <div style={{ padding: "8px 12px 12px", display: "grid", gap: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  {STATUSES.map((s) => (
+                    <label
+                      key={s.key}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        cursor: "pointer",
+                        opacity: visibleStatus[s.key] ? 1 : 0.55,
+                        userSelect: "none",
+                        padding: "8px 10px",
+                        borderRadius: 12,
+                        border: `1px solid ${BORDER}`,
+                        background: "rgba(255,255,255,0.04)",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={visibleStatus[s.key]}
+                        onChange={() => toggleStatus(s.key)}
+                        style={{ transform: "scale(0.95)" }}
+                      />
+                      <span
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 999,
+                          background: s.color,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span style={{ fontWeight: 800, fontSize: 12, lineHeight: 1.1 }}>
+                        {s.label}
+                      </span>
+                      <span style={{ marginLeft: "auto", fontSize: 12, color: MUTED }}>
+                        {counts[s.key] ?? 0}
+                      </span>
+                    </label>
+                  ))}
+                </div>
 
-    {/* ✅ mniejsze Pokaż/Ukryj */}
-    <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
-      <button
-        onClick={showAllStatuses}
-        style={{
-          padding: "8px 10px",
-          borderRadius: 10,
-          border: `1px solid ${BORDER}`,
-          background: "rgba(255,255,255,0.08)",
-          color: TEXT_LIGHT,
-          cursor: "pointer",
-          fontWeight: 800,
-          fontSize: 12,
-          lineHeight: 1,
-        }}
-      >
-        Pokaż wszystko
-      </button>
+                <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+                  <button
+                    onClick={showAllStatuses}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      border: `1px solid ${BORDER}`,
+                      background: "rgba(255,255,255,0.08)",
+                      color: TEXT_LIGHT,
+                      cursor: "pointer",
+                      fontWeight: 800,
+                      fontSize: 12,
+                      lineHeight: 1,
+                    }}
+                  >
+                    Pokaż wszystko
+                  </button>
 
-      <button
-        onClick={hideAllStatuses}
-        style={{
-          padding: "8px 10px",
-          borderRadius: 10,
-          border: `1px solid ${BORDER}`,
-          background: "rgba(255,255,255,0.05)",
-          color: TEXT_LIGHT,
-          cursor: "pointer",
-          fontWeight: 800,
-          fontSize: 12,
-          lineHeight: 1,
-        }}
-      >
-        Ukryj wszystko
-      </button>
-    </div>
-  </div>
-) : null}
-
+                  <button
+                    onClick={hideAllStatuses}
+                    style={{
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      border: `1px solid ${BORDER}`,
+                      background: "rgba(255,255,255,0.05)",
+                      color: TEXT_LIGHT,
+                      cursor: "pointer",
+                      fontWeight: 800,
+                      fontSize: 12,
+                      lineHeight: 1,
+                    }}
+                  >
+                    Ukryj wszystko
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {/* DZIENNIK */}
@@ -2994,18 +2956,18 @@ export default function App() {
         </div>
 
         <MapContainer
-  bounds={POLAND_BOUNDS}
-  boundsOptions={{ padding: [20, 20] }}
-  style={{ width: "100%", height: "100%" }}
-  zoomControl={false}
-  minZoom={3}
->
-
+          bounds={POLAND_BOUNDS}
+          boundsOptions={{ padding: [20, 20] }}
+          style={{ width: "100%", height: "100%" }}
+          zoomControl={false}
+          minZoom={3}
+        >
           <MapRefSetter
             onReady={(map) => {
               mapRef.current = map;
             }}
           />
+
           <ZoomControl position="bottomright" />
           <TileLayer
             attribution="&copy; OpenStreetMap contributors"
@@ -3054,13 +3016,14 @@ export default function App() {
               />
             ) : null}
 
+            {/* TUNELE */}
             {filteredTunnels.map((t) => (
               <Polyline
                 ref={(ref) => {
                   if (ref) tunnelRefs.current[t.id] = ref;
                 }}
                 key={`tl-${t.id}`}
-                positions={(t.path || []).map((p) => [p.lat, p.lng])}
+                positions={(t.path || []).map((p) => [Number(p.lat), Number(p.lng)])}
                 pathOptions={{
                   color: tunnelColor(t.status),
                   weight: 10,
@@ -3079,129 +3042,272 @@ export default function App() {
                   },
                 }}
               >
-               <Popup closeButton={false}>
-  <div
-    style={{
-      minWidth: 260,
-      borderRadius: 16,
-      border: `1px solid ${BORDER}`,
-      background: GLASS_BG_DARK,
-      backgroundImage:
-        "radial-gradient(500px 300px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
-      color: TEXT_LIGHT,
-      overflow: "hidden",
-      boxShadow: GLASS_SHADOW,
-      padding: 12,
-      position: "relative",
-    }}
-  >
-    {/* X (własny, widoczny) */}
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        try {
-          mapRef.current?.closePopup?.();
-        } catch {}
-      }}
-      title="Zamknij"
-      style={{
-        position: "absolute",
-        top: 8,
-        right: 8,
-        width: 32,
-        height: 32,
-        borderRadius: 12,
-        border: `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.08)",
-        color: "rgba(255,255,255,0.9)",
-        cursor: "pointer",
-        display: "grid",
-        placeItems: "center",
-        fontWeight: 900,
-        lineHeight: 1,
-      }}
-    >
-      ✕
-    </button>
+                <Popup closeButton={false}>
+                  <div
+                    style={{
+                      minWidth: 260,
+                      borderRadius: 16,
+                      border: `1px solid ${BORDER}`,
+                      background: GLASS_BG_DARK,
+                      backgroundImage:
+                        "radial-gradient(500px 300px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
+                      color: TEXT_LIGHT,
+                      overflow: "hidden",
+                      boxShadow: GLASS_SHADOW,
+                      padding: 12,
+                      position: "relative",
+                    }}
+                  >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        try {
+                          mapRef.current?.closePopup?.();
+                        } catch {}
+                      }}
+                      title="Zamknij"
+                      style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        width: 32,
+                        height: 32,
+                        borderRadius: 12,
+                        border: `1px solid ${BORDER}`,
+                        background: "rgba(255,255,255,0.08)",
+                        color: "rgba(255,255,255,0.9)",
+                        cursor: "pointer",
+                        display: "grid",
+                        placeItems: "center",
+                        fontWeight: 900,
+                        lineHeight: 1,
+                      }}
+                    >
+                      ✕
+                    </button>
 
-    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingRight: 40 }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
-          {pt.title}
-        </div>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingRight: 40 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
+                          {t.name || `Tunel #${t.id}`}
+                        </div>
 
-        <div style={{ fontSize: 12, color: MUTED }}>
-          Status:{" "}
-          <b style={{ color: "rgba(255,255,255,0.92)" }}>{statusLabel(pt.status)}</b>
-        </div>
-      </div>
+                        <div style={{ fontSize: 12, color: MUTED }}>
+                          Status:{" "}
+                          <b style={{ color: "rgba(255,255,255,0.92)" }}>{statusLabel(t.status)}</b>
+                        </div>
+                      </div>
 
-      <ChanceRing
-        value={projectChance({
-          acquired: isAcquired("points", pt.id),
-          journalCount: journalCounts.points?.[pt.id] || 0,
-        })}
-        tooltip={chanceTooltip({
-          acquired: isAcquired("points", pt.id),
-          journalCount: journalCounts.points?.[pt.id] || 0,
-        })}
-      />
-    </div>
+                      <ChanceRing
+                        value={projectChance({
+                          acquired: isAcquired("tunnels", t.id),
+                          journalCount: journalCounts.tunnels?.[t.id] || 0,
+                        })}
+                        tooltip={chanceTooltip({
+                          acquired: isAcquired("tunnels", t.id),
+                          journalCount: journalCounts.tunnels?.[t.id] || 0,
+                        })}
+                      />
+                    </div>
 
-    <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
+                    <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-    {pt.director ? (
-      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.96 }}>
-        <b>Dyrektor:</b> {pt.director}
-      </div>
-    ) : null}
+                    {t.director ? (
+                      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.96 }}>
+                        <b>Dyrektor:</b> {t.director}
+                      </div>
+                    ) : null}
 
-    {pt.winner ? (
-      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.96 }}>
-        <b>Firma:</b> {pt.winner}
-      </div>
-    ) : null}
+                    {t.winner ? (
+                      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.96 }}>
+                        <b>Firma:</b> {t.winner}
+                      </div>
+                    ) : null}
 
-    <div style={{ fontSize: 12, marginTop: 8, opacity: 0.96 }}>
-      {pt.note ? pt.note : <span style={{ opacity: 0.75 }}>Brak notatki</span>}
-    </div>
+                    <div style={{ fontSize: 12, marginTop: 8, opacity: 0.96 }}>
+                      {t.note ? t.note : <span style={{ opacity: 0.75 }}>Brak notatki</span>}
+                    </div>
 
-    <div style={{ fontSize: 11, marginTop: 10, color: MUTED }}>
-      Wpisy w dzienniku: {journalCounts.points?.[pt.id] || 0}
-    </div>
+                    <div style={{ fontSize: 11, marginTop: 10, color: MUTED }}>
+                      Wpisy w dzienniku: {journalCounts.tunnels?.[t.id] || 0}
+                    </div>
 
-    {/* Rozwiń → edycja */}
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        setSelectedPointId(pt.id);
-        setSelectedTunnelId(null);
-        setEditOpen(true);
-        try {
-          mapRef.current?.closePopup?.();
-        } catch {}
-      }}
-      style={{
-        position: "absolute",
-        right: 10,
-        bottom: 10,
-        padding: "8px 10px",
-        borderRadius: 12,
-        border: `1px solid ${BORDER}`,
-        background: "rgba(255,255,255,0.08)",
-        color: TEXT_LIGHT,
-        cursor: "pointer",
-        fontWeight: 900,
-        fontSize: 12,
-      }}
-      title="Rozwiń i edytuj projekt"
-    >
-      Rozwiń
-    </button>
-  </div>
-</Popup>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTunnelId(t.id);
+                        setSelectedPointId(null);
+                        setEditOpen(true);
+                        try {
+                          mapRef.current?.closePopup?.();
+                        } catch {}
+                      }}
+                      style={{
+                        position: "absolute",
+                        right: 10,
+                        bottom: 10,
+                        padding: "8px 10px",
+                        borderRadius: 12,
+                        border: `1px solid ${BORDER}`,
+                        background: "rgba(255,255,255,0.08)",
+                        color: TEXT_LIGHT,
+                        cursor: "pointer",
+                        fontWeight: 900,
+                        fontSize: 12,
+                      }}
+                      title="Rozwiń i edytuj projekt"
+                    >
+                      Rozwiń
+                    </button>
+                  </div>
+                </Popup>
+              </Polyline>
+            ))}
 
-        {/* MODAL EDYCJI */}
+            {/* PUNKTY */}
+            {filteredPoints.map((pt) => (
+              <Marker
+                key={`pt-${pt.id}`}
+                position={[Number(pt.lat), Number(pt.lng)]}
+                icon={pinIcons[pt.status || "planowany"]}
+                ref={(ref) => {
+                  if (ref) markerRefs.current[pt.id] = ref;
+                }}
+                eventHandlers={{
+                  click: (e) => {
+                    setSelectedPointId(pt.id);
+                    setSelectedTunnelId(null);
+                    try {
+                      e?.target?.openPopup?.();
+                    } catch {}
+                  },
+                }}
+              >
+                <Popup closeButton={false}>
+                  <div
+                    style={{
+                      minWidth: 260,
+                      borderRadius: 16,
+                      border: `1px solid ${BORDER}`,
+                      background: GLASS_BG_DARK,
+                      backgroundImage:
+                        "radial-gradient(500px 300px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
+                      color: TEXT_LIGHT,
+                      overflow: "hidden",
+                      boxShadow: GLASS_SHADOW,
+                      padding: 12,
+                      position: "relative",
+                    }}
+                  >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        try {
+                          mapRef.current?.closePopup?.();
+                        } catch {}
+                      }}
+                      title="Zamknij"
+                      style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        width: 32,
+                        height: 32,
+                        borderRadius: 12,
+                        border: `1px solid ${BORDER}`,
+                        background: "rgba(255,255,255,0.08)",
+                        color: "rgba(255,255,255,0.9)",
+                        cursor: "pointer",
+                        display: "grid",
+                        placeItems: "center",
+                        fontWeight: 900,
+                        lineHeight: 1,
+                      }}
+                    >
+                      ✕
+                    </button>
+
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingRight: 40 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
+                          {pt.title || `Punkt #${pt.id}`}
+                        </div>
+
+                        <div style={{ fontSize: 12, color: MUTED }}>
+                          Status:{" "}
+                          <b style={{ color: "rgba(255,255,255,0.92)" }}>{statusLabel(pt.status)}</b>
+                        </div>
+                      </div>
+
+                      <ChanceRing
+                        value={projectChance({
+                          acquired: isAcquired("points", pt.id),
+                          journalCount: journalCounts.points?.[pt.id] || 0,
+                        })}
+                        tooltip={chanceTooltip({
+                          acquired: isAcquired("points", pt.id),
+                          journalCount: journalCounts.points?.[pt.id] || 0,
+                        })}
+                      />
+                    </div>
+
+                    <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
+
+                    {pt.director ? (
+                      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.96 }}>
+                        <b>Dyrektor:</b> {pt.director}
+                      </div>
+                    ) : null}
+
+                    {pt.winner ? (
+                      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.96 }}>
+                        <b>Firma:</b> {pt.winner}
+                      </div>
+                    ) : null}
+
+                    <div style={{ fontSize: 12, marginTop: 8, opacity: 0.96 }}>
+                      {pt.note ? pt.note : <span style={{ opacity: 0.75 }}>Brak notatki</span>}
+                    </div>
+
+                    <div style={{ fontSize: 11, marginTop: 10, color: MUTED }}>
+                      Wpisy w dzienniku: {journalCounts.points?.[pt.id] || 0}
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPointId(pt.id);
+                        setSelectedTunnelId(null);
+                        setEditOpen(true);
+                        try {
+                          mapRef.current?.closePopup?.();
+                        } catch {}
+                      }}
+                      style={{
+                        position: "absolute",
+                        right: 10,
+                        bottom: 10,
+                        padding: "8px 10px",
+                        borderRadius: 12,
+                        border: `1px solid ${BORDER}`,
+                        background: "rgba(255,255,255,0.08)",
+                        color: TEXT_LIGHT,
+                        cursor: "pointer",
+                        fontWeight: 900,
+                        fontSize: 12,
+                      }}
+                      title="Rozwiń i edytuj projekt"
+                    >
+                      Rozwiń
+                    </button>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </FeatureGroup>
+        </MapContainer>
+
+        {/* MODAL EDYCJI — renderowany raz */}
         <EditProjectModal
           open={editOpen}
           kind={selectedPoint ? "points" : "tunnels"}
