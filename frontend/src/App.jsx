@@ -3154,6 +3154,7 @@ export default function App() {
           </b>
         </div>
       </div>
+<div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
       <ChanceRing
         value={projectChance({
