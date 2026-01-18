@@ -3043,124 +3043,136 @@ export default function App() {
                 }}
               >
                 <Popup closeButton={false}>
-                  <div
-                    style={{
-                      minWidth: 260,
-                      borderRadius: 16,
-                      border: `1px solid ${BORDER}`,
-                      background: GLASS_BG_DARK,
-                      backgroundImage:
-                        "radial-gradient(500px 300px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
-                      color: TEXT_LIGHT,
-                      overflow: "hidden",
-                      boxShadow: GLASS_SHADOW,
-                      padding: 12,
-                      position: "relative",
-                    }}
-                  >
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        try {
-                          mapRef.current?.closePopup?.();
-                        } catch {}
-                      }}
-                      title="Zamknij"
-                      style={{
-                        position: "absolute",
-                        top: 8,
-                        right: 8,
-                        width: 32,
-                        height: 32,
-                        borderRadius: 12,
-                        border: `1px solid ${BORDER}`,
-                        background: "rgba(255,255,255,0.08)",
-                        color: "rgba(255,255,255,0.9)",
-                        cursor: "pointer",
-                        display: "grid",
-                        placeItems: "center",
-                        fontWeight: 900,
-                        lineHeight: 1,
-                      }}
-                    >
-                      ✕
-                    </button>
+  <div
+    style={{
+      minWidth: 270,
+      borderRadius: 16,
+      border: `1px solid ${BORDER}`,
+      background: GLASS_BG,
+      backgroundImage:
+        "radial-gradient(500px 300px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
+      color: TEXT_LIGHT,
+      overflow: "hidden",
+      boxShadow: GLASS_SHADOW,
+      padding: 12,
+      position: "relative",
+      backdropFilter: "blur(8px)",
+    }}
+  >
+    {/* X (wyśrodkowany) */}
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        try {
+          mapRef.current?.closePopup?.();
+        } catch {}
+      }}
+      title="Zamknij"
+      style={{
+        position: "absolute",
+        top: 8,
+        right: 8,
+        width: 30,
+        height: 30,
+        borderRadius: 12,
+        border: `1px solid ${BORDER}`,
+        background: "rgba(255,255,255,0.08)",
+        color: "rgba(255,255,255,0.92)",
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center",
+        padding: 0,
+        lineHeight: 0,
+      }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ display: "block" }}>
+        <path
+          d="M18 6L6 18M6 6l12 12"
+          stroke="currentColor"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+        />
+      </svg>
+    </button>
 
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingRight: 40 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
-                          {t.name || `Tunel #${t.id}`}
-                        </div>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingRight: 42 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
+          {t.name || `Tunel #${t.id}`}
+        </div>
 
-                        <div style={{ fontSize: 12, color: MUTED }}>
-                          Status:{" "}
-                          <b style={{ color: "rgba(255,255,255,0.92)" }}>{statusLabel(t.status)}</b>
-                        </div>
-                      </div>
+        <div style={{ fontSize: 12, color: MUTED }}>
+          Status:{" "}
+          <b style={{ color: "rgba(255,255,255,0.92)" }}>{statusLabel(t.status)}</b>
+        </div>
+      </div>
 
-                      <ChanceRing
-                        value={projectChance({
-                          acquired: isAcquired("tunnels", t.id),
-                          journalCount: journalCounts.tunnels?.[t.id] || 0,
-                        })}
-                        tooltip={chanceTooltip({
-                          acquired: isAcquired("tunnels", t.id),
-                          journalCount: journalCounts.tunnels?.[t.id] || 0,
-                        })}
-                      />
-                    </div>
+      <ChanceRing
+        value={projectChance({
+          acquired: isAcquired("tunnels", t.id),
+          journalCount: journalCounts.tunnels?.[t.id] || 0,
+        })}
+        tooltip={chanceTooltip({
+          acquired: isAcquired("tunnels", t.id),
+          journalCount: journalCounts.tunnels?.[t.id] || 0,
+        })}
+      />
+    </div>
 
-                    <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
+    <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-                    {t.director ? (
-                      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.96 }}>
-                        <b>Dyrektor:</b> {t.director}
-                      </div>
-                    ) : null}
+    {t.director ? (
+      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.95 }}>
+        <b>Dyrektor:</b> {t.director}
+      </div>
+    ) : null}
 
-                    {t.winner ? (
-                      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.96 }}>
-                        <b>Firma:</b> {t.winner}
-                      </div>
-                    ) : null}
+    {t.winner ? (
+      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.95 }}>
+        <b>Firma:</b> {t.winner}
+      </div>
+    ) : null}
 
-                    <div style={{ fontSize: 12, marginTop: 8, opacity: 0.96 }}>
-                      {t.note ? t.note : <span style={{ opacity: 0.75 }}>Brak notatki</span>}
-                    </div>
+    <div style={{ fontSize: 12, marginTop: 8, opacity: 0.95 }}>
+      {t.note ? t.note : <span style={{ opacity: 0.75 }}>Brak notatki</span>}
+    </div>
 
-                    <div style={{ fontSize: 11, marginTop: 10, color: MUTED }}>
-                      Wpisy w dzienniku: {journalCounts.tunnels?.[t.id] || 0}
-                    </div>
+    <div style={{ fontSize: 11, marginTop: 10, color: MUTED }}>
+      Wpisy w dzienniku: {journalCounts.tunnels?.[t.id] || 0}
+    </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedTunnelId(t.id);
-                        setSelectedPointId(null);
-                        setEditOpen(true);
-                        try {
-                          mapRef.current?.closePopup?.();
-                        } catch {}
-                      }}
-                      style={{
-                        position: "absolute",
-                        right: 10,
-                        bottom: 10,
-                        padding: "8px 10px",
-                        borderRadius: 12,
-                        border: `1px solid ${BORDER}`,
-                        background: "rgba(255,255,255,0.08)",
-                        color: TEXT_LIGHT,
-                        cursor: "pointer",
-                        fontWeight: 900,
-                        fontSize: 12,
-                      }}
-                      title="Rozwiń i edytuj projekt"
-                    >
-                      Rozwiń
-                    </button>
-                  </div>
-                </Popup>
+    {/* stopka: Rozwiń (mniejszy, nie nachodzi na tekst) */}
+    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedTunnelId(t.id);
+          setSelectedPointId(null);
+          setEditOpen(true);
+          try {
+            mapRef.current?.closePopup?.();
+          } catch {}
+        }}
+        title="Rozwiń i edytuj projekt"
+        style={{
+          padding: "7px 10px",
+          height: 32,
+          borderRadius: 12,
+          border: `1px solid ${BORDER}`,
+          background: "rgba(255,255,255,0.08)",
+          color: TEXT_LIGHT,
+          cursor: "pointer",
+          fontWeight: 900,
+          fontSize: 12,
+          lineHeight: 1,
+        }}
+      >
+        Rozwiń
+      </button>
+    </div>
+  </div>
+</Popup>
+
               </Polyline>
             ))}
 
@@ -3184,124 +3196,136 @@ export default function App() {
                 }}
               >
                 <Popup closeButton={false}>
-                  <div
-                    style={{
-                      minWidth: 260,
-                      borderRadius: 16,
-                      border: `1px solid ${BORDER}`,
-                      background: GLASS_BG_DARK,
-                      backgroundImage:
-                        "radial-gradient(500px 300px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
-                      color: TEXT_LIGHT,
-                      overflow: "hidden",
-                      boxShadow: GLASS_SHADOW,
-                      padding: 12,
-                      position: "relative",
-                    }}
-                  >
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        try {
-                          mapRef.current?.closePopup?.();
-                        } catch {}
-                      }}
-                      title="Zamknij"
-                      style={{
-                        position: "absolute",
-                        top: 8,
-                        right: 8,
-                        width: 32,
-                        height: 32,
-                        borderRadius: 12,
-                        border: `1px solid ${BORDER}`,
-                        background: "rgba(255,255,255,0.08)",
-                        color: "rgba(255,255,255,0.9)",
-                        cursor: "pointer",
-                        display: "grid",
-                        placeItems: "center",
-                        fontWeight: 900,
-                        lineHeight: 1,
-                      }}
-                    >
-                      ✕
-                    </button>
+  <div
+    style={{
+      minWidth: 270,
+      borderRadius: 16,
+      border: `1px solid ${BORDER}`,
+      background: GLASS_BG,
+      backgroundImage:
+        "radial-gradient(500px 300px at 20% 10%, rgba(255,255,255,0.10), transparent 60%)",
+      color: TEXT_LIGHT,
+      overflow: "hidden",
+      boxShadow: GLASS_SHADOW,
+      padding: 12,
+      position: "relative",
+      backdropFilter: "blur(8px)",
+    }}
+  >
+    {/* X (wyśrodkowany) */}
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        try {
+          mapRef.current?.closePopup?.();
+        } catch {}
+      }}
+      title="Zamknij"
+      style={{
+        position: "absolute",
+        top: 8,
+        right: 8,
+        width: 30,
+        height: 30,
+        borderRadius: 12,
+        border: `1px solid ${BORDER}`,
+        background: "rgba(255,255,255,0.08)",
+        color: "rgba(255,255,255,0.92)",
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center",
+        padding: 0,
+        lineHeight: 0,
+      }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ display: "block" }}>
+        <path
+          d="M18 6L6 18M6 6l12 12"
+          stroke="currentColor"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+        />
+      </svg>
+    </button>
 
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingRight: 40 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
-                          {pt.title || `Punkt #${pt.id}`}
-                        </div>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, paddingRight: 42 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 900, marginBottom: 4, lineHeight: 1.15 }}>
+          {pt.title}
+        </div>
 
-                        <div style={{ fontSize: 12, color: MUTED }}>
-                          Status:{" "}
-                          <b style={{ color: "rgba(255,255,255,0.92)" }}>{statusLabel(pt.status)}</b>
-                        </div>
-                      </div>
+        <div style={{ fontSize: 12, color: MUTED }}>
+          Status:{" "}
+          <b style={{ color: "rgba(255,255,255,0.92)" }}>{statusLabel(pt.status)}</b>
+        </div>
+      </div>
 
-                      <ChanceRing
-                        value={projectChance({
-                          acquired: isAcquired("points", pt.id),
-                          journalCount: journalCounts.points?.[pt.id] || 0,
-                        })}
-                        tooltip={chanceTooltip({
-                          acquired: isAcquired("points", pt.id),
-                          journalCount: journalCounts.points?.[pt.id] || 0,
-                        })}
-                      />
-                    </div>
+      <ChanceRing
+        value={projectChance({
+          acquired: isAcquired("points", pt.id),
+          journalCount: journalCounts.points?.[pt.id] || 0,
+        })}
+        tooltip={chanceTooltip({
+          acquired: isAcquired("points", pt.id),
+          journalCount: journalCounts.points?.[pt.id] || 0,
+        })}
+      />
+    </div>
 
-                    <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
+    <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
 
-                    {pt.director ? (
-                      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.96 }}>
-                        <b>Dyrektor:</b> {pt.director}
-                      </div>
-                    ) : null}
+    {pt.director ? (
+      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.95 }}>
+        <b>Dyrektor:</b> {pt.director}
+      </div>
+    ) : null}
 
-                    {pt.winner ? (
-                      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.96 }}>
-                        <b>Firma:</b> {pt.winner}
-                      </div>
-                    ) : null}
+    {pt.winner ? (
+      <div style={{ fontSize: 12, marginTop: 6, opacity: 0.95 }}>
+        <b>Firma:</b> {pt.winner}
+      </div>
+    ) : null}
 
-                    <div style={{ fontSize: 12, marginTop: 8, opacity: 0.96 }}>
-                      {pt.note ? pt.note : <span style={{ opacity: 0.75 }}>Brak notatki</span>}
-                    </div>
+    <div style={{ fontSize: 12, marginTop: 8, opacity: 0.95 }}>
+      {pt.note ? pt.note : <span style={{ opacity: 0.75 }}>Brak notatki</span>}
+    </div>
 
-                    <div style={{ fontSize: 11, marginTop: 10, color: MUTED }}>
-                      Wpisy w dzienniku: {journalCounts.points?.[pt.id] || 0}
-                    </div>
+    <div style={{ fontSize: 11, marginTop: 10, color: MUTED }}>
+      Wpisy w dzienniku: {journalCounts.points?.[pt.id] || 0}
+    </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedPointId(pt.id);
-                        setSelectedTunnelId(null);
-                        setEditOpen(true);
-                        try {
-                          mapRef.current?.closePopup?.();
-                        } catch {}
-                      }}
-                      style={{
-                        position: "absolute",
-                        right: 10,
-                        bottom: 10,
-                        padding: "8px 10px",
-                        borderRadius: 12,
-                        border: `1px solid ${BORDER}`,
-                        background: "rgba(255,255,255,0.08)",
-                        color: TEXT_LIGHT,
-                        cursor: "pointer",
-                        fontWeight: 900,
-                        fontSize: 12,
-                      }}
-                      title="Rozwiń i edytuj projekt"
-                    >
-                      Rozwiń
-                    </button>
-                  </div>
-                </Popup>
+    {/* stopka: Rozwiń (mniejszy, nie nachodzi na tekst) */}
+    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedPointId(pt.id);
+          setSelectedTunnelId(null);
+          setEditOpen(true);
+          try {
+            mapRef.current?.closePopup?.();
+          } catch {}
+        }}
+        title="Rozwiń i edytuj projekt"
+        style={{
+          padding: "7px 10px",
+          height: 32,
+          borderRadius: 12,
+          border: `1px solid ${BORDER}`,
+          background: "rgba(255,255,255,0.08)",
+          color: TEXT_LIGHT,
+          cursor: "pointer",
+          fontWeight: 900,
+          fontSize: 12,
+          lineHeight: 1,
+        }}
+      >
+        Rozwiń
+      </button>
+    </div>
+  </div>
+</Popup>
+
               </Marker>
             ))}
           </FeatureGroup>
