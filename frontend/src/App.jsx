@@ -942,7 +942,7 @@ function RecentUpdatesPanel({
 }}
 className="markAllBtn"
           >
-            Oznacz wszystko jako przeczytane
+             Wszystko przeczytane
           </button>
         </div>
       </div>
