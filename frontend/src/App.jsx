@@ -3223,6 +3223,88 @@ background: x.priority
               : "Narysuj linię na mapie (klik/klik/klik i zakończ)."}
           </span>
         </div>
+        {addMode === "tunnel" && drawReady ? (
+  <div
+    style={{
+      padding: 12,
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      borderTop: `1px solid ${BORDER}`,
+      background: "rgba(0,0,0,0.06)",
+    }}
+  >
+    <button
+      onClick={() => {
+        try {
+          editToolRef.current?.disable?.();
+          deleteToolRef.current?.disable?.();
+          drawPolylineRef.current?.enable?.();
+        } catch {}
+      }}
+      style={{
+        padding: "8px 10px",
+        borderRadius: 12,
+        border: `1px solid ${BORDER}`,
+        background: "rgba(255,255,255,0.08)",
+        color: TEXT_LIGHT,
+        fontWeight: 900,
+        fontSize: 12,
+        cursor: "pointer",
+      }}
+    >
+      Rysuj
+    </button>
+
+    <button
+      onClick={() => {
+        try {
+          drawPolylineRef.current?.disable?.();
+          deleteToolRef.current?.disable?.();
+          editToolRef.current?.enable?.();
+        } catch {}
+      }}
+      style={{
+        padding: "8px 10px",
+        borderRadius: 12,
+        border: `1px solid ${BORDER}`,
+        background: "rgba(255,255,255,0.06)",
+        color: TEXT_LIGHT,
+        fontWeight: 900,
+        fontSize: 12,
+        cursor: "pointer",
+      }}
+    >
+      Edytuj
+    </button>
+
+    <button
+      onClick={() => {
+        try {
+          drawPolylineRef.current?.disable?.();
+          editToolRef.current?.disable?.();
+          deleteToolRef.current?.enable?.();
+        } catch {}
+      }}
+      style={{
+        padding: "8px 10px",
+        borderRadius: 12,
+        border: "1px solid rgba(255,80,80,0.45)",
+        background: "rgba(255,80,80,0.10)",
+        color: TEXT_LIGHT,
+        fontWeight: 900,
+        fontSize: 12,
+        cursor: "pointer",
+      }}
+    >
+      Usuń
+    </button>
+
+    <span style={{ marginLeft: "auto", fontSize: 11, color: MUTED, opacity: 0.9 }}>
+      Wybierz narzędzie i działaj na mapie.
+    </span>
+  </div>
+) : null}
 
         <div style={{ fontSize: 11, color: MUTED, fontWeight: 700, opacity: 0.85 }}>
           {addMode === "point"
