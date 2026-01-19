@@ -2613,17 +2613,24 @@ export default function App() {
     >
       {/* SIDEBAR */}
       <aside
-        style={{
-          color: TEXT_LIGHT,
-          borderRight: sidebarOpen ? `1px solid ${BORDER}` : "none",
-          overflow: "hidden",
-          width: sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed,
-          transition: "width 200ms ease",
-          background: GLASS_BG,
-          backgroundImage: GLASS_HIGHLIGHT,
-          backdropFilter: "blur(8px)",
-          boxShadow: GLASS_SHADOW,
-        }}
+  style={{
+    color: TEXT_LIGHT,
+    borderRight: sidebarOpen ? `1px solid ${BORDER}` : "none",
+    overflow: "hidden",
+    width: sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed,
+    transition: "width 200ms ease",
+
+    // ✅ bardziej “navy glass” jak reszta UI
+    background: "linear-gradient(180deg, rgba(13,24,40,0.78) 0%, rgba(12,22,36,0.72) 55%, rgba(10,18,30,0.70) 100%)",
+    backgroundImage:
+      "radial-gradient(900px 520px at 18% 0%, rgba(99,102,241,0.18), transparent 60%)," +
+      "radial-gradient(700px 420px at 80% 18%, rgba(34,197,94,0.10), transparent 60%)," +
+      "radial-gradient(700px 420px at 30% 70%, rgba(59,130,246,0.12), transparent 60%)",
+
+    backdropFilter: "blur(10px)",
+    boxShadow: "0 18px 50px rgba(0,0,0,0.45)",
+  }}
+
       >
         {sidebarOpen ? (
           <>
