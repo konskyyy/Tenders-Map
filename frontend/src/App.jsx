@@ -2613,526 +2613,518 @@ export default function App() {
     >
       {/* SIDEBAR */}
       <aside
-        style={{
-          color: TEXT_LIGHT,
-          borderRight: sidebarOpen ? `1px solid ${BORDER}` : "none",
-          overflow: "hidden",
-          width: sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed,
-          transition: "width 200ms ease",
-          background: GLASS_BG,
-          backgroundImage: GLASS_HIGHLIGHT,
-          backdropFilter: "blur(8px)",
-          boxShadow: GLASS_SHADOW,
-        }}
-      >
-        {sidebarOpen ? (
-          <>
-            <div
   style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    padding: "12px 12px",
-    borderBottom: `1px solid ${BORDER}`,
-
-    // ✅ “hero header”
-    background:
-      "linear-gradient(180deg, rgba(12,26,44,0.95) 0%, rgba(12,26,44,0.78) 100%)",
-    backgroundImage:
-      "radial-gradient(650px 220px at 18% 10%, rgba(255,255,255,0.10), transparent 60%)," +
-      "radial-gradient(420px 220px at 85% 10%, rgba(99,102,241,0.20), transparent 60%)",
-    backdropFilter: "blur(10px)",
+    color: TEXT_LIGHT,
+    borderRight: sidebarOpen ? `1px solid ${BORDER}` : "none",
+    overflow: "hidden",
+    width: sidebarOpen ? sidebarWidthOpen : sidebarWidthClosed,
+    transition: "width 200ms ease",
+    background: GLASS_BG,
+    backgroundImage: GLASS_HIGHLIGHT,
+    backdropFilter: "blur(8px)",
+    boxShadow: GLASS_SHADOW,
   }}
 >
-  <button
-    onClick={() => setSidebarOpen(false)}
-    title="Zwiń panel"
-    style={{
-      width: 36,
-      height: 36,
-      borderRadius: 12,
-      border: `1px solid ${BORDER}`,
-      background: "rgba(255,255,255,0.06)",
-      color: TEXT_LIGHT,
-      cursor: "pointer",
-      display: "grid",
-      placeItems: "center",
-      fontSize: 16,
-      lineHeight: 1,
-      padding: 0,
-      boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
-    }}
-  >
-    ⟨
-  </button>
-
-  <div style={{ display: "grid", gap: 4, flex: 1, minWidth: 0 }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-      {/* ✅ “badge” aplikacji */}
-      <span
-        style={{
-          fontSize: 11,
-          fontWeight: 900,
-          letterSpacing: 0.6,
-          padding: "3px 8px",
-          borderRadius: 999,
-          border: `1px solid rgba(255,255,255,0.14)`,
-          background: "rgba(255,255,255,0.06)",
-          color: "rgba(255,255,255,0.88)",
-          flexShrink: 0,
-        }}
-      >
-        BD MAP
-      </span>
-
+  {sidebarOpen ? (
+    <>
+      {/* HEADER */}
       <div
         style={{
-          fontWeight: 900,
-          letterSpacing: 0.2,
-          fontSize: 14,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "12px 12px",
+          borderBottom: `1px solid ${BORDER}`,
+          background: GLASS_BG_DARK,
+          backgroundImage: GLASS_HIGHLIGHT,
+          backdropFilter: "blur(10px)",
         }}
       >
-        Mapa projektów
-      </div>
-    </div>
+        <button
+          onClick={() => setSidebarOpen(false)}
+          title="Zwiń panel"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 12,
+            border: `1px solid ${BORDER}`,
+            background: "rgba(255,255,255,0.06)",
+            color: TEXT_LIGHT,
+            cursor: "pointer",
+            display: "grid",
+            placeItems: "center",
+            fontSize: 16,
+            lineHeight: 1,
+            padding: 0,
+            boxShadow: "0 10px 22px rgba(0,0,0,0.18)",
+          }}
+        >
+          ⟨
+        </button>
 
-    {/* ✅ user pill + status dot */}
-    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-      <span
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: 999,
-          background: "rgba(34,197,94,0.95)",
-          boxShadow: "0 0 12px rgba(34,197,94,0.25)",
-          flexShrink: 0,
-        }}
-      />
-      <div
-        style={{
-          fontSize: 11,
-          color: MUTED,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        Zalogowano: <b style={{ color: "rgba(255,255,255,0.88)" }}>{user?.email || "(użytkownik)"}</b>
-      </div>
-    </div>
-  </div>
-
-  <button
-    onClick={() => logout()}
-    style={{
-      padding: "8px 10px",
-      borderRadius: 12,
-      border: `1px solid ${BORDER}`,
-      background: "rgba(255,255,255,0.06)",
-      color: TEXT_LIGHT,
-      cursor: "pointer",
-      fontWeight: 900,
-      fontSize: 11,
-      boxShadow: "0 10px 22px rgba(0,0,0,0.22)",
-    }}
-  >
-    Wyloguj
-  </button>
-</div>
-
+        <div style={{ display: "grid", gap: 3, flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 900,
+                letterSpacing: 0.6,
+                padding: "3px 8px",
+                borderRadius: 999,
+                border: `1px solid ${BORDER}`,
+                background: "rgba(255,255,255,0.06)",
+                color: "rgba(255,255,255,0.88)",
+                flexShrink: 0,
+              }}
+            >
+              BD
+            </span>
 
             <div
               style={{
-                padding: 10,
-                height: "calc(100% - 55px)",
+                fontWeight: 900,
+                letterSpacing: 0.2,
+                fontSize: 14,
                 overflow: "hidden",
-                display: "flex",
-                flexDirection: "column",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
             >
-              {apiError ? (
-                <div
-                  style={{
-                    padding: 10,
-                    borderRadius: 14,
-                    border: "1px solid rgba(255,120,120,0.45)",
-                    background: "rgba(255,120,120,0.12)",
-                    color: "rgba(255,255,255,0.95)",
-                    fontSize: 11,
-                    marginBottom: 10,
-                  }}
-                >
-                  {apiError}
-                </div>
-              ) : null}
+              Mapa projektów
+            </div>
+          </div>
 
-              {/* Dodawanie */}
-              <div
-                style={{
-                  padding: 10,
-                  borderRadius: 14,
-                  border: `1px solid ${BORDER}`,
-                  background: "rgba(255,255,255,0.05)",
-                  marginBottom: 10,
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: 999,
+                background: "rgba(34,197,94,0.95)",
+                boxShadow: "0 0 12px rgba(34,197,94,0.22)",
+                flexShrink: 0,
+              }}
+            />
+            <div
+              style={{
+                fontSize: 11,
+                color: MUTED,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Zalogowano:{" "}
+              <b style={{ color: "rgba(255,255,255,0.88)" }}>
+                {user?.email || "(użytkownik)"}
+              </b>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => logout()}
+          style={{
+            padding: "8px 10px",
+            borderRadius: 12,
+            border: `1px solid ${BORDER}`,
+            background: "rgba(255,255,255,0.06)",
+            color: TEXT_LIGHT,
+            cursor: "pointer",
+            fontWeight: 900,
+            fontSize: 11,
+            boxShadow: "0 10px 22px rgba(0,0,0,0.16)",
+          }}
+        >
+          Wyloguj
+        </button>
+      </div>
+
+      <div
+        style={{
+          padding: 10,
+          height: "calc(100% - 55px)",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {apiError ? (
+          <div
+            style={{
+              padding: 10,
+              borderRadius: 14,
+              border: "1px solid rgba(255,120,120,0.45)",
+              background: "rgba(255,120,120,0.12)",
+              color: "rgba(255,255,255,0.95)",
+              fontSize: 11,
+              marginBottom: 10,
+            }}
+          >
+            {apiError}
+          </div>
+        ) : null}
+
+        {/* Dodawanie */}
+        <div
+          style={{
+            padding: 10,
+            borderRadius: 14,
+            border: `1px solid ${BORDER}`,
+            background: "rgba(255,255,255,0.04)",
+            backgroundImage: GLASS_HIGHLIGHT,
+            backdropFilter: "blur(8px)",
+            marginBottom: 10,
+          }}
+        >
+          <div style={{ fontWeight: 800, marginBottom: 8, fontSize: 13 }}>Dodawanie projektów</div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <button
+              onClick={() => {
+                setActiveDrawTool("draw");
+                setAddMode((m) => (m === "point" ? "none" : "point"));
+              }}
+              style={{
+                padding: "9px 10px",
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                background:
+                  addMode === "point" ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.08)",
+                color: TEXT_LIGHT,
+                cursor: "pointer",
+                fontWeight: 800,
+                fontSize: 12,
+              }}
+              title="Kliknij mapę, aby dodać punkt"
+            >
+              🎯 Punkt
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveDrawTool("draw");
+                setAddMode((m) => (m === "tunnel" ? "none" : "tunnel"));
+              }}
+              style={{
+                padding: "9px 10px",
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                background:
+                  addMode === "tunnel" ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.08)",
+                color: TEXT_LIGHT,
+                cursor: "pointer",
+                fontWeight: 800,
+                fontSize: 12,
+              }}
+              title="Rysuj linię na mapie"
+            >
+              🧵 Tunel
+            </button>
+          </div>
+
+          <div style={{ marginTop: 8, fontSize: 11, color: MUTED, lineHeight: 1.35 }}>
+            {addMode === "point"
+              ? "Dodawanie: Punkt — kliknij na mapie, żeby dodać marker."
+              : addMode === "tunnel"
+              ? "Dodawanie: Tunel — użyj narzędzia rysowania linii (klik/klik/klik i zakończ)."
+              : "Wybierz tryb dodawania: Punkt albo Tunel."}
+          </div>
+        </div>
+
+        {/* NARZĘDZIA */}
+        <div
+          style={{
+            padding: 10,
+            borderRadius: 14,
+            border: `1px solid ${BORDER}`,
+            background: "rgba(255,255,255,0.04)",
+            backgroundImage: GLASS_HIGHLIGHT,
+            backdropFilter: "blur(8px)",
+            marginBottom: 10,
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
+            flex: 1,
+          }}
+        >
+          <div style={{ fontWeight: 800, marginBottom: 8, fontSize: 13 }}>Narzędzia</div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 8,
+              marginBottom: 10,
+            }}
+          >
+            <button
+              onClick={() => {
+                loadPoints();
+                loadTunnels();
+              }}
+              style={{
+                width: "100%",
+                padding: 9,
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                background: "rgba(255,255,255,0.08)",
+                color: TEXT_LIGHT,
+                cursor: "pointer",
+                fontWeight: 800,
+                fontSize: 12,
+              }}
+            >
+              {loadingPoints || loadingTunnels ? "Ładuję..." : "Odśwież"}
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedPointId(null);
+                setSelectedTunnelId(null);
+                try {
+                  mapRef.current?.closePopup?.();
+                } catch {}
+              }}
+              style={{
+                width: "100%",
+                padding: 9,
+                borderRadius: 12,
+                border: `1px solid ${BORDER}`,
+                background: "rgba(255,255,255,0.05)",
+                color: TEXT_LIGHT,
+                cursor: "pointer",
+                fontWeight: 800,
+                fontSize: 12,
+              }}
+            >
+              Odznacz
+            </button>
+          </div>
+
+          {selectedPoint || selectedTunnel ? (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+              <button
+                onClick={() => {
+                  if (selectedPoint) togglePointPriority(selectedPoint);
+                  else toggleTunnelPriority(selectedTunnel);
                 }}
-              >
-                <div style={{ fontWeight: 800, marginBottom: 8, fontSize: 13 }}>
-                  Dodawanie projektów
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  <button
-                    onClick={() => {
-                      setActiveDrawTool("draw");
-                      setAddMode((m) => (m === "point" ? "none" : "point"));
-                    }}
-                    style={{
-                      padding: "9px 10px",
-                      borderRadius: 12,
-                      border: `1px solid ${BORDER}`,
-                      background:
-                        addMode === "point"
-                          ? "rgba(255,255,255,0.14)"
-                          : "rgba(255,255,255,0.08)",
-                      color: TEXT_LIGHT,
-                      cursor: "pointer",
-                      fontWeight: 800,
-                      fontSize: 12,
-                    }}
-                    title="Kliknij mapę, aby dodać punkt"
-                  >
-                    🎯 Punkt
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setActiveDrawTool("draw");
-                      setAddMode((m) => (m === "tunnel" ? "none" : "tunnel"));
-                    }}
-                    style={{
-                      padding: "9px 10px",
-                      borderRadius: 12,
-                      border: `1px solid ${BORDER}`,
-                      background:
-                        addMode === "tunnel"
-                          ? "rgba(255,255,255,0.14)"
-                          : "rgba(255,255,255,0.08)",
-                      color: TEXT_LIGHT,
-                      cursor: "pointer",
-                      fontWeight: 800,
-                      fontSize: 12,
-                    }}
-                    title="Rysuj linię na mapie"
-                  >
-                    🧵 Tunel
-                  </button>
-                </div>
-
-                <div style={{ marginTop: 8, fontSize: 11, color: MUTED, lineHeight: 1.35 }}>
-                  {addMode === "point"
-                    ? "Dodawanie: Punkt — kliknij na mapie, żeby dodać marker."
-                    : addMode === "tunnel"
-                    ? "Dodawanie: Tunel — użyj narzędzia rysowania linii (klik/klik/klik i zakończ)."
-                    : "Wybierz tryb dodawania: Punkt albo Tunel."}
-                </div>
-              </div>
-
-              {/* NARZĘDZIA */}
-              <div
                 style={{
-                  padding: 10,
-                  borderRadius: 14,
+                  padding: "9px 10px",
+                  borderRadius: 12,
                   border: `1px solid ${BORDER}`,
-                  background: "rgba(255,255,255,0.05)",
-                  marginBottom: 10,
+                  background: "rgba(255,255,255,0.08)",
+                  cursor: "pointer",
+                  fontWeight: 800,
                   display: "flex",
-                  flexDirection: "column",
-                  minHeight: 0,
-                  flex: 1,
+                  alignItems: "center",
+                  gap: 8,
+                  justifyContent: "center",
+                  color: TEXT_LIGHT,
                 }}
+                title="Oznacz jako ważne"
               >
-                <div style={{ fontWeight: 800, marginBottom: 8, fontSize: 13 }}>Narzędzia</div>
-
-                <div
+                <span
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 8,
-                    marginBottom: 10,
+                    fontSize: 16,
+                    lineHeight: 1,
+                    color:
+                      selectedPoint?.priority || selectedTunnel?.priority
+                        ? "rgba(255,255,255,0.65)"
+                        : "rgba(245,158,11,0.95)",
+                    textShadow:
+                      selectedPoint?.priority || selectedTunnel?.priority
+                        ? "none"
+                        : "0 0 12px rgba(245,158,11,0.25)",
                   }}
                 >
-                  <button
+                  ❗
+                </span>
+                <span style={{ fontSize: 12, whiteSpace: "nowrap" }}>Ważne</span>
+              </button>
+
+              <button
+                onClick={() => setEditOpen(true)}
+                style={{
+                  padding: 9,
+                  borderRadius: 12,
+                  border: `1px solid ${BORDER}`,
+                  background: "rgba(255,255,255,0.10)",
+                  color: TEXT_LIGHT,
+                  cursor: "pointer",
+                  fontWeight: 800,
+                  fontSize: 12,
+                }}
+              >
+                Edytuj
+              </button>
+
+              <button
+                onClick={deleteSelectedProject}
+                style={{
+                  padding: 9,
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,80,80,0.55)",
+                  background: "rgba(255,80,80,0.14)",
+                  color: TEXT_LIGHT,
+                  cursor: "pointer",
+                  fontWeight: 800,
+                  fontSize: 12,
+                }}
+              >
+                Usuń
+              </button>
+            </div>
+          ) : null}
+
+          <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              marginBottom: 8,
+            }}
+          >
+            <div style={{ fontWeight: 900 }}>Lista projektów</div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 11,
+                color: MUTED,
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 999,
+                  border: "1px solid rgba(255,216,77,0.55)",
+                  background: "rgba(255,216,77,0.10)",
+                  boxShadow: "0 0 10px rgba(255,216,77,0.12)",
+                  display: "inline-block",
+                }}
+              />
+              Ważny
+            </div>
+          </div>
+
+          <input
+            value={projectQuery}
+            onChange={(e) => setProjectQuery(e.target.value)}
+            placeholder="Szukaj projektu… (nazwa lub ID)"
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              height: 36,
+              padding: "0 10px",
+              borderRadius: 12,
+              border: `1px solid ${BORDER}`,
+              background: "rgba(255,255,255,0.06)",
+              color: TEXT_LIGHT,
+              outline: "none",
+              fontSize: 12,
+              fontWeight: 700,
+              marginBottom: 10,
+            }}
+          />
+
+          <div style={{ overflow: "auto", paddingRight: 4, flex: 1, minHeight: 0 }}>
+            <div style={{ display: "grid", gap: 8 }}>
+              {filteredProjectsSearch.map((x) => {
+                const isTunnel = x.kind === "tunnel";
+                const selected = isTunnel ? x.id === selectedTunnelId : x.id === selectedPointId;
+
+                return (
+                  <div
+                    key={`${x.kind}-${x.id}`}
                     onClick={() => {
-                      loadPoints();
-                      loadTunnels();
+                      if (isTunnel) {
+                        setSelectedTunnelId(x.id);
+                        setSelectedPointId(null);
+                        focusTunnel(x);
+                      } else {
+                        setSelectedPointId(x.id);
+                        setSelectedTunnelId(null);
+                        focusPoint(x);
+                      }
                     }}
                     style={{
-                      width: "100%",
                       padding: 9,
-                      borderRadius: 12,
-                      border: `1px solid ${BORDER}`,
-                      background: "rgba(255,255,255,0.08)",
-                      color: TEXT_LIGHT,
+                      borderRadius: 14,
+                      border: x.priority
+                        ? "2px solid rgba(255,216,77,0.70)"
+                        : selected
+                        ? "2px solid rgba(255,255,255,0.35)"
+                        : `1px solid ${BORDER}`,
+                      background: x.priority ? "rgba(255,216,77,0.08)" : "rgba(255,255,255,0.05)",
                       cursor: "pointer",
-                      fontWeight: 800,
-                      fontSize: 12,
                     }}
                   >
-                    {loadingPoints || loadingTunnels ? "Ładuję..." : "Odśwież"}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setSelectedPointId(null);
-                      setSelectedTunnelId(null);
-                      try {
-                        mapRef.current?.closePopup?.();
-                      } catch {}
-                    }}
-                    style={{
-                      width: "100%",
-                      padding: 9,
-                      borderRadius: 12,
-                      border: `1px solid ${BORDER}`,
-                      background: "rgba(255,255,255,0.05)",
-                      color: TEXT_LIGHT,
-                      cursor: "pointer",
-                      fontWeight: 800,
-                      fontSize: 12,
-                    }}
-                  >
-                    Odznacz
-                  </button>
-                </div>
-
-                {selectedPoint || selectedTunnel ? (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                    <button
-                      onClick={() => {
-                        if (selectedPoint) togglePointPriority(selectedPoint);
-                        else toggleTunnelPriority(selectedTunnel);
-                      }}
-                      style={{
-                        padding: "9px 10px",
-                        borderRadius: 12,
-                        border: `1px solid ${BORDER}`,
-                        background: "rgba(255,255,255,0.08)",
-                        cursor: "pointer",
-                        fontWeight: 800,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        justifyContent: "center",
-                        color: TEXT_LIGHT,
-                      }}
-                      title="Oznacz jako ważne"
-                    >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <span
                         style={{
-                          fontSize: 16,
-                          lineHeight: 1,
-                          color:
-                            selectedPoint?.priority || selectedTunnel?.priority
-                              ? "rgba(255,255,255,0.65)"
-                              : "rgba(245,158,11,0.95)",
-                          textShadow:
-                            selectedPoint?.priority || selectedTunnel?.priority
-                              ? "none"
-                              : "0 0 12px rgba(245,158,11,0.25)",
+                          width: 14,
+                          display: "flex",
+                          justifyContent: "center",
+                          flexShrink: 0,
                         }}
                       >
-                        ❗
+                        {isTunnel ? "🟦" : "📍"}
                       </span>
-                      <span style={{ fontSize: 12, whiteSpace: "nowrap" }}>Ważne</span>
-                    </button>
 
-                    <button
-                      onClick={() => setEditOpen(true)}
-                      style={{
-                        padding: 9,
-                        borderRadius: 12,
-                        border: `1px solid ${BORDER}`,
-                        background: "rgba(255,255,255,0.10)",
-                        color: TEXT_LIGHT,
-                        cursor: "pointer",
-                        fontWeight: 800,
-                        fontSize: 12,
-                      }}
-                    >
-                      Edytuj
-                    </button>
+                      <span
+                        style={{
+                          fontWeight: 800,
+                          fontSize: 12,
+                          minWidth: 0,
+                          overflow: "hidden",
+                          display: "-webkit-box",
+                          WebkitBoxOrient: "vertical",
+                          WebkitLineClamp: 2,
+                          lineClamp: 2,
+                          whiteSpace: "normal",
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {isTunnel ? x.name || `Tunel #${x.id}` : x.title}
+                      </span>
 
-                    <button
-                      onClick={deleteSelectedProject}
-                      style={{
-                        padding: 9,
-                        borderRadius: 12,
-                        border: "1px solid rgba(255,80,80,0.55)",
-                        background: "rgba(255,80,80,0.14)",
-                        color: TEXT_LIGHT,
-                        cursor: "pointer",
-                        fontWeight: 800,
-                        fontSize: 12,
-                      }}
-                    >
-                      Usuń
-                    </button>
+                      <span
+                        style={{
+                          ...pillStyle,
+                          marginLeft: "auto",
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {statusLabel(x.status)}
+                      </span>
+                    </div>
                   </div>
-                ) : null}
+                );
+              })}
 
-                <div style={{ height: 1, background: BORDER, margin: "10px 0" }} />
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 10,
-                    marginBottom: 8,
-                  }}
-                >
-                  <div style={{ fontWeight: 900 }}>Lista projektów</div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      fontSize: 11,
-                      color: MUTED,
-                      whiteSpace: "nowrap",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: 999,
-                        border: "1px solid rgba(255,216,77,0.55)",
-                        background: "rgba(255,216,77,0.10)",
-                        boxShadow: "0 0 10px rgba(255,216,77,0.12)",
-                        display: "inline-block",
-                      }}
-                    />
-                    Ważny
-                  </div>
+              {filteredProjectsSearch.length === 0 ? (
+                <div style={{ ...emptyBoxStyle, fontSize: 11 }}>
+                  Brak danych dla zaznaczonych statusów / wyszukiwania.
                 </div>
-
-                <input
-                  value={projectQuery}
-                  onChange={(e) => setProjectQuery(e.target.value)}
-                  placeholder="Szukaj projektu… (nazwa lub ID)"
-                  style={{
-                    width: "100%",
-                    boxSizing: "border-box",
-                    height: 36,
-                    padding: "0 10px",
-                    borderRadius: 12,
-                    border: `1px solid ${BORDER}`,
-                    background: "rgba(255,255,255,0.06)",
-                    color: TEXT_LIGHT,
-                    outline: "none",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    marginBottom: 10,
-                  }}
-                />
-
-                <div style={{ overflow: "auto", paddingRight: 4, flex: 1, minHeight: 0 }}>
-                  <div style={{ display: "grid", gap: 8 }}>
-                    {filteredProjectsSearch.map((x) => {
-                      const isTunnel = x.kind === "tunnel";
-                      const selected = isTunnel ? x.id === selectedTunnelId : x.id === selectedPointId;
-
-                      return (
-                        <div
-                          key={`${x.kind}-${x.id}`}
-                          onClick={() => {
-                            if (isTunnel) {
-                              setSelectedTunnelId(x.id);
-                              setSelectedPointId(null);
-                              focusTunnel(x);
-                            } else {
-                              setSelectedPointId(x.id);
-                              setSelectedTunnelId(null);
-                              focusPoint(x);
-                            }
-                          }}
-                          style={{
-                            padding: 9,
-                            borderRadius: 14,
-                            border: x.priority
-                              ? "2px solid rgba(255,216,77,0.70)"
-                              : selected
-                              ? "2px solid rgba(255,255,255,0.35)"
-                              : `1px solid ${BORDER}`,
-                            background: x.priority
-                              ? "rgba(255,216,77,0.08)"
-                              : "rgba(255,255,255,0.05)",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <span
-                              style={{
-                                width: 14,
-                                display: "flex",
-                                justifyContent: "center",
-                                flexShrink: 0,
-                              }}
-                            >
-                              {isTunnel ? "🟦" : "📍"}
-                            </span>
-
-                            <span
-                              style={{
-                                fontWeight: 800,
-                                fontSize: 12,
-                                minWidth: 0,
-                                overflow: "hidden",
-                                display: "-webkit-box",
-                                WebkitBoxOrient: "vertical",
-                                WebkitLineClamp: 2,
-                                lineClamp: 2,
-                                whiteSpace: "normal",
-                                lineHeight: 1.2,
-                              }}
-                            >
-                              {isTunnel ? x.name || `Tunel #${x.id}` : x.title}
-                            </span>
-
-                            <span
-                              style={{
-                                ...pillStyle,
-                                marginLeft: "auto",
-                                whiteSpace: "nowrap",
-                                flexShrink: 0,
-                                fontWeight: 700,
-                              }}
-                            >
-                              {statusLabel(x.status)}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {filteredProjectsSearch.length === 0 ? (
-                      <div style={{ ...emptyBoxStyle, fontSize: 11 }}>
-                        Brak danych dla zaznaczonych statusów / wyszukiwania.
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
+              ) : null}
             </div>
-          </>
-        ) : null}
-      </aside>
+          </div>
+        </div>
+      </div>
+    </>
+  ) : null}
+</aside>
 
       {/* MAP */}
       <main
