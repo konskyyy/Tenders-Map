@@ -3017,24 +3017,25 @@ export default function App() {
           </div>
 
           <input
-            value={projectQuery}
-            onChange={(e) => setProjectQuery(e.target.value)}
-            placeholder="Szukaj projektu… (nazwa lub ID)"
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              height: 36,
-              padding: "0 10px",
-              borderRadius: 12,
-              border: `1px solid ${BORDER}`,
-              background: "rgba(255,255,255,0.06)",
-              color: TEXT_LIGHT,
-              outline: "none",
-              fontSize: 12,
-              fontWeight: 700,
-              marginBottom: 10,
-            }}
-          />
+  className="projectSearch"
+  value={projectQuery}
+  onChange={(e) => setProjectQuery(e.target.value)}
+  placeholder="Szukaj projektu… (wpisz nazwę lub słowo klucz)"
+  style={{
+    width: "100%",
+    boxSizing: "border-box",
+    height: 36,
+    padding: "0 10px",
+    borderRadius: 12,
+    border: `1px solid ${BORDER}`,
+    background: "rgba(255,255,255,0.06)",
+    color: TEXT_LIGHT,
+    outline: "none",
+    fontSize: 12,
+    fontWeight: 700,
+    marginBottom: 10,
+  }}
+/>
 
           <div style={{ overflow: "auto", paddingRight: 4, flex: 1, minHeight: 0 }}>
             <div style={{ display: "grid", gap: 8 }}>
