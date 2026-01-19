@@ -2628,70 +2628,121 @@ export default function App() {
         {sidebarOpen ? (
           <>
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "10px 12px",
-                borderBottom: `1px solid ${BORDER}`,
-                background: GLASS_BG_DARK,
-                backdropFilter: "blur(8px)",
-              }}
-            >
-              <button
-                onClick={() => setSidebarOpen(false)}
-                title="Zwiń panel"
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  border: `1px solid ${BORDER}`,
-                  background: "transparent",
-                  color: TEXT_LIGHT,
-                  cursor: "pointer",
-                  display: "grid",
-                  placeItems: "center",
-                  fontSize: 16,
-                  lineHeight: 1,
-                  padding: 0,
-                }}
-              >
-                ⟨
-              </button>
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    padding: "12px 12px",
+    borderBottom: `1px solid ${BORDER}`,
 
-              <div style={{ display: "grid", gap: 2, flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 800, letterSpacing: 0.2, fontSize: 13 }}>
-                  Mapa projektów - BD
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: MUTED,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Zalogowano: {user?.email || "(użytkownik)"}
-                </div>
-              </div>
+    // ✅ “hero header”
+    background:
+      "linear-gradient(180deg, rgba(12,26,44,0.95) 0%, rgba(12,26,44,0.78) 100%)",
+    backgroundImage:
+      "radial-gradient(650px 220px at 18% 10%, rgba(255,255,255,0.10), transparent 60%)," +
+      "radial-gradient(420px 220px at 85% 10%, rgba(99,102,241,0.20), transparent 60%)",
+    backdropFilter: "blur(10px)",
+  }}
+>
+  <button
+    onClick={() => setSidebarOpen(false)}
+    title="Zwiń panel"
+    style={{
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      border: `1px solid ${BORDER}`,
+      background: "rgba(255,255,255,0.06)",
+      color: TEXT_LIGHT,
+      cursor: "pointer",
+      display: "grid",
+      placeItems: "center",
+      fontSize: 16,
+      lineHeight: 1,
+      padding: 0,
+      boxShadow: "0 10px 22px rgba(0,0,0,0.25)",
+    }}
+  >
+    ⟨
+  </button>
 
-              <button
-                onClick={() => logout()}
-                style={{
-                  padding: "7px 10px",
-                  borderRadius: 12,
-                  border: `1px solid ${BORDER}`,
-                  background: "rgba(255,255,255,0.06)",
-                  color: TEXT_LIGHT,
-                  cursor: "pointer",
-                  fontWeight: 800,
-                  fontSize: 11,
-                }}
-              >
-                Wyloguj
-              </button>
-            </div>
+  <div style={{ display: "grid", gap: 4, flex: 1, minWidth: 0 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+      {/* ✅ “badge” aplikacji */}
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 900,
+          letterSpacing: 0.6,
+          padding: "3px 8px",
+          borderRadius: 999,
+          border: `1px solid rgba(255,255,255,0.14)`,
+          background: "rgba(255,255,255,0.06)",
+          color: "rgba(255,255,255,0.88)",
+          flexShrink: 0,
+        }}
+      >
+        BD MAP
+      </span>
+
+      <div
+        style={{
+          fontWeight: 900,
+          letterSpacing: 0.2,
+          fontSize: 14,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        Mapa projektów
+      </div>
+    </div>
+
+    {/* ✅ user pill + status dot */}
+    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+      <span
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: 999,
+          background: "rgba(34,197,94,0.95)",
+          boxShadow: "0 0 12px rgba(34,197,94,0.25)",
+          flexShrink: 0,
+        }}
+      />
+      <div
+        style={{
+          fontSize: 11,
+          color: MUTED,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        Zalogowano: <b style={{ color: "rgba(255,255,255,0.88)" }}>{user?.email || "(użytkownik)"}</b>
+      </div>
+    </div>
+  </div>
+
+  <button
+    onClick={() => logout()}
+    style={{
+      padding: "8px 10px",
+      borderRadius: 12,
+      border: `1px solid ${BORDER}`,
+      background: "rgba(255,255,255,0.06)",
+      color: TEXT_LIGHT,
+      cursor: "pointer",
+      fontWeight: 900,
+      fontSize: 11,
+      boxShadow: "0 10px 22px rgba(0,0,0,0.22)",
+    }}
+  >
+    Wyloguj
+  </button>
+</div>
+
 
             <div
               style={{
